@@ -8,5 +8,6 @@ compose*.yaml
 README.md
 *.zip
 .DS_Store
+coverage
 .env*
 !.env.example

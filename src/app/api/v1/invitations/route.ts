@@ -5,24 +5,35 @@ import { prisma } from "@/lib/db";
 import { applicationUrl, createInvitationToken, invitationDto } from "@/lib/invitations";
 import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 import type { ClubSettings } from "@/data/club";
+import { ApiInputError, emailValue, readJson, textValue } from "@/lib/api-security";
 
 export async function POST(request: NextRequest) {
   const user = await authenticatedUser(request);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Nur Admins dürfen Einladungen erstellen." }, { status: user ? 403 : 401 });
-  const body = await request.json().catch(() => null) as { email?: string; name?: string; role?: Role; groupId?: string | null; sendEmail?: boolean } | null;
-  const email = body?.email?.trim().toLowerCase() || "";
-  if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400 });
+  let body: { email?: unknown; name?: unknown; role?: Role; groupId?: unknown; sendEmail?: boolean };
+  try { body = await readJson(request, 32_000); }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
+  let email: string;
+  try { email = emailValue(body.email); }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige E-Mail-Adresse." }, { status: 400 }); }
   if (!body?.role || !Object.values(Role).includes(body.role)) return NextResponse.json({ error: "Ungültige Rolle." }, { status: 400 });
   if (await prisma.user.findUnique({ where: { email } })) return NextResponse.json({ error: "Diese Person ist bereits Mitglied." }, { status: 409 });
-  if (body.groupId && !(await prisma.teamGroup.findUnique({ where: { id: body.groupId } }))) return NextResponse.json({ error: "Die ausgewählte Gruppe existiert nicht." }, { status: 400 });
+  const groupId = body.groupId ? textValue(body.groupId, "Gruppe", 100, 1) : null;
+  if (groupId && !(await prisma.teamGroup.findUnique({ where: { id: groupId } }))) return NextResponse.json({ error: "Die ausgewählte Gruppe existiert nicht." }, { status: 400 });
 
   await prisma.invitation.deleteMany({ where: { email, acceptedAt: null } });
   const { token, tokenHash } = createInvitationToken();
   const invitation = await prisma.invitation.create({
-    data: { email, name: body.name?.trim().slice(0, 100) || "", role: body.role, groupId: body.groupId || null, invitedById: user.id, tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) },
+    data: { email, name: typeof body.name === "string" ? body.name.trim().slice(0, 100) : "", role: body.role, groupId, invitedById: user.id, tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) },
     include: { invitedBy: { select: { name: true } } },
   });
-  const link = `${applicationUrl(request)}/einladung?token=${encodeURIComponent(token)}`;
+  let baseUrl: string;
+  try { baseUrl = applicationUrl(request); }
+  catch (error) {
+    await prisma.invitation.delete({ where: { id: invitation.id } });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Einladungs-URL ist nicht konfiguriert." }, { status: 503 });
+  }
+  const link = `${baseUrl}/einladung?token=${encodeURIComponent(token)}`;
   let emailSent = false;
   let emailError: string | undefined;
   if (body.sendEmail) {
@@ -32,7 +43,7 @@ export async function POST(request: NextRequest) {
       const settings = config.settings as unknown as ClubSettings;
       await sendInvitationMail({ to: email, name: invitation.name, inviter: user.name, clubName: settings.clubName, link });
       emailSent = true;
-    } catch (error) { emailError = error instanceof Error ? error.message : "E-Mail konnte nicht gesendet werden."; }
+    } catch { emailError = "E-Mail konnte nicht gesendet werden. Bitte SMTP-Konfiguration prüfen."; }
   }
   return NextResponse.json({ invitation: invitationDto(invitation), link, emailSent, emailError }, { status: 201 });
 }

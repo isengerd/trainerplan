@@ -19,7 +19,7 @@ Responsive Fußball-Trainingsplanungsplattform mit einem API-first-Backend. Web-
 
 ## Tech-Stack
 
-- Next.js 14
+- Next.js 15
 - React 18
 - TypeScript
 - Tailwind CSS
@@ -33,21 +33,19 @@ Responsive Fußball-Trainingsplanungsplattform mit einem API-first-Backend. Web-
 
 Admins verwalten unter **Einstellungen** Rollen, Gruppen und offene Einladungen. Jeder Einladungslink ist einmalig, sieben Tage gültig und kann auch ohne Mailserver kopiert werden.
 
-Für den E-Mail-Versand die Werte aus [`.env.example`](.env.example) in einer lokalen `.env` setzen. Besonders relevant sind `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` und `SMTP_FROM`. `PUBLIC_APP_URL` sollte im öffentlichen Betrieb die HTTPS-Adresse der Anwendung enthalten; ohne Wert wird die aktuell aufgerufene Adresse verwendet.
+Für den E-Mail-Versand die Werte aus [`.env.example`](.env.example) in einer lokalen `.env` setzen. Besonders relevant sind `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` und `SMTP_FROM`. `PUBLIC_APP_URL` ist im Produktivbetrieb verpflichtend und muss die öffentliche HTTPS-Adresse enthalten. Nur für lokale Tests ist eine HTTP-Adresse mit `localhost` erlaubt.
 
 ## Mit Docker starten (empfohlen)
 
 ```bash
+cp .env.example .env
+# In .env sichere, individuelle Werte setzen
 docker compose up --build -d
 ```
 
-Danach `http://localhost:3000` öffnen. PostgreSQL läuft als eigener Container; Migrationen und Seed-Daten werden vor dem App-Start automatisch eingespielt. Das benannte Volume `trainerplan_postgres_data` erhält die Daten über Container-Neustarts hinweg.
+Danach `http://localhost:3000` öffnen. PostgreSQL läuft als eigener Container; Migrationen und die Erstkonfiguration werden vor dem App-Start automatisch eingespielt. Das benannte Volume `trainerplan_postgres_data` erhält die Daten über Container-Neustarts hinweg. Beim ersten Start werden `INITIAL_ADMIN_EMAIL` und `INITIAL_ADMIN_PASSWORD` verwendet. Das Passwort muss mindestens zwölf Zeichen lang sein.
 
-Demo-Zugänge:
-
-- Admin: `admin@trainerplan.de` / `admin123`
-- Trainer: `trainer@trainerplan.de` / `trainer123`
-- Spieler: `spieler@trainerplan.de` / `spieler123`
+`SEED_DEMO_DATA=true` legt bekannte Demo-Zugänge und Beispieldaten an und darf deshalb ausschließlich lokal verwendet werden. Der Entwicklungs-Compose aktiviert diese Demo-Daten bewusst; die Produktionskonfiguration standardmäßig nicht.
 
 ## Produktions-Build
 
@@ -69,6 +67,8 @@ Anschließend kann ein Remote-Repository bei GitHub, GitLab oder einer eigenen G
 Die API-Verwendung für eine spätere iOS-App ist in [`docs/API.md`](docs/API.md) dokumentiert.
 
 ### Produktionsmodus
+
+Vor dem Start `.env` wie oben beschrieben konfigurieren. Für einen öffentlichen Betrieb müssen `POSTGRES_PASSWORD`, `DATABASE_URL`, `PUBLIC_APP_URL` und der initiale Admin individuell gesetzt sein. `PUBLIC_APP_URL` verwendet HTTPS.
 
 ```bash
 docker compose up --build -d
@@ -97,6 +97,8 @@ docker compose -f compose.dev.yaml up
 ```
 
 Die lokalen Dateien werden in den Container eingebunden. Änderungen unter `src/` werden automatisch übernommen.
+
+Die Anmelde- und Einladungsendpunkte besitzen eine anwendungsseitige Begrenzung pro IP. Bei mehreren App-Instanzen sollte der vorgeschaltete Reverse Proxy zusätzlich ein zentrales Rate-Limit setzen und eingehende `X-Forwarded-For`-Header selbst zuverlässig überschreiben.
 
 ### Image manuell bauen und starten
 

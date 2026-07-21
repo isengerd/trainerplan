@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
-const users = [
+const demoUsers = [
   { id: "admin-1", name: "Florian Keller", email: "admin@trainerplan.de", password: "admin123", role: "admin", position: "Vereinsadmin", phone: "+49 171 1234567", birthday: "1987-04-12" },
   { id: "coach-1", name: "Daniel Wagner", email: "trainer@trainerplan.de", password: "trainer123", role: "trainer", position: "Cheftrainer F1", phone: "+49 172 2345678", birthday: "1989-09-03" },
   { id: "player-1", name: "Noah Becker", email: "spieler@trainerplan.de", password: "spieler123", role: "player", position: "Allrounder", number: 7, phone: "+49 176 1000001", birthday: "2017-02-18" },
@@ -16,6 +16,22 @@ const users = [
   { id: "player-9", name: "Emil Braun", email: "emil@trainerplan.de", password: "demo123", role: "player", position: "Allrounder", number: 3, phone: "+49 176 1000009", birthday: "2016-09-29" },
   { id: "player-10", name: "Theo Klein", email: "theo@trainerplan.de", password: "demo123", role: "player", position: "Allrounder", number: 5, phone: "+49 176 1000010", birthday: "2017-03-06" },
 ];
+
+const demoEnabled = process.env.SEED_DEMO_DATA === "true";
+const existingUsers = await prisma.user.count();
+let users = [];
+
+if (demoEnabled) {
+  users = demoUsers;
+} else if (existingUsers === 0) {
+  const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.INITIAL_ADMIN_PASSWORD || "";
+  const name = process.env.INITIAL_ADMIN_NAME?.trim() || "Administration";
+  if (!email || !/^\S+@\S+\.\S+$/.test(email) || password.length < 12) {
+    throw new Error("Für die Erstinstallation INITIAL_ADMIN_EMAIL und ein INITIAL_ADMIN_PASSWORD mit mindestens 12 Zeichen setzen. Alternativ SEED_DEMO_DATA=true nur für lokale Demos verwenden.");
+  }
+  users = [{ id: "admin-1", name, email, password, role: "admin", position: "Vereinsadmin", phone: "", birthday: "1990-01-01" }];
+}
 
 for (const user of users) {
   const { password, birthday, ...profile } = user;

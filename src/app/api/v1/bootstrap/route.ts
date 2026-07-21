@@ -21,10 +21,23 @@ export async function GET(request: NextRequest) {
       ? prisma.invitation.findMany({ include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } })
       : Promise.resolve([]),
   ]);
+  const settings = config.settings as { teamFeatureEnabled?: boolean; showResponsesToPlayers?: boolean };
+  const visibleUsers = currentUser.role === "player" && settings.teamFeatureEnabled === false
+    ? users.filter((member) => member.id === currentUser.id)
+    : users;
   return NextResponse.json({
     currentUser: safeUser(currentUser),
-    users: users.map(safeUser),
-    events: events.map(eventFromDatabase),
+    users: visibleUsers.map((member) => {
+      const safe = safeUser(member);
+      if (currentUser.role !== "player" || member.id === currentUser.id) return safe;
+      return { ...safe, email: "", phone: "", birthday: "" };
+    }),
+    events: events.map((event) => {
+      const mapped = eventFromDatabase(event);
+      return currentUser.role === "player" && settings.showResponsesToPlayers === false
+        ? { ...mapped, responses: mapped.responses[currentUser.id] ? { [currentUser.id]: mapped.responses[currentUser.id] } : {} }
+        : mapped;
+    }),
     exercises: exercises.map((exercise) => exercise.data),
     settings: config.settings,
     plans: config.plans,

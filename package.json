@@ -7,19 +7,17 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "tsx --test src/**/*.test.ts",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.mjs",
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.1.0",
-    "@dnd-kit/sortable": "^8.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@prisma/client": "^6.19.3",
     "@types/nodemailer": "^8.0.1",
     "bcryptjs": "^3.0.3",
     "lucide-react": "^0.468.0",
-    "next": "14.2.35",
+    "next": "15.5.20",
     "nodemailer": "^9.0.3",
     "prisma": "^6.19.3",
     "react": "18.3.1",
@@ -31,9 +29,15 @@
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
-    "eslint-config-next": "14.2.15",
-    "postcss": "^8.4.49",
+    "eslint-config-next": "15.5.20",
+    "postcss": "^8.5.10",
     "tailwindcss": "^3.4.15",
+    "tsx": "^4.20.6",
     "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.10"
+    }
   }
 }

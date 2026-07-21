@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     await smtpTransport().verify();
     return NextResponse.json({ ok: true, message: "SMTP-Verbindung und Anmeldung waren erfolgreich." });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "SMTP-Verbindung fehlgeschlagen." }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "SMTP-Verbindung oder Anmeldung fehlgeschlagen. Bitte Serverkonfiguration prüfen." }, { status: 400 });
   }
 }

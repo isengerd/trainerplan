@@ -86,8 +86,10 @@ function youtubeEmbed(url?: string) {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    const id = parsed.hostname.includes("youtu.be") ? parsed.pathname.slice(1) : parsed.searchParams.get("v") ?? parsed.pathname.split("/").pop();
-    return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    if (!["youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"].includes(host)) return null;
+    const id = host === "youtu.be" ? parsed.pathname.slice(1) : parsed.searchParams.get("v") ?? parsed.pathname.split("/").filter(Boolean).pop();
+    return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
   } catch { return null; }
 }
 

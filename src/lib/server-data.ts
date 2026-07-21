@@ -20,11 +20,14 @@ export function berlinDateTime(date: string, time: string) {
 }
 
 export async function ensureApplicationData() {
-  if (await prisma.exerciseRecord.count() === 0) {
-    await prisma.exerciseRecord.createMany({ data: library.map((exercise) => ({ id: exercise.id, data: json(exercise) })) });
-  }
+  const demoEnabled = process.env.SEED_DEMO_DATA === "true";
+  // Neue mitgelieferte Übungen ergänzen, ohne bereits bearbeitete oder eigene Übungen zu überschreiben.
+  await prisma.exerciseRecord.createMany({
+    data: library.map((exercise) => ({ id: exercise.id, data: json(exercise) })),
+    skipDuplicates: true,
+  });
 
-  if (await prisma.clubEvent.count() === 0) {
+  if (demoEnabled && await prisma.clubEvent.count() === 0) {
     for (const event of initialEvents) {
       await prisma.clubEvent.create({
         data: {
@@ -56,9 +59,9 @@ export async function ensureApplicationData() {
     create: {
       id: "default",
       settings: json(initialSettings),
-      plans: json({ [today]: exercises }),
+      plans: json(demoEnabled ? { [today]: exercises } : {}),
       templates: json([]),
-      planMeta: json({ [today]: { name: "Dribbeln, Tore, Spielen", focus: ["Ballgefühl", "Spielfreude"] } }),
+      planMeta: json(demoEnabled ? { [today]: { name: "Dribbeln, Tore, Spielen", focus: ["Ballgefühl", "Spielfreude"] } } : {}),
     },
   });
 }

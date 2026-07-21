@@ -62,6 +62,11 @@ export async function revokeSession(request: NextRequest) {
   if (token) await prisma.apiSession.deleteMany({ where: { tokenHash: hashToken(token) } });
 }
 
+export async function revokeOtherSessions(request: NextRequest, userId: string) {
+  const token = requestToken(request);
+  await prisma.apiSession.deleteMany({ where: { userId, ...(token ? { tokenHash: { not: hashToken(token) } } : {}) } });
+}
+
 export function canManage(role: Role) {
   return role === "admin" || role === "trainer";
 }

@@ -1,12 +1,11 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: trainerplan-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: trainerplan
       POSTGRES_USER: trainerplan
-      POSTGRES_PASSWORD: trainerplan_dev_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}
     volumes:
       - trainerplan_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +20,13 @@ services:
       dockerfile: Dockerfile
       target: builder
     environment:
-      DATABASE_URL: postgresql://trainerplan:trainerplan_dev_password@postgres:5432/trainerplan?schema=public
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL in .env setzen}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL in .env setzen}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -39,15 +43,14 @@ services:
       context: .
       dockerfile: Dockerfile
     image: trainerplan-mvp:latest
-    container_name: trainerplan-mvp
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
-      DATABASE_URL: postgresql://trainerplan:trainerplan_dev_password@postgres:5432/trainerplan?schema=public
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL in .env setzen}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL in .env setzen}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}

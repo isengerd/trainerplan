@@ -12,9 +12,12 @@ export function invitationTokenHash(token: string) {
 }
 
 export function applicationUrl(request: NextRequest) {
-  const protocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || request.nextUrl.protocol.replace(":", "");
-  const host = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || request.headers.get("host") || request.nextUrl.host;
-  return process.env.PUBLIC_APP_URL?.replace(/\/$/, "") || `${protocol}://${host}`;
+  const configured = process.env.PUBLIC_APP_URL?.trim();
+  if (!configured && process.env.NODE_ENV === "production") throw new Error("PUBLIC_APP_URL muss für Einladungslinks im Produktivbetrieb gesetzt sein.");
+  const url = new URL(configured || request.nextUrl.origin);
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  if (!/^https?:$/.test(url.protocol) || (process.env.NODE_ENV === "production" && url.protocol !== "https:" && !local)) throw new Error("PUBLIC_APP_URL muss eine gültige HTTPS-Adresse sein.");
+  return url.toString().replace(/\/$/, "");
 }
 
 export function invitationDto(invitation: Invitation & { invitedBy: { name: string } }) {

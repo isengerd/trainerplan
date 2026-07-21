@@ -26,6 +26,7 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
       WATCHPACK_POLLING: "true"
       DATABASE_URL: postgresql://trainerplan:trainerplan_dev_password@postgres-dev:5432/trainerplan?schema=public
+      SEED_DEMO_DATA: "true"
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

@@ -7,7 +7,7 @@ Die Web-App verwendet dieselbe JSON-API, die später von der iOS-App angesproche
 `POST /api/v1/auth/login`
 
 ```json
-{ "email": "trainer@trainerplan.de", "password": "trainer123" }
+{ "email": "trainer@example.org", "password": "ein-langes-individuelles-passwort" }
 ```
 
 Die Antwort enthält `user`, `token` und `expiresAt`. Weitere Auth-Endpunkte sind:
@@ -15,6 +15,8 @@ Die Antwort enthält `user`, `token` und `expiresAt`. Weitere Auth-Endpunkte sin
 - `GET /api/v1/auth/me`
 - `POST /api/v1/auth/logout`
 - `PUT /api/v1/auth/password`
+
+Passwörter müssen 12 bis 256 Zeichen lang sein. Login- und Einladungsversuche werden begrenzt; Clients behandeln HTTP `429` und den Header `Retry-After` entsprechend.
 
 ## Daten laden und speichern
 
