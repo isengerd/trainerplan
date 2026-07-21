@@ -7,7 +7,9 @@ RUN npm ci --no-audit --no-fund --loglevel=verbose
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+ARG VERCEL=""
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV VERCEL=${VERCEL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

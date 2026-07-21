@@ -66,6 +66,8 @@ Anschließend kann ein Remote-Repository bei GitHub, GitLab oder einer eigenen G
 
 Die API-Verwendung für eine spätere iOS-App ist in [`docs/API.md`](docs/API.md) dokumentiert.
 
+Ein kostenloser Pilotbetrieb über Vercel Hobby und Neon Free ist in [`docs/DEPLOY_VERCEL.md`](docs/DEPLOY_VERCEL.md) beschrieben. Docker und Vercel bleiben dabei zwei gleichwertige Betriebswege.
+
 ### Produktionsmodus
 
 Vor dem Start `.env` wie oben beschrieben konfigurieren. Für einen öffentlichen Betrieb müssen `POSTGRES_PASSWORD`, `DATABASE_URL`, `PUBLIC_APP_URL` und der initiale Admin individuell gesetzt sein. `PUBLIC_APP_URL` verwendet HTTPS.
