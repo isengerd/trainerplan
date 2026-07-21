@@ -1,0 +1,12 @@
+.git
+.gitignore
+.next
+node_modules
+npm-debug.log*
+Dockerfile*
+compose*.yaml
+README.md
+*.zip
+.DS_Store
+.env*
+!.env.example

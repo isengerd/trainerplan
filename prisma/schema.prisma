@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  trainer
+  player
+}
+
+enum AttendanceValue {
+  yes
+  no
+  maybe
+}
+
+model User {
+  id           String               @id
+  name         String
+  email        String               @unique
+  passwordHash String
+  role         Role
+  position     String
+  number       Int?
+  phone        String               @default("")
+  birthday     DateTime?            @db.Date
+  avatar       String?              @db.Text
+  groupId      String?
+  group        TeamGroup?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  invitations  Invitation[]         @relation("InvitationCreator")
+  responses    AttendanceResponse[]
+  sessions     ApiSession[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([groupId])
+}
+
+model TeamGroup {
+  id          String       @id @default(cuid())
+  name        String
+  description String       @default("")
+  color       String       @default("#45d875")
+  users       User[]
+  invitations Invitation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Invitation {
+  id          String     @id @default(cuid())
+  tokenHash   String     @unique
+  email       String
+  name        String     @default("")
+  role        Role
+  groupId     String?
+  group       TeamGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  invitedById String
+  invitedBy   User       @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([email])
+  @@index([groupId])
+  @@index([invitedById])
+}
+
+model ClubEvent {
+  id              String               @id
+  type            String
+  title           String
+  date            DateTime             @db.Date
+  startTime       String
+  endTime         String
+  location        String
+  address         String?
+  meetingTime     String
+  description     String               @db.Text
+  trainerNote     String?              @db.Text
+  weather         Json?
+  maxParticipants Int
+  responses       AttendanceResponse[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model AttendanceResponse {
+  eventId   String
+  userId    String
+  value     AttendanceValue
+  event     ClubEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime        @updatedAt
+
+  @@id([eventId, userId])
+}
+
+model ExerciseRecord {
+  id        String   @id
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AppConfig {
+  id        String   @id @default("default")
+  settings  Json
+  plans     Json
+  templates Json
+  planMeta  Json
+  updatedAt DateTime @updatedAt
+}
+
+model ApiSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

@@ -1,0 +1,24 @@
+"use client";
+
+import { useState } from "react";
+import { Check, Link2, Plus, X } from "lucide-react";
+import type { Exercise, MaterialId } from "@/data/demo";
+
+const materialOptions: { id: MaterialId; label: string }[] = [
+  { id: "balls", label: "Bälle" }, { id: "cones", label: "Hütchen" }, { id: "bibs", label: "Leibchen" },
+  { id: "miniGoals", label: "Minitore" }, { id: "youthGoals", label: "Kleinfeldtore" }, { id: "poles", label: "Stangen" },
+];
+
+export function ExerciseCreator({ phase, exercise, onClose, onSave }: { phase: Exercise["category"]; exercise?: Exercise | null; onClose: () => void; onSave: (exercise: Exercise) => void }) {
+  const [title, setTitle] = useState(exercise?.title ?? ""); const [description, setDescription] = useState(exercise?.description ?? ""); const [youtubeUrl, setYoutubeUrl] = useState(exercise?.youtubeUrl ?? "");
+  const [duration, setDuration] = useState(exercise?.duration ?? 12); const [players, setPlayers] = useState(exercise?.players ?? "6–12"); const [setup, setSetup] = useState(exercise?.setup ?? "");
+  const [fieldSize, setFieldSize] = useState(exercise?.fieldSize ?? "20 × 15 m"); const [materials, setMaterials] = useState<Record<string, number>>(exercise ? Object.fromEntries(exercise.materials.map((material) => [material.id, material.count])) : { balls: 8, cones: 8 });
+
+  function toggleMaterial(id: MaterialId) { setMaterials((current) => current[id] ? Object.fromEntries(Object.entries(current).filter(([key]) => key !== id)) : { ...current, [id]: 4 }); }
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    onSave({ id: exercise?.id ?? `custom-${Date.now()}`, title, description, youtubeUrl: youtubeUrl || undefined, duration, players, ageGroup: "F-Jugend", ageRange: exercise?.ageRange ?? "U8/U9", category: exercise?.category ?? phase, accent: exercise?.accent ?? "#64c987", intensity: exercise?.intensity ?? "Mittel", focus: exercise?.focus ?? ["Eigene Übung"], setup: setup || description, coaching: exercise?.coaching ?? ["Kurze Erklärungen geben", "Viele Wiederholungen ermöglichen", "Freude und eigene Lösungen fördern"], materials: Object.entries(materials).map(([id, count]) => ({ id: id as MaterialId, count })), fieldSize, variant: exercise?.variant ?? 9 });
+  }
+
+  return <div className="modal-backdrop"><form className="exercise-creator" onSubmit={submit}><div className="editor-head"><div><span className="eyebrow">{exercise ? "ÜBUNG BEARBEITEN" : "EIGENE ÜBUNG"}</span><h2>{exercise ? "Übung aktualisieren" : "Neue Übung erstellen"}</h2></div><button type="button" onClick={onClose}><X /></button></div><div className="creator-phase"><span>{exercise ? "Empfohlene Phase" : "Wird eingefügt als"}</span><strong>{exercise?.category ?? phase}</strong><small>Die Phase kann im Trainingsplan jederzeit geändert werden.</small></div><label><span>Name der Übung</span><input autoFocus required value={title} onChange={(event) => setTitle(event.target.value)} placeholder="z. B. Piraten-Dribbling" /></label><label><span>Kurzbeschreibung</span><textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Was machen die Kinder?" /></label><label><span>YouTube-Link (optional)</span><div className="input-with-icon"><Link2 /><input type="url" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://youtube.com/watch?v=…" /></div></label><div className="form-row"><label><span>Dauer in Minuten</span><input type="number" min="1" max="90" value={duration} onChange={(event) => setDuration(Number(event.target.value))} /></label><label><span>Spielerzahl</span><input value={players} onChange={(event) => setPlayers(event.target.value)} /></label><label><span>Feldgröße</span><input value={fieldSize} onChange={(event) => setFieldSize(event.target.value)} /></label></div><label><span>Organisation & Aufbau</span><textarea rows={3} value={setup} onChange={(event) => setSetup(event.target.value)} placeholder="Feld, Ablauf und Regeln beschreiben" /></label><fieldset><legend>Material</legend><div className="material-selector">{materialOptions.map((material) => <div className={materials[material.id] ? "selected" : ""} key={material.id}><button type="button" onClick={() => toggleMaterial(material.id)}>{materials[material.id] ? <Check /> : <Plus />}{material.label}</button>{materials[material.id] && <input type="number" min="1" max="99" value={materials[material.id]} onChange={(event) => setMaterials({ ...materials, [material.id]: Number(event.target.value) })} />}</div>)}</div></fieldset><div className="editor-actions"><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> {exercise ? "Änderungen speichern" : "Übung speichern"}</button></div></form></div>;
+}

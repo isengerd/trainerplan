@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trainerplan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: trainerplan
+      POSTGRES_USER: trainerplan
+      POSTGRES_PASSWORD: trainerplan_dev_password
+    volumes:
+      - trainerplan_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainerplan -d trainerplan"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      DATABASE_URL: postgresql://trainerplan:trainerplan_dev_password@postgres:5432/trainerplan?schema=public
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    command: sh -c "npx prisma migrate deploy && node prisma/seed.mjs"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  trainerplan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: trainerplan-mvp:latest
+    container_name: trainerplan-mvp
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://trainerplan:trainerplan_dev_password@postgres:5432/trainerplan?schema=public
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  trainerplan_postgres_data:

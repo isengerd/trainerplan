@@ -1,0 +1,45 @@
+services:
+  postgres-dev:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trainerplan
+      POSTGRES_USER: trainerplan
+      POSTGRES_PASSWORD: trainerplan_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - trainerplan_postgres_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trainerplan -d trainerplan"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  trainerplan-dev:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npx prisma migrate deploy && node prisma/seed.mjs && npm run dev -- --hostname 0.0.0.0"
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+      DATABASE_URL: postgresql://trainerplan:trainerplan_dev_password@postgres-dev:5432/trainerplan?schema=public
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - trainerplan_node_modules:/app/node_modules
+
+volumes:
+  trainerplan_node_modules:
+  trainerplan_postgres_dev:
