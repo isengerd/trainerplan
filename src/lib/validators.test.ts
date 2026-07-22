@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { library } from "../data/demo";
 import { rateLimit } from "./api-security";
-import { validateEvents, validateExercises } from "./validators";
+import { validateEvents, validateExercises, validatePlans, validateUsers } from "./validators";
 
 test("die mitgelieferte Übungsbibliothek erfüllt das API-Schema", () => {
   assert.equal(validateExercises(library).length, library.length);
@@ -28,4 +28,23 @@ test("das lokale Rate-Limit sperrt erst nach dem erlaubten Kontingent", () => {
   assert.equal(rateLimit(key, 2, 60_000).allowed, true);
   assert.equal(rateLimit(key, 2, 60_000).allowed, true);
   assert.equal(rateLimit(key, 2, 60_000).allowed, false);
+});
+
+test("Spielerbewertungen akzeptieren nur null bis fünf Sterne und Team A oder B", () => {
+  const player = {
+    id: "player-test", name: "Test Spieler", email: "test@example.org", role: "player",
+    position: "Allrounder", phone: "", birthday: "2017-01-01", ageGroup: "F-Jugend",
+    groupId: null, dribblingRating: 5, shootingRating: 3, passingRating: 4, internalTeam: "A",
+  };
+  assert.equal(validateUsers([player], "coach-1", true)[0].internalTeam, "A");
+  assert.throws(() => validateUsers([{ ...player, shootingRating: 6 }], "coach-1", true), /Schuss-Bewertung/);
+  assert.throws(() => validateUsers([{ ...player, internalTeam: "C" }], "coach-1", true), /Internes Team/);
+});
+
+test("einzelne Übungen speichern optionale Trainer- und Teamzuordnungen validiert", () => {
+  const assignedExercise = { ...library[0], trainerId: "coach-1", internalTeam: "B" };
+  const result = validatePlans({ plans: { "2026-07-24": [assignedExercise] }, planMeta: { "2026-07-24": { name: "Teamtraining", focus: ["Passen"] } } });
+  assert.equal((result.plans["2026-07-24"] as typeof assignedExercise[])[0].internalTeam, "B");
+  assert.equal((result.plans["2026-07-24"] as typeof assignedExercise[])[0].trainerId, "coach-1");
+  assert.throws(() => validatePlans({ plans: { "2026-07-24": [{ ...assignedExercise, internalTeam: "C" }] }, planMeta: { "2026-07-24": { name: "Teamtraining", focus: [] } } }), /Internes Team/);
 });

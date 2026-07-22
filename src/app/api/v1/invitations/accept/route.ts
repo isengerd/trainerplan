@@ -6,6 +6,7 @@ import { createSession, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib
 import { prisma } from "@/lib/db";
 import { invitationTokenHash } from "@/lib/invitations";
 import { ApiInputError, clientIp, rateLimit, readJson } from "@/lib/api-security";
+import { defaultPosition } from "@/data/club";
 
 async function invitationForToken(token: string) {
   if (!token) return null;
@@ -45,8 +46,9 @@ export async function POST(request: NextRequest) {
         email: invitation.email,
         passwordHash,
         role: invitation.role,
+        ageGroup: invitation.ageGroup,
         groupId: invitation.groupId,
-        position: invitation.role === "player" ? "Spieler/in" : invitation.role === "trainer" ? "Trainer/in" : "Administration",
+        position: defaultPosition[invitation.role],
       } });
     });
   } catch (error) {

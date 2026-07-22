@@ -1,5 +1,5 @@
 import type { AttendanceValue, Role } from "@prisma/client";
-import type { ClubEvent, ClubSettings, ClubUser } from "@/data/club";
+import { positionOptions, type ClubEvent, type ClubSettings, type ClubUser, type TrainingPlanMeta } from "@/data/club";
 import type { Exercise } from "@/data/demo";
 import { ApiInputError, assertJsonSize, emailValue, enumValue, integerValue, objectValue, optionalText, textValue } from "./api-security";
 
@@ -29,25 +29,33 @@ function stringList(value: unknown, field: string, maxItems: number, maxLength: 
   return value.map((entry) => textValue(entry, field, maxLength, 1));
 }
 
-export function validateUsers(value: unknown, actorId: string, isAdmin: boolean): ClubUser[] {
+export function validateUsers(value: unknown, actorId: string, canManagePlayers: boolean): ClubUser[] {
   if (!Array.isArray(value) || value.length > 500) throw new ApiInputError("Ungültige Benutzerdaten.");
-  const users = value.filter((item) => isAdmin || objectValue(item).id === actorId).map((item) => {
+  const users = value.filter((item) => canManagePlayers || objectValue(item).id === actorId).map((item) => {
     const input = objectValue(item);
     const avatar = optionalText(input.avatar, "Profilbild", 1_500_000);
     if (avatar && !/^data:image\/(png|jpeg|webp);base64,/i.test(avatar)) throw new ApiInputError("Das Profilbildformat ist ungültig.");
     const birthday = optionalText(input.birthday, "Geburtsdatum", 10);
     if (birthday && !validDate(birthday)) throw new ApiInputError("Das Geburtsdatum ist ungültig.");
+    const role = enumValue(input.role, roles, "Rolle");
+    const position = textValue(input.position, "Position", 100, 1);
+    if (!positionOptions[role].includes(position)) throw new ApiInputError("Die Position passt nicht zur ausgewählten Rolle.");
     return {
       id: textValue(input.id, "Benutzer-ID", 100, 1),
       name: textValue(input.name, "Name", 100, 2),
       email: emailValue(input.email),
-      role: enumValue(input.role, roles, "Rolle"),
-      position: optionalText(input.position, "Position", 100),
+      role,
+      position,
       number: input.number === undefined || input.number === null ? undefined : integerValue(input.number, "Trikotnummer", 0, 999),
       phone: optionalText(input.phone, "Telefonnummer", 40),
       birthday,
+      ageGroup: optionalText(input.ageGroup, "Altersklasse", 40) || "F-Jugend",
       avatar: avatar || undefined,
       groupId: input.groupId === null || input.groupId === undefined || input.groupId === "" ? null : textValue(input.groupId, "Gruppe", 100, 1),
+      dribblingRating: integerValue(input.dribblingRating ?? 0, "Dribbling-Bewertung", 0, 5),
+      shootingRating: integerValue(input.shootingRating ?? 0, "Schuss-Bewertung", 0, 5),
+      passingRating: integerValue(input.passingRating ?? 0, "Pass-Bewertung", 0, 5),
+      internalTeam: input.internalTeam === null || input.internalTeam === undefined || input.internalTeam === "" ? null : enumValue(input.internalTeam, ["A", "B"] as const, "Internes Team"),
     };
   });
   return uniqueIds(users, "Benutzerdaten");
@@ -124,6 +132,8 @@ export function validateExercises(value: unknown): Exercise[] {
       fieldSize: textValue(input.fieldSize, "Feldgröße", 120, 1),
       variant: integerValue(input.variant, "Grafikvariante", 0, 10_000),
       youtubeUrl: youtubeUrl || undefined,
+      trainerId: input.trainerId === null || input.trainerId === undefined || input.trainerId === "" ? null : textValue(input.trainerId, "Trainer-ID", 100, 1),
+      internalTeam: input.internalTeam === null || input.internalTeam === undefined || input.internalTeam === "" ? null : enumValue(input.internalTeam, ["A", "B"] as const, "Internes Team"),
     } satisfies Exercise;
   });
   return uniqueIds(exercises, "Übungen");
@@ -132,28 +142,44 @@ export function validateExercises(value: unknown): Exercise[] {
 export function validateSettings(value: unknown): ClubSettings {
   const input = objectValue(value, "Ungültige Einstellungen.");
   const boolean = (key: string) => { if (typeof input[key] !== "boolean") throw new ApiInputError(`${key} ist ungültig.`); return input[key] as boolean; };
+  const ageGroupIds = stringList(input.ageGroupIds, "Altersklassen", 20, 100);
+  if (!ageGroupIds.length || new Set(ageGroupIds).size !== ageGroupIds.length) throw new ApiInputError("Mindestens eine eindeutige Altersklasse muss aktiviert sein.");
   return {
     theme: enumValue(input.theme, ["dark", "light"] as const, "Farbdesign"),
     teamFeatureEnabled: boolean("teamFeatureEnabled"), attendanceEnabled: boolean("attendanceEnabled"), waitlistEnabled: boolean("waitlistEnabled"),
-    showResponsesToPlayers: boolean("showResponsesToPlayers"), automaticReminders: boolean("automaticReminders"),
+    showResponsesToPlayers: boolean("showResponsesToPlayers"), automaticReminders: boolean("automaticReminders"), splitTeamsEnabled: boolean("splitTeamsEnabled"),
     trainingDeadlineHours: integerValue(input.trainingDeadlineHours, "Trainingsfrist", 0, 720),
     tournamentDeadlineHours: integerValue(input.tournamentDeadlineHours, "Turnierfrist", 0, 720),
     eventDeadlineHours: integerValue(input.eventDeadlineHours, "Ereignisfrist", 0, 720),
     defaultTrainingCapacity: integerValue(input.defaultTrainingCapacity, "Trainingsplätze", 1, 1_000),
     defaultTournamentCapacity: integerValue(input.defaultTournamentCapacity, "Turnierplätze", 1, 1_000),
     clubName: textValue(input.clubName, "Vereinsname", 120, 1), teamName: textValue(input.teamName, "Mannschaft", 120, 1),
+    tournamentMinFYouth: integerValue(input.tournamentMinFYouth, "F-Jugend-Minimum", 0, 99),
+    tournamentMaxTeamSize: integerValue(input.tournamentMaxTeamSize, "Maximale Teamgröße", 0, 99),
+    tournamentTrainerRequired: boolean("tournamentTrainerRequired"),
+    tournamentNotifications: boolean("tournamentNotifications"),
+    tournamentDefaultSquadName: textValue(input.tournamentDefaultSquadName, "Standard-Teamname", 80, 1),
+    ageGroupIds,
   };
 }
 
 export function validatePlans(value: unknown) {
   const input = objectValue(value, "Ungültige Trainingspläne.");
   const plans = objectValue(input.plans, "Trainingspläne fehlen.");
-  const planMeta = objectValue(input.planMeta, "Planinformationen fehlen.");
-  if (Object.keys(plans).length > 1_000 || Object.keys(planMeta).length > 1_000) throw new ApiInputError("Zu viele Trainingspläne.");
+  const planMetaInput = objectValue(input.planMeta, "Planinformationen fehlen.");
+  if (Object.keys(plans).length > 1_000 || Object.keys(planMetaInput).length > 1_000) throw new ApiInputError("Zu viele Trainingspläne.");
   for (const [date, exercises] of Object.entries(plans)) {
     if (!validDate(date) || !Array.isArray(exercises) || exercises.length > 100) throw new ApiInputError("Ein Trainingsplan ist ungültig.");
     validateExercises(exercises);
   }
+  const planMeta = Object.fromEntries(Object.entries(planMetaInput).map(([date, value]) => {
+    if (!validDate(date)) throw new ApiInputError("Ein Datum der Planinformationen ist ungültig.");
+    const meta = objectValue(value, "Planinformationen sind ungültig.");
+    return [date, {
+      name: textValue(meta.name, "Trainingsname", 160, 1),
+      focus: stringList(meta.focus, "Trainingsschwerpunkte", 8, 80),
+    } satisfies TrainingPlanMeta];
+  }));
   assertJsonSize(input, 10_000_000);
   return { plans, planMeta };
 }

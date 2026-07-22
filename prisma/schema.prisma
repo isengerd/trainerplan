@@ -20,25 +20,56 @@ enum AttendanceValue {
 }
 
 model User {
-  id           String               @id
-  name         String
-  email        String               @unique
-  passwordHash String
-  role         Role
-  position     String
-  number       Int?
-  phone        String               @default("")
-  birthday     DateTime?            @db.Date
-  avatar       String?              @db.Text
-  groupId      String?
-  group        TeamGroup?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  invitations  Invitation[]         @relation("InvitationCreator")
-  responses    AttendanceResponse[]
-  sessions     ApiSession[]
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  id                      String                  @id
+  name                    String
+  email                   String                  @unique
+  passwordHash            String
+  role                    Role
+  position                String
+  number                  Int?
+  phone                   String                  @default("")
+  birthday                DateTime?               @db.Date
+  ageGroup                String                  @default("F-Jugend")
+  avatar                  String?                 @db.Text
+  groupId                 String?
+  dribblingRating         Int                     @default(0)
+  shootingRating          Int                     @default(0)
+  passingRating           Int                     @default(0)
+  internalTeam            String?
+  group                   TeamGroup?              @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  invitations             Invitation[]            @relation("InvitationCreator")
+  emailChangeRequests     EmailChangeRequest[]
+  responses               AttendanceResponse[]
+  sessions                ApiSession[]
+  coachedTournamentSquads TournamentSquad[]       @relation("TournamentSquadTrainer")
+  tournamentAssignments   TournamentSquadPlayer[]
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
   @@index([groupId])
+}
+
+model EmailChangeRequest {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  newEmail  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([newEmail])
+}
+
+model AgeGroup {
+  id        String   @id
+  name      String   @unique
+  ageRange  String
+  sortOrder Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TeamGroup {
@@ -58,6 +89,7 @@ model Invitation {
   email       String
   name        String     @default("")
   role        Role
+  ageGroup    String     @default("F-Jugend")
   groupId     String?
   group       TeamGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   invitedById String
@@ -72,22 +104,53 @@ model Invitation {
 }
 
 model ClubEvent {
-  id              String               @id
-  type            String
-  title           String
-  date            DateTime             @db.Date
-  startTime       String
-  endTime         String
-  location        String
-  address         String?
-  meetingTime     String
-  description     String               @db.Text
-  trainerNote     String?              @db.Text
-  weather         Json?
-  maxParticipants Int
-  responses       AttendanceResponse[]
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id                    String                  @id
+  type                  String
+  title                 String
+  date                  DateTime                @db.Date
+  startTime             String
+  endTime               String
+  location              String
+  address               String?
+  meetingTime           String
+  description           String                  @db.Text
+  trainerNote           String?                 @db.Text
+  weather               Json?
+  maxParticipants       Int
+  responses             AttendanceResponse[]
+  tournamentSquads      TournamentSquad[]
+  tournamentAssignments TournamentSquadPlayer[]
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+}
+
+model TournamentSquad {
+  id        String                  @id @default(cuid())
+  eventId   String
+  event     ClubEvent               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  trainerId String?
+  trainer   User?                   @relation("TournamentSquadTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+  players   TournamentSquadPlayer[]
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  @@index([eventId])
+  @@index([trainerId])
+}
+
+model TournamentSquadPlayer {
+  squadId   String
+  eventId   String
+  playerId  String
+  squad     TournamentSquad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  event     ClubEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  player    User            @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt DateTime        @default(now())
+
+  @@id([squadId, playerId])
+  @@unique([eventId, playerId])
+  @@index([playerId])
 }
 
 model AttendanceResponse {

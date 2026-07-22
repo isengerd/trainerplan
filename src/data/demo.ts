@@ -1,3 +1,5 @@
+import type { InternalTeam } from "./club";
+
 export type MaterialId = "balls" | "cones" | "bibs" | "miniGoals" | "youthGoals" | "poles" | "rings";
 
 export type MaterialRequirement = {
@@ -33,6 +35,8 @@ export type Exercise = {
   fieldSize: string;
   variant: number;
   youtubeUrl?: string;
+  trainerId?: string | null;
+  internalTeam?: InternalTeam | null;
 };
 
 export const library: Exercise[] = [

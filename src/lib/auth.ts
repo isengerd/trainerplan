@@ -18,8 +18,13 @@ export function safeUser(user: User): SafeUser {
     number: user.number,
     phone: user.phone,
     birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : "",
+    ageGroup: user.ageGroup,
     avatar: user.avatar,
     groupId: user.groupId,
+    dribblingRating: user.dribblingRating,
+    shootingRating: user.shootingRating,
+    passingRating: user.passingRating,
+    internalTeam: user.internalTeam as "A" | "B" | null,
   };
 }
 

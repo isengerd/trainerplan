@@ -1,6 +1,7 @@
 export type Role = "admin" | "trainer" | "player";
 export type Attendance = "yes" | "no" | "maybe";
 export type EventType = "training" | "tournament" | "event";
+export type InternalTeam = "A" | "B";
 
 export type ClubUser = {
   id: string;
@@ -11,16 +12,38 @@ export type ClubUser = {
   number?: number;
   phone: string;
   birthday: string;
+  ageGroup: string;
   avatar?: string;
   groupId?: string | null;
+  dribblingRating: number;
+  shootingRating: number;
+  passingRating: number;
+  internalTeam?: InternalTeam | null;
 };
 
+export type TrainingPlanMeta = {
+  name: string;
+  focus: string[];
+};
+
+export type TournamentSquad = {
+  id: string;
+  eventId: string;
+  name: string;
+  trainerId?: string | null;
+  playerIds: string[];
+};
+
+export type TournamentPlan = { eventId: string; squads: TournamentSquad[] };
+
 export type TeamGroup = { id: string; name: string; description: string; color: string };
+export type AgeGroupOption = { id: string; name: string; ageRange: string; sortOrder: number };
 export type ClubInvitation = {
   id: string;
   email: string;
   name: string;
   role: Role;
+  ageGroup: string;
   groupId?: string | null;
   invitedBy: string;
   expiresAt: string;
@@ -53,6 +76,7 @@ export type ClubSettings = {
   waitlistEnabled: boolean;
   showResponsesToPlayers: boolean;
   automaticReminders: boolean;
+  splitTeamsEnabled: boolean;
   trainingDeadlineHours: number;
   tournamentDeadlineHours: number;
   eventDeadlineHours: number;
@@ -60,6 +84,12 @@ export type ClubSettings = {
   defaultTournamentCapacity: number;
   clubName: string;
   teamName: string;
+  tournamentMinFYouth: number;
+  tournamentMaxTeamSize: number;
+  tournamentTrainerRequired: boolean;
+  tournamentNotifications: boolean;
+  tournamentDefaultSquadName: string;
+  ageGroupIds: string[];
 };
 
 export const initialSettings: ClubSettings = {
@@ -69,6 +99,7 @@ export const initialSettings: ClubSettings = {
   waitlistEnabled: true,
   showResponsesToPlayers: true,
   automaticReminders: true,
+  splitTeamsEnabled: true,
   trainingDeadlineHours: 4,
   tournamentDeadlineHours: 24,
   eventDeadlineHours: 12,
@@ -76,9 +107,21 @@ export const initialSettings: ClubSettings = {
   defaultTournamentCapacity: 10,
   clubName: "FC Kicker",
   teamName: "F1 · F-Jugend",
+  tournamentMinFYouth: 3,
+  tournamentMaxTeamSize: 6,
+  tournamentTrainerRequired: true,
+  tournamentNotifications: true,
+  tournamentDefaultSquadName: "Mannschaft {n}",
+  ageGroupIds: ["f-jugend", "e-jugend", "d-jugend"],
 };
 
 export const roleLabels: Record<Role, string> = { admin: "Admin", trainer: "Trainer", player: "Spieler" };
+export const positionOptions: Record<Role, readonly string[]> = {
+  admin: ["Vereinsadmin"],
+  trainer: ["Trainer", "Cheftrainer F1", "Cheftrainer", "Co-Trainer", "Torwarttrainer", "Athletiktrainer", "Betreuer"],
+  player: ["Allrounder", "Tor", "Abwehr", "Mittelfeld", "Angriff"],
+};
+export const defaultPosition: Record<Role, string> = { admin: "Vereinsadmin", trainer: "Trainer", player: "Allrounder" };
 export const eventLabels: Record<EventType, string> = { training: "Training", tournament: "Turnier", event: "Ereignis" };
 
 export const initialEvents: ClubEvent[] = [

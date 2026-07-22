@@ -11,15 +11,17 @@ export async function GET(request: NextRequest) {
   const currentUser = await authenticatedUser(request);
   if (!currentUser) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   await ensureApplicationData();
-  const [users, events, exercises, config, groups, invitations] = await Promise.all([
+  const [users, events, exercises, config, groups, ageGroups, invitations, tournamentSquads] = await Promise.all([
     prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] }),
     prisma.clubEvent.findMany({ include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
     prisma.exerciseRecord.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.appConfig.findUniqueOrThrow({ where: { id: "default" } }),
     prisma.teamGroup.findMany({ orderBy: { name: "asc" } }),
+    prisma.ageGroup.findMany({ orderBy: { sortOrder: "asc" } }),
     currentUser.role === "admin"
       ? prisma.invitation.findMany({ include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } })
       : Promise.resolve([]),
+    prisma.tournamentSquad.findMany({ include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } }),
   ]);
   const settings = config.settings as { teamFeatureEnabled?: boolean; showResponsesToPlayers?: boolean };
   const visibleUsers = currentUser.role === "player" && settings.teamFeatureEnabled === false
@@ -44,7 +46,22 @@ export async function GET(request: NextRequest) {
     templates: config.templates,
     planMeta: config.planMeta,
     groups: groups.map(({ id, name, description, color }) => ({ id, name, description, color })),
+    ageGroups: ageGroups.map(({ id, name, ageRange, sortOrder }) => ({ id, name, ageRange, sortOrder })),
     invitations: invitations.map(invitationDto),
     smtp: currentUser.role === "admin" ? smtpStatus() : { configured: false },
+    tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, typeof tournamentSquads>>((plans, squad) => {
+      if (currentUser.role === "player" && !squad.players.some((assignment) => assignment.playerId === currentUser.id)) return plans;
+      (plans[squad.eventId] ??= []).push(squad);
+      return plans;
+    }, {})).map(([eventId, squads]) => ({
+      eventId,
+      squads: squads.map((squad) => ({
+        id: squad.id,
+        eventId,
+        name: squad.name,
+        trainerId: squad.trainerId,
+        playerIds: currentUser.role === "player" ? [] : squad.players.map((assignment) => assignment.playerId),
+      })),
+    })),
   });
 }

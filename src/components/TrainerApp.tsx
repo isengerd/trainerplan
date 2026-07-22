@@ -4,16 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, Dumbbell, Edit3,
   Home, Library, LogOut, Menu, MoreVertical, Pause, Play, Plus, Settings, Share2, Shield,
-  Sparkles, Target, Trash2, Users, X,
+  Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
-import { initialSettings, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type SmtpStatus, type TeamGroup } from "@/data/club";
+import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
 import { Pitch } from "./Pitch";
 import { Avatar, CalendarPage, LoginScreen, ProfilePage, TeamPage } from "./ClubModules";
 import { AdminSettingsPage } from "./AdminSettings";
 import { ExerciseCreator } from "./ExerciseCreator";
 import { ExerciseLibrary } from "./ExerciseBrowser";
 import { TrainingTemplates, type TrainingTemplate } from "./TrainingTemplates";
+import { TournamentPlanningPage } from "./TournamentPlanning";
 
 function localToday() {
   const parts = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date());
@@ -67,7 +68,6 @@ const featuredTemplates: TrainingTemplate[] = [
   { id: "featured-spielfreude", name: "Spielfreude & Teamwork", kind: "plan", focus: ["Teamwork", "Freilaufen", "Freies Spiel"], exercises: templateExercises(["brueckenfangen", "bewegungs-parcours", "funino", "fuenf-gegen-fuenf"]), builtIn: true },
 ];
 
-type PlanMeta = { name: string; focus: string[] };
 type BootstrapData = {
   currentUser: ClubUser;
   users: ClubUser[];
@@ -76,10 +76,12 @@ type BootstrapData = {
   settings: ClubSettings;
   plans: Record<string, Exercise[]>;
   templates: TrainingTemplate[];
-  planMeta: Record<string, PlanMeta>;
+  planMeta: Record<string, TrainingPlanMeta>;
   groups: TeamGroup[];
+  ageGroups: AgeGroupOption[];
   invitations: ClubInvitation[];
   smtp: SmtpStatus;
+  tournamentPlans: TournamentPlan[];
 };
 
 function youtubeEmbed(url?: string) {
@@ -94,7 +96,7 @@ function youtubeEmbed(url?: string) {
 }
 
 export function TrainerApp() {
-  const [view, setView] = useState<"overview" | "plan" | "exercises" | "calendar" | "team" | "profile" | "settings">("overview");
+  const [view, setView] = useState<"overview" | "plan" | "exercises" | "calendar" | "tournaments" | "team" | "profile" | "settings">("overview");
   const [selectedDay, setSelectedDay] = useState(initialPlanKey);
   const [targetPhase, setTargetPhase] = useState<Exercise["category"]>("Einstieg");
   const [plans, setPlans] = useState<Record<string, Exercise[]>>({});
@@ -112,12 +114,15 @@ export function TrainerApp() {
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [clubSettings, setClubSettings] = useState<ClubSettings>(initialSettings);
   const [groups, setGroups] = useState<TeamGroup[]>([]);
+  const [ageGroups, setAgeGroups] = useState<AgeGroupOption[]>([]);
   const [invitations, setInvitations] = useState<ClubInvitation[]>([]);
   const [smtp, setSmtp] = useState<SmtpStatus>({ configured: false });
+  const [tournamentPlans, setTournamentPlans] = useState<TournamentPlan[]>([]);
   const [trainingTemplates, setTrainingTemplates] = useState<TrainingTemplate[]>([]);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [assignmentExerciseId, setAssignmentExerciseId] = useState<string | null>(null);
   const [templateMode, setTemplateMode] = useState<"browse" | "save">("browse");
-  const [planMeta, setPlanMeta] = useState<Record<string, PlanMeta>>({});
+  const [planMeta, setPlanMeta] = useState<Record<string, TrainingPlanMeta>>({});
   const [toastMessage, setToastMessage] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -171,17 +176,29 @@ export function TrainerApp() {
   function applyBootstrap(data: BootstrapData) {
     lastPersistedPlan.current = JSON.stringify({ plans: data.plans, planMeta: data.planMeta });
     planDataReady.current = true;
+    // Frühere Versionen speicherten Team und Trainer global am Trainingstag. Beim
+    // ersten Laden übernehmen wir diese Werte in die einzelnen Übungen und entfernen
+    // anschließend die alte globale Zuordnung über den bestehenden Autosave.
+    const legacyMeta = data.planMeta as Record<string, TrainingPlanMeta & { trainerId?: string | null; internalTeam?: InternalTeam | null }>;
+    const migratedPlans = Object.fromEntries(Object.entries(data.plans).map(([date, exercises]) => [date, exercises.map((exercise) => ({
+      ...exercise,
+      trainerId: exercise.trainerId ?? legacyMeta[date]?.trainerId ?? null,
+      internalTeam: exercise.internalTeam ?? legacyMeta[date]?.internalTeam ?? null,
+    }))]));
+    const migratedPlanMeta = Object.fromEntries(Object.entries(data.planMeta).map(([date, meta]) => [date, { name: meta.name, focus: meta.focus }]));
     setUsers(data.users);
     setEvents(data.events);
     setCurrentUserId(data.currentUser.id);
     setExerciseLibrary(data.exercises);
     setClubSettings({ ...initialSettings, ...data.settings });
-    setPlans(data.plans);
+    setPlans(migratedPlans);
     setTrainingTemplates(data.templates);
-    setPlanMeta(data.planMeta);
+    setPlanMeta(migratedPlanMeta);
     setGroups(data.groups);
+    setAgeGroups(data.ageGroups);
     setInvitations(data.invitations);
     setSmtp(data.smtp);
+    setTournamentPlans(data.tournamentPlans ?? []);
   }
 
   async function loadBootstrap() {
@@ -232,9 +249,34 @@ export function TrainerApp() {
   function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next); }
 
-  async function changePassword(currentPassword: string, newPassword: string) {
+  async function updateTournamentPlan(eventId: string, squads: TournamentSquad[]) {
+    const previous = tournamentPlans;
+    const next = [...previous.filter((plan) => plan.eventId !== eventId), { eventId, squads }];
+    setTournamentPlans(next);
     try {
-      const response = await fetch("/api/v1/auth/password", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPassword, newPassword }) });
+      const response = await fetch("/api/v1/tournament-squads", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventId, squads }) });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Mannschaft konnte nicht gespeichert werden.");
+      return true;
+    } catch (error) {
+      setTournamentPlans(previous);
+      showToast(error instanceof Error ? error.message : "Mannschaft konnte nicht gespeichert werden.");
+      return false;
+    }
+  }
+
+  async function createTournament(event: ClubEvent) {
+    const previous = events;
+    const next = [...events, event];
+    setEvents(next);
+    const saved = await syncResource("events", next);
+    if (!saved) setEvents(previous);
+    return saved;
+  }
+
+  async function changePassword(currentPassword: string, newPassword: string, confirmation: string) {
+    try {
+      const response = await fetch("/api/v1/auth/password", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPassword, newPassword, confirmation }) });
       const result = await response.json() as { error?: string };
       return response.ok ? null : result.error ?? "Passwort konnte nicht geändert werden.";
     } catch {
@@ -280,8 +322,8 @@ export function TrainerApp() {
     setPlanMeta((current) => ({
       ...current,
       [selectedDay]: template.kind === "plan"
-        ? { name: template.name, focus: template.focus }
-        : { name: current[selectedDay]?.name ?? currentDay.theme, focus: Array.from(new Set([...(current[selectedDay]?.focus ?? []), ...template.focus])).slice(0, 4) },
+        ? { ...current[selectedDay], name: template.name, focus: template.focus }
+        : { ...current[selectedDay], name: current[selectedDay]?.name ?? currentDay.theme, focus: Array.from(new Set([...(current[selectedDay]?.focus ?? []), ...template.focus])).slice(0, 4) },
     }));
     setTemplateOpen(false);
     showToast(template.kind === "plan" ? `„${template.name}“ ausgewählt` : `${template.phase} eingesetzt – übriger Plan bleibt erhalten`);
@@ -339,6 +381,21 @@ export function TrainerApp() {
 
   const total = plan.reduce((sum, item) => sum + item.duration, 0);
   const currentPlanMeta = planMeta[selectedDay] ?? { name: currentDay.theme, focus: [] };
+  const availableTrainers = users.filter((user) => user.role === "admin" || user.role === "trainer");
+  const trainerName = (id?: string | null) => users.find((user) => user.id === id)?.name;
+  const assignmentExercise = plan.find((exercise) => exercise.id === assignmentExerciseId) ?? null;
+  const exerciseAssignmentLabel = (exercise: Exercise) => clubSettings.splitTeamsEnabled
+    ? [exercise.internalTeam ? `Team ${exercise.internalTeam}` : "", trainerName(exercise.trainerId) ? `Trainer: ${trainerName(exercise.trainerId)}` : ""].filter(Boolean).join(" · ")
+    : "";
+  const exerciseAssignmentSummary = (items: Exercise[]) => {
+    if (!clubSettings.splitTeamsEnabled) return [];
+    const teams = [...new Set(items.map((exercise) => exercise.internalTeam).filter(Boolean))].map((team) => `Team ${team}`);
+    const trainers = [...new Set(items.map((exercise) => trainerName(exercise.trainerId)).filter((name): name is string => Boolean(name)))];
+    return [...teams, ...trainers];
+  };
+  function updateExerciseAssignment(id: string, patch: Pick<Exercise, "trainerId"> | Pick<Exercise, "internalTeam">) {
+    setPlans((current) => ({ ...current, [selectedDay]: (current[selectedDay] ?? []).map((exercise) => exercise.id === id ? { ...exercise, ...patch } : exercise) }));
+  }
   const requiredMaterials = useMemo(() => {
     const required = new Map<MaterialId, number>();
     plan.forEach((exercise) => exercise.materials.forEach((material) => {
@@ -365,7 +422,7 @@ export function TrainerApp() {
     const exists = exerciseLibrary.some((exercise) => exercise.id === item.id);
     const nextLibrary = exists ? exerciseLibrary.map((exercise) => exercise.id === item.id ? item : exercise) : [...exerciseLibrary, item];
     setExerciseLibrary(nextLibrary);
-    setPlans((current) => Object.fromEntries(Object.entries(current).map(([day, dayPlan]) => [day, dayPlan.map((planned) => planned.id === item.id || planned.id.startsWith(`${item.id}-`) ? { ...item, id: planned.id, category: planned.category } : planned)])));
+    setPlans((current) => Object.fromEntries(Object.entries(current).map(([day, dayPlan]) => [day, dayPlan.map((planned) => planned.id === item.id || planned.id.startsWith(`${item.id}-`) ? { ...item, id: planned.id, category: planned.category, trainerId: planned.trainerId, internalTeam: planned.internalTeam } : planned)])));
     void syncResource("exercises", nextLibrary);
     setCreatorOpen(false);
     setEditingExercise(null);
@@ -421,7 +478,7 @@ export function TrainerApp() {
       <div className="overview-grid">
         <section className="overview-card next-session">
           <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>{nextPlannedDay.day.short} · {nextPlannedDay.day.time} Uhr</h2></div><button onClick={() => { selectDay(nextPlannedDay.day.key); setView("plan"); }}>Plan öffnen <ChevronRight /></button></div>
-          <div className="next-session-main"><div className="date-tile"><strong>{nextPlannedDay.day.date}</strong><span>{nextPlannedDay.day.month}</span></div><div><span className="session-status"><i /> GEPLANT & GESPEICHERT</span><h3>{planMeta[nextPlannedDay.day.key]?.name ?? nextPlannedDay.day.theme}</h3><p>Sportplatz Nord · {nextPlannedDay.exercises.length} Übungen · {nextPlannedDay.exercises.reduce((sum, item) => sum + item.duration, 0)} Minuten</p></div></div>
+          <div className="next-session-main"><div className="date-tile"><strong>{nextPlannedDay.day.date}</strong><span>{nextPlannedDay.day.month}</span></div><div><span className="session-status"><i /> GEPLANT & GESPEICHERT</span><h3>{planMeta[nextPlannedDay.day.key]?.name ?? nextPlannedDay.day.theme}</h3><p>Sportplatz Nord · {nextPlannedDay.exercises.length} Übungen · {nextPlannedDay.exercises.reduce((sum, item) => sum + item.duration, 0)} Minuten</p>{exerciseAssignmentSummary(nextPlannedDay.exercises).length > 0 && <div className="training-assignment-badges">{exerciseAssignmentSummary(nextPlannedDay.exercises).map((label) => <span key={label}>{label}</span>)}</div>}</div></div>
           <div className="session-exercises">{nextPlannedDay.exercises.slice(0, 4).map((item) => <button key={item.id} onClick={() => setDetail(item)}><Pitch variant={item.variant} /><span>{item.title}</span></button>)}</div>
         </section>
         <section className="overview-card week-plans">
@@ -429,7 +486,8 @@ export function TrainerApp() {
           {currentWeekDays.map((day) => {
             const dayPlan = plans[day.key] ?? [];
             const dayTotal = dayPlan.reduce((sum, item) => sum + item.duration, 0);
-            return <button className="week-plan-row" key={day.key} onClick={() => { selectDay(day.key); setView("plan"); }}><span className={dayPlan.length ? "has-plan" : ""}>{day.short}<strong>{day.date}</strong></span><span><strong>{dayPlan.length ? planMeta[day.key]?.name ?? day.theme : "Training anlegen"}</strong><small>{dayPlan.length ? `${dayPlan.length} Übungen · ${dayTotal} Min` : "Noch nicht geplant"}</small></span><ChevronRight /></button>;
+            const assignment = exerciseAssignmentSummary(dayPlan).join(" · ");
+            return <button className="week-plan-row" key={day.key} onClick={() => { selectDay(day.key); setView("plan"); }}><span className={dayPlan.length ? "has-plan" : ""}>{day.short}<strong>{day.date}</strong></span><span><strong>{dayPlan.length ? planMeta[day.key]?.name ?? day.theme : "Training anlegen"}</strong><small>{dayPlan.length ? `${dayPlan.length} Übungen · ${dayTotal} Min${assignment ? ` · ${assignment}` : ""}` : "Noch nicht geplant"}</small></span><ChevronRight /></button>;
           })}
         </section>
       </div>
@@ -437,18 +495,21 @@ export function TrainerApp() {
     </section>
   );
 
-  if (!authReady) return <main className="login-page"><section className="login-panel"><div className="login-loading"><span className="brand-mark"><Shield /></span><strong>Trainerplan wird geladen …</strong></div></section></main>;
-  if (!currentUser) return <LoginScreen onLogin={login} />;
+  // Der Login bleibt auch während der kurzen Sitzungsprüfung bedienbar. So hängt die
+  // App bei einem veralteten Browser-Bundle oder einer langsamen API nie im Splashscreen.
+  if (!authReady || !currentUser) return <LoginScreen onLogin={login} />;
 
-  const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : "Profil";
+  const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : "Profil";
   const moduleContent = view === "calendar"
     ? <CalendarPage events={events} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} />
+    : view === "tournaments"
+      ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} onPlansChange={updateTournamentPlan} onCreateTournament={createTournament} />
     : view === "team"
       ? (clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? <TeamPage users={users} currentUser={currentUser} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} onInvite={() => setView("settings")} /> : overview)
       : view === "profile" && profileUser
-        ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={profileUser.id === currentUser.id} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
+        ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={profileUser.id === currentUser.id} canRequestEmailChange={profileUser.id === currentUser.id || currentUser.role === "admin"} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageDevelopment={canManageClub} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
         : view === "settings" && currentUser.role === "admin"
-          ? <AdminSettingsPage settings={clubSettings} users={users} groups={groups} invitations={invitations} smtp={smtp} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
+          ? <AdminSettingsPage settings={clubSettings} users={users} groups={groups} ageGroups={ageGroups} invitations={invitations} smtp={smtp} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
           : null;
 
   return (
@@ -459,6 +520,7 @@ export function TrainerApp() {
         <nav>
           <a className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><Home /> Übersicht</a>
           <a className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /> Kalender</a>
+          <a className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /> Mannschaftsplanung</a>
           <a className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}><CalendarDays /> Trainingsplan</a>
           <a className={view === "exercises" ? "active" : ""} onClick={() => setView("exercises")}><Library /> Übungen</a>
           {(clubSettings.teamFeatureEnabled || currentUser.role === "admin") && <a className={view === "team" ? "active" : ""} onClick={() => setView("team")}><Dumbbell /> Mannschaft</a>}
@@ -477,7 +539,7 @@ export function TrainerApp() {
         </header>
 
         <div className="mobile-head">
-          <button className="icon-button" onClick={mobileBack} aria-label={view === "overview" ? "Zur Übersicht" : "Zurück zur Übersicht"}><ArrowLeft /></button>
+          {view === "overview" ? <span className="mobile-head-spacer" aria-hidden="true" /> : <button className="icon-button" onClick={mobileBack} aria-label="Zurück zur Übersicht"><ArrowLeft /></button>}
           <div><span>{view === "plan" ? `${currentDay.month} ${currentDay.key.slice(0, 4)}` : "F-JUGEND"}</span><strong>{viewTitle}</strong></div>
           <button className="icon-button" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"} aria-expanded={mobileMenuOpen}><Menu /></button>
         </div>
@@ -487,6 +549,7 @@ export function TrainerApp() {
           <div>
             <button className={view === "overview" ? "active" : ""} onClick={() => mobileNavigate("overview")}><Home /><span><strong>Übersicht</strong><small>Dashboard und nächste Termine</small></span><ChevronRight /></button>
             <button className={view === "calendar" ? "active" : ""} onClick={() => mobileNavigate("calendar")}><CalendarDays /><span><strong>Kalender</strong><small>Training, Turniere und Ereignisse</small></span><ChevronRight /></button>
+            <button className={view === "tournaments" ? "active" : ""} onClick={() => mobileNavigate("tournaments")}><Trophy /><span><strong>Mannschaftsplanung</strong><small>Turnierteams und Trainer zuordnen</small></span><ChevronRight /></button>
             <button className={view === "plan" ? "active" : ""} onClick={() => mobileNavigate("plan")}><CalendarDays /><span><strong>Trainingsplan</strong><small>Einheiten planen und bearbeiten</small></span><ChevronRight /></button>
             <button className={view === "exercises" ? "active" : ""} onClick={() => mobileNavigate("exercises")}><Library /><span><strong>Übungen</strong><small>Übungsbibliothek durchsuchen</small></span><ChevronRight /></button>
             {(clubSettings.teamFeatureEnabled || currentUser.role === "admin") && <button className={view === "team" ? "active" : ""} onClick={() => mobileNavigate("team")}><Users /><span><strong>Mannschaft</strong><small>Kader und Rollen verwalten</small></span><ChevronRight /></button>}
@@ -522,8 +585,9 @@ export function TrainerApp() {
             </div>}
             <div className="plan-heading">
               <div><span className="eyebrow">{currentDay.time} UHR · DAUER {total} MIN</span><h2>{currentPlanMeta.name}</h2><p>{currentDay.full} · Sportplatz Nord</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
-              <div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div>
+              <div className="plan-heading-actions"><div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div></div>
             </div>
+            {assignmentExercise && clubSettings.splitTeamsEnabled && <div className="modal-backdrop assignment-editor-backdrop" onMouseDown={() => setAssignmentExerciseId(null)}><section className="assignment-editor" role="dialog" aria-modal="true" aria-labelledby="assignment-editor-title" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">ÜBUNG ZUORDNEN</span><h2 id="assignment-editor-title">{assignmentExercise.title}</h2><p>Team und Trainer gelten nur für diese Übung.</p></div><button onClick={() => setAssignmentExerciseId(null)} aria-label="Zuordnung schließen"><X /></button></header><div className="training-assignment-fields"><label><span>Internes Team</span><select value={assignmentExercise.internalTeam ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { internalTeam: (event.target.value || null) as InternalTeam | null })}><option value="">Gesamte Mannschaft</option><option value="A">Team A</option><option value="B">Team B</option></select></label><label><span>Verantwortlicher Trainer</span><select value={assignmentExercise.trainerId ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { trainerId: event.target.value || null })}><option value="">Noch nicht zugeordnet</option>{availableTrainers.map((trainer) => <option value={trainer.id} key={trainer.id}>{trainer.name}</option>)}</select></label></div><button className="primary assignment-editor-done" onClick={() => setAssignmentExerciseId(null)}><Check /> Fertig</button></section></div>}
 
             <div className="phase-schedule">
               {phases.map((phase) => {
@@ -537,8 +601,8 @@ export function TrainerApp() {
                       return <article className="exercise" key={item.id} style={{ "--accent": item.accent } as React.CSSProperties}>
                         <div className="stage"><i /><span>{String(index + 1).padStart(2, "0")}</span><select className="phase-select" value={item.category} onChange={(event) => changeExercisePhase(item.id, event.target.value as Exercise["category"])}>{phases.map((option) => <option key={option}>{option}</option>)}</select></div>
                         <button className="exercise-preview" onClick={() => setDetail(item)} aria-label={`${item.title} öffnen`}><Pitch variant={item.variant} /></button>
-                        <button className="exercise-copy" onClick={() => setDetail(item)}><span className="mobile-stage">{item.category} · Phase änderbar</span><h3>{item.title}</h3><p>{item.description}</p><small><Users /> {item.players}<Clock3 /> {item.duration} Min <CircleGauge /> {item.intensity}</small></button>
-                        {canManageClub && <button className="remove-button" onClick={() => removeExercise(item.id)} aria-label={`${item.title} entfernen`}><Trash2 /></button>}
+                        <button className="exercise-copy" onClick={() => setDetail(item)}><span className={`mobile-stage ${exerciseAssignmentLabel(item) ? "with-assignment" : ""}`}>{exerciseAssignmentLabel(item) || "Phase änderbar"}</span><h3>{item.title}</h3><p>{item.description}</p><small><Users /> {item.players}<Clock3 /> {item.duration} Min <CircleGauge /> {item.intensity}</small></button>
+                        {canManageClub && <div className="exercise-row-actions">{clubSettings.splitTeamsEnabled && <button className="exercise-assignment-button" onClick={() => setAssignmentExerciseId(item.id)} aria-label={`Team und Trainer für ${item.title} festlegen`} title="Team und Trainer"><Users /></button>}<button className="remove-button" onClick={() => removeExercise(item.id)} aria-label={`${item.title} entfernen`}><Trash2 /></button></div>}
                       </article>;
                     })}
                     {!phaseExercises.length && canManageClub && <button className="phase-dropzone" onClick={() => { setTargetPhase(phase); setLibraryOpen(true); }}><Plus /> Übung für {phase === "Abschlussspiel" ? "Abschluss" : phase} hinzufügen</button>}

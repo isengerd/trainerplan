@@ -21,10 +21,11 @@ export async function PUT(request: NextRequest) {
 
   if (body.resource === "users") {
     let allowed: ClubUser[];
-    try { allowed = validateUsers(body.data, user.id, user.role === "admin"); }
+    try { allowed = validateUsers(body.data, user.id, canManage(user.role)); }
     catch (error) { const result = apiError(error); return NextResponse.json({ error: result.message }, { status: result.status }); }
     const existingUsers = await prisma.user.findMany({ select: { id: true, role: true } });
     const existingIds = new Set(existingUsers.map((entry) => entry.id));
+    const existingById = new Map(existingUsers.map((entry) => [entry.id, entry]));
     if (allowed.some((entry) => !existingIds.has(entry.id))) return NextResponse.json({ error: "Ein Benutzerkonto existiert nicht." }, { status: 400 });
     if (user.role === "admin") {
       const changedRoles = new Map(allowed.map((entry) => [entry.id, entry.role]));
@@ -32,20 +33,32 @@ export async function PUT(request: NextRequest) {
       const groupIds = [...new Set(allowed.map((entry) => entry.groupId).filter((id): id is string => Boolean(id)))];
       if (groupIds.length && await prisma.teamGroup.count({ where: { id: { in: groupIds } } }) !== groupIds.length) return NextResponse.json({ error: "Eine ausgewählte Gruppe existiert nicht." }, { status: 400 });
     }
-    await prisma.$transaction(allowed.map((entry) => prisma.user.update({
+    await prisma.$transaction(allowed.map((entry) => {
+      const existing = existingById.get(entry.id)!;
+      const canEditProfile = user.role === "admin" || user.id === entry.id;
+      const canEditDevelopment = user.role === "admin" || (user.role === "trainer" && existing.role === "player");
+      return prisma.user.update({
         where: { id: entry.id },
         data: {
-          name: entry.name,
-          email: entry.email.trim().toLowerCase(),
+          name: canEditProfile ? entry.name : undefined,
+          // E-Mail-Adressen werden ausschließlich über den bestätigten
+          // E-Mail-Änderungsprozess aktualisiert.
+          email: undefined,
           role: user.role === "admin" ? entry.role : undefined,
-          position: entry.position,
-          number: entry.number,
-          phone: entry.phone,
-          birthday: entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null,
-          avatar: entry.avatar,
+          position: canEditProfile ? entry.position : undefined,
+          number: canEditProfile ? entry.number : undefined,
+          phone: canEditProfile ? entry.phone : undefined,
+          birthday: canEditProfile ? (entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null) : undefined,
+          ageGroup: user.role === "admin" ? entry.ageGroup : undefined,
+          avatar: canEditProfile ? entry.avatar : undefined,
           groupId: user.role === "admin" ? entry.groupId || null : undefined,
+          dribblingRating: canEditDevelopment && existing.role === "player" ? entry.dribblingRating : undefined,
+          shootingRating: canEditDevelopment && existing.role === "player" ? entry.shootingRating : undefined,
+          passingRating: canEditDevelopment && existing.role === "player" ? entry.passingRating : undefined,
+          internalTeam: canEditDevelopment && existing.role === "player" ? entry.internalTeam || null : undefined,
         },
-      })));
+      });
+    }));
     return NextResponse.json({ ok: true });
   }
 
@@ -110,6 +123,7 @@ export async function PUT(request: NextRequest) {
     let settings: ClubSettings;
     try { settings = validateSettings(body.data); }
     catch (error) { const result = apiError(error); return NextResponse.json({ error: result.message }, { status: result.status }); }
+    if (await prisma.ageGroup.count({ where: { id: { in: settings.ageGroupIds } } }) !== settings.ageGroupIds.length) return NextResponse.json({ error: "Mindestens eine Altersklasse existiert nicht." }, { status: 400 });
     await prisma.appConfig.update({ where: { id: "default" }, data: { settings: json(settings) } });
     return NextResponse.json({ ok: true });
   }
@@ -118,6 +132,8 @@ export async function PUT(request: NextRequest) {
     let data: { plans: Record<string, unknown>; planMeta: Record<string, unknown> };
     try { data = validatePlans(body.data); }
     catch (error) { const result = apiError(error); return NextResponse.json({ error: result.message }, { status: result.status }); }
+    const trainerIds = [...new Set(Object.values(data.plans).flatMap((value) => Array.isArray(value) ? value.map((exercise) => (exercise as { trainerId?: unknown }).trainerId) : []).filter((id): id is string => typeof id === "string" && Boolean(id)))];
+    if (trainerIds.length && await prisma.user.count({ where: { id: { in: trainerIds }, role: { in: ["admin", "trainer"] } } }) !== trainerIds.length) return NextResponse.json({ error: "Ein ausgewählter Trainer existiert nicht oder hat keine Trainerrolle." }, { status: 400 });
     await prisma.appConfig.update({ where: { id: "default" }, data: { plans: json(data.plans), planMeta: json(data.planMeta) } });
     return NextResponse.json({ ok: true });
   }

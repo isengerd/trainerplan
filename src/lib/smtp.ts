@@ -32,3 +32,13 @@ export async function sendInvitationMail(input: { to: string; name: string; invi
     text: `${greeting}\n\n${input.inviter} hat dich zu ${input.clubName} eingeladen.\n\nEinladung annehmen: ${input.link}\n\nDer Link ist 7 Tage gültig.`,
   });
 }
+
+export async function sendEmailChangeMail(input: { to: string; name: string; link: string; requestedBy?: string }) {
+  const transport = smtpTransport();
+  await transport.sendMail({
+    from: process.env.SMTP_FROM,
+    to: input.to,
+    subject: "Neue E-Mail-Adresse für Trainerplan bestätigen",
+    text: `Hallo ${input.name},\n\n${input.requestedBy ? `${input.requestedBy} hat als Vereinsadmin eine neue E-Mail-Adresse für dein Trainerplan-Konto hinterlegt.` : "du hast eine neue E-Mail-Adresse für dein Trainerplan-Konto hinterlegt."}\n\nBitte bestätige die neue Adresse über diesen Link:\n\n${input.link}\n\nDer Link ist 60 Minuten gültig. Falls du die Änderung nicht erwartest, öffne den Link nicht und informiere deinen Verein.`,
+  });
+}
