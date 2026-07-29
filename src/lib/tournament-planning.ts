@@ -24,7 +24,7 @@ export function validateTournamentSquad(
   ageGroups: Record<string, string>,
   options: { minFYouth: number; maxTeamSize: number; trainerRequired: boolean },
 ): SquadValidation {
-  const fYouthCount = squad.playerIds.filter((id) => ageGroups[id] === "F-Jugend").length;
+  const fYouthCount = squad.playerIds.filter((id) => ["F1", "F2", "F-Jugend"].includes(ageGroups[id])).length;
   return {
     fYouthCount,
     minimumMet: fYouthCount >= options.minFYouth,

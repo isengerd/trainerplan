@@ -27,6 +27,7 @@ model User {
   role                    Role
   position                String
   number                  Int?
+  ballNumber              Int?
   phone                   String                  @default("")
   birthday                DateTime?               @db.Date
   ageGroup                String                  @default("F-Jugend")

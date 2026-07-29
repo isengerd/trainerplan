@@ -7,6 +7,7 @@ import type { ClubEvent, ClubSettings, ClubUser } from "@/data/club";
 import type { Exercise } from "@/data/demo";
 import { apiError, readJson } from "@/lib/api-security";
 import { validateEvents, validateExercises, validatePlans, validateSettings, validateTemplates, validateUsers } from "@/lib/validators";
+import { ageGroupForBirthday } from "@/lib/age-groups";
 
 type Resource = "users" | "events" | "exercises" | "settings" | "plans" | "templates";
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -47,9 +48,10 @@ export async function PUT(request: NextRequest) {
           role: user.role === "admin" ? entry.role : undefined,
           position: canEditProfile ? entry.position : undefined,
           number: canEditProfile ? entry.number : undefined,
+          ballNumber: canEditProfile ? entry.ballNumber : undefined,
           phone: canEditProfile ? entry.phone : undefined,
           birthday: canEditProfile ? (entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null) : undefined,
-          ageGroup: user.role === "admin" ? entry.ageGroup : undefined,
+          ageGroup: user.role === "admin" ? (entry.role === "player" ? ageGroupForBirthday(entry.birthday) ?? "" : entry.ageGroup) : undefined,
           avatar: canEditProfile ? entry.avatar : undefined,
           groupId: user.role === "admin" ? entry.groupId || null : undefined,
           dribblingRating: canEditDevelopment && existing.role === "player" ? entry.dribblingRating : undefined,

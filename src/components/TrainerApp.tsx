@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
 import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
+import { ageGroupForBirthday } from "@/lib/age-groups";
 import { Pitch } from "./Pitch";
 import { Avatar, CalendarPage, LoginScreen, ProfilePage, TeamPage } from "./ClubModules";
 import { AdminSettingsPage } from "./AdminSettings";
@@ -244,7 +245,10 @@ export function TrainerApp() {
     }
   }
 
-  function updateUsers(next: ClubUser[]) { setUsers(next); void syncResource("users", next); }
+  function updateUsers(next: ClubUser[]) {
+    const normalized = next.map((user) => user.role === "player" ? { ...user, ageGroup: ageGroupForBirthday(user.birthday) ?? "" } : user);
+    setUsers(normalized); void syncResource("users", normalized);
+  }
   function updateEvents(next: ClubEvent[]) { setEvents(next); void syncResource("events", next); }
   function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next); }
@@ -625,7 +629,7 @@ export function TrainerApp() {
           <button className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /><span>Kalender</span></button>
           <button className="fab" onClick={() => view === "plan" ? setLibraryOpen(true) : setView("plan")} aria-label={view === "plan" ? "Übung hinzufügen" : "Trainingsplan öffnen"}>{view === "plan" ? <Plus /> : <CalendarDays />}</button>
           <button className={view === "team" ? "active" : ""} onClick={() => setView(clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? "team" : "profile")}><Users /><span>Team</span></button>
-          <button className={view === "settings" || view === "profile" ? "active" : ""} onClick={() => { if (currentUser.role === "admin") setView("settings"); else { setProfileUserId(currentUser.id); setView("profile"); } }}>{currentUser.role === "admin" ? <Settings /> : <MoreVertical />}<span>{currentUser.role === "admin" ? "Setup" : "Profil"}</span></button>
+          <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>Mannschaftsplanung</span></button>
         </nav>
       </section>
 

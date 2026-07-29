@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { NextRequest } from "next/server";
 import type { Role, User } from "@prisma/client";
 import { prisma } from "./db";
+import { ageGroupForBirthday } from "./age-groups";
 
 export const SESSION_COOKIE = "trainerplan_session";
 const SESSION_DAYS = 30;
@@ -16,9 +17,10 @@ export function safeUser(user: User): SafeUser {
     role: user.role,
     position: user.position,
     number: user.number,
+    ballNumber: user.ballNumber,
     phone: user.phone,
     birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : "",
-    ageGroup: user.ageGroup,
+    ageGroup: user.role === "player" ? ageGroupForBirthday(user.birthday) ?? "" : user.ageGroup,
     avatar: user.avatar,
     groupId: user.groupId,
     dribblingRating: user.dribblingRating,

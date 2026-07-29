@@ -47,6 +47,7 @@ export function validateUsers(value: unknown, actorId: string, canManagePlayers:
       role,
       position,
       number: input.number === undefined || input.number === null ? undefined : integerValue(input.number, "Trikotnummer", 0, 999),
+      ballNumber: input.ballNumber === undefined || input.ballNumber === null ? undefined : integerValue(input.ballNumber, "Ballnummer", 0, 999),
       phone: optionalText(input.phone, "Telefonnummer", 40),
       birthday,
       ageGroup: optionalText(input.ageGroup, "Altersklasse", 40) || "F-Jugend",

@@ -10,6 +10,7 @@ export type ClubUser = {
   role: Role;
   position: string;
   number?: number;
+  ballNumber?: number;
   phone: string;
   birthday: string;
   ageGroup: string;
@@ -112,7 +113,7 @@ export const initialSettings: ClubSettings = {
   tournamentTrainerRequired: true,
   tournamentNotifications: true,
   tournamentDefaultSquadName: "Mannschaft {n}",
-  ageGroupIds: ["f-jugend", "e-jugend", "d-jugend"],
+  ageGroupIds: ["g1", "g2", "f1", "f2", "e1", "e2", "d1", "d2", "c1", "c2", "b1", "b2", "a1", "a2"],
 };
 
 export const roleLabels: Record<Role, string> = { admin: "Admin", trainer: "Trainer", player: "Spieler" };
