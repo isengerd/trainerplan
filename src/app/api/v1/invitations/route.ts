@@ -4,6 +4,7 @@ import { authenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { applicationUrl, createInvitationToken, invitationDto } from "@/lib/invitations";
 import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
+import type { ClubSettings } from "@/data/club";
 import { ApiInputError, emailValue, readJson, textValue } from "@/lib/api-security";
 
 export async function POST(request: NextRequest) {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   if (await prisma.user.findUnique({ where: { email } })) return NextResponse.json({ error: "Diese Person ist bereits Mitglied." }, { status: 409 });
   const groupId = body.groupId ? textValue(body.groupId, "Gruppe", 100, 1) : null;
   if (groupId && !(await prisma.teamGroup.findUnique({ where: { id: groupId } }))) return NextResponse.json({ error: "Die ausgewählte Gruppe existiert nicht." }, { status: 400 });
-  const settings = (await prisma.appConfig.findUniqueOrThrow({ where: { id: "default" } })).settings as { clubName?: string };
+  const settings = (await prisma.appConfig.findUniqueOrThrow({ where: { id: "default" } })).settings as unknown as ClubSettings;
 
   await prisma.invitation.deleteMany({ where: { email, acceptedAt: null } });
   const { token, tokenHash } = createInvitationToken();
