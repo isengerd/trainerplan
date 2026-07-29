@@ -8,14 +8,14 @@ UPDATE "AgeGroup" SET "id" = 'c1', "name" = 'C1', "ageRange" = '2012', "sortOrde
 UPDATE "AgeGroup" SET "id" = 'b1', "name" = 'B1', "ageRange" = '2010', "sortOrder" = 110 WHERE "id" = 'b-jugend';
 UPDATE "AgeGroup" SET "id" = 'a1', "name" = 'A1', "ageRange" = '2008', "sortOrder" = 130 WHERE "id" = 'a-jugend';
 
-INSERT INTO "AgeGroup" ("id", "name", "ageRange", "sortOrder") VALUES
-  ('g2', 'G2', '2021 und jünger', 20),
-  ('f2', 'F2', '2019', 40),
-  ('e2', 'E2', '2017', 60),
-  ('d2', 'D2', '2015', 80),
-  ('c2', 'C2', '2013', 100),
-  ('b2', 'B2', '2011', 120),
-  ('a2', 'A2', '2009', 140);
+INSERT INTO "AgeGroup" ("id", "name", "ageRange", "sortOrder", "updatedAt") VALUES
+  ('g2', 'G2', '2021 und jünger', 20, CURRENT_TIMESTAMP),
+  ('f2', 'F2', '2019', 40, CURRENT_TIMESTAMP),
+  ('e2', 'E2', '2017', 60, CURRENT_TIMESTAMP),
+  ('d2', 'D2', '2015', 80, CURRENT_TIMESTAMP),
+  ('c2', 'C2', '2013', 100, CURRENT_TIMESTAMP),
+  ('b2', 'B2', '2011', 120, CURRENT_TIMESTAMP),
+  ('a2', 'A2', '2009', 140, CURRENT_TIMESTAMP);
 
 UPDATE "AppConfig"
 SET "settings" = jsonb_set(
