@@ -28,6 +28,8 @@ export function invitationDto(invitation: Invitation & { invitedBy: { name: stri
     role: invitation.role,
     ageGroup: invitation.ageGroup,
     groupId: invitation.groupId,
+    clubId: invitation.clubId,
+    teamId: invitation.teamId,
     invitedBy: invitation.invitedBy.name,
     expiresAt: invitation.expiresAt.toISOString(),
     acceptedAt: invitation.acceptedAt?.toISOString() ?? null,

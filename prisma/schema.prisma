@@ -19,6 +19,11 @@ enum AttendanceValue {
   maybe
 }
 
+enum MembershipStatus {
+  active
+  suspended
+}
+
 model User {
   id                      String                  @id
   name                    String
@@ -42,6 +47,7 @@ model User {
   emailChangeRequests     EmailChangeRequest[]
   responses               AttendanceResponse[]
   sessions                ApiSession[]
+  memberships             Membership[]
   coachedTournamentSquads TournamentSquad[]       @relation("TournamentSquadTrainer")
   tournamentAssignments   TournamentSquadPlayer[]
   createdAt               DateTime                @default(now())
@@ -50,15 +56,65 @@ model User {
   @@index([groupId])
 }
 
+model Club {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  memberships Membership[]
+  teams       Team[]
+  invitations Invitation[] @relation("ClubInvitations")
+  events      ClubEvent[]
+  exercises   ExerciseRecord[]
+  configs     AppConfig[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  clubId      String
+  name        String
+  ageGroup    String       @default("F-Jugend")
+  club        Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  invitations Invitation[] @relation("TeamInvitations")
+  events      ClubEvent[]
+  exercises   ExerciseRecord[]
+  configs     AppConfig[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([clubId, name])
+  @@index([clubId])
+}
+
+model Membership {
+  id        String           @id @default(cuid())
+  userId    String
+  clubId    String
+  teamId    String?
+  role      Role
+  status    MembershipStatus @default(active)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team      Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, clubId, teamId])
+  @@index([clubId, status])
+  @@index([teamId, status])
+}
+
 model EmailChangeRequest {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
   newEmail  String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@index([newEmail])
@@ -92,7 +148,11 @@ model Invitation {
   role        Role
   ageGroup    String     @default("F-Jugend")
   groupId     String?
+  clubId      String?
+  teamId      String?
   group       TeamGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  club        Club?      @relation("ClubInvitations", fields: [clubId], references: [id], onDelete: Cascade)
+  team        Team?      @relation("TeamInvitations", fields: [teamId], references: [id], onDelete: SetNull)
   invitedById String
   invitedBy   User       @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Cascade)
   expiresAt   DateTime
@@ -106,6 +166,8 @@ model Invitation {
 
 model ClubEvent {
   id                    String                  @id
+  clubId                String?
+  teamId                String?
   type                  String
   title                 String
   date                  DateTime                @db.Date
@@ -121,8 +183,12 @@ model ClubEvent {
   responses             AttendanceResponse[]
   tournamentSquads      TournamentSquad[]
   tournamentAssignments TournamentSquadPlayer[]
+  club                  Club?                   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team                  Team?                   @relation(fields: [teamId], references: [id], onDelete: SetNull)
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
+
+  @@index([clubId, teamId, date])
 }
 
 model TournamentSquad {
@@ -167,18 +233,30 @@ model AttendanceResponse {
 
 model ExerciseRecord {
   id        String   @id
+  clubId    String?
+  teamId    String?
   data      Json
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([clubId, teamId])
 }
 
 model AppConfig {
   id        String   @id @default("default")
+  clubId    String?
+  teamId    String?
   settings  Json
   plans     Json
   templates Json
   planMeta  Json
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
   updatedAt DateTime @updatedAt
+
+  @@index([clubId, teamId])
 }
 
 model ApiSession {

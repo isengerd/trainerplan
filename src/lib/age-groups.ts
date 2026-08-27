@@ -1,22 +1,10 @@
 const seasonStartMonth = 7;
 
-const ageGroupByBirthYearDifference: Record<number, string> = {
-  6: "G1",
-  7: "F1",
-  8: "F2",
-  9: "E1",
-  10: "E2",
-  11: "D1",
-  12: "D2",
-  13: "C1",
-  14: "C2",
-  15: "B1",
-  16: "B2",
-  17: "A1",
-  18: "A2",
+const ageGroupByBirthYear2026: Record<number, FirstTeamAgeGroup> = {
+  2008: "a1", 2009: "a2", 2010: "b1", 2011: "b2", 2012: "c1", 2013: "c2", 2014: "d1", 2015: "d2",
+  2016: "e1", 2017: "e2", 2018: "f1", 2019: "f2", 2020: "g1", 2021: "g2",
 };
 
-/** Liefert das Startjahr der Saison, in der das Datum liegt (Saisonwechsel am 1. Juli). */
 export function seasonStartYear(referenceDate = new Date()) {
   const parts = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric" }).formatToParts(referenceDate);
   const year = Number(parts.find((part) => part.type === "year")?.value);
@@ -24,17 +12,35 @@ export function seasonStartYear(referenceDate = new Date()) {
   return month >= seasonStartMonth ? year : year - 1;
 }
 
-/**
- * Berechnet die Spielklasse anhand des Jahrgangs.
- * G2 umfasst ausdrücklich den Jahrgang 2021 und alle jüngeren Jahrgänge
- * (für 2026/27 also alle Jahrgänge ab 2021).
- */
 export function ageGroupForBirthday(birthday: string | Date | null | undefined, referenceDate = new Date()) {
   if (!birthday) return null;
   const value = birthday instanceof Date ? birthday : new Date(`${birthday}T12:00:00Z`);
   if (Number.isNaN(value.getTime())) return null;
+  const birthYear = value.getUTCFullYear();
+  const base = ageGroupByBirthYear2026[birthYear] ?? (birthYear >= 2022 ? "g2" : null);
+  if (!base) return null;
+  let ageGroup: FirstTeamAgeGroup = base;
+  for (let year = 2026; year < seasonStartYear(referenceDate); year += 1) {
+    const next = NEXT_AGE_GROUP[ageGroup];
+    if (!next) return null;
+    ageGroup = next;
+  }
+  return ageGroup.toUpperCase();
+}
 
-  const difference = seasonStartYear(referenceDate) - value.getUTCFullYear();
-  if (difference <= 5) return "G2";
-  return ageGroupByBirthYearDifference[difference] ?? null;
+export const FIRST_TEAM_AGE_GROUPS = [
+  "g2", "g1", "f2", "f1", "e2", "e1", "d2", "d1",
+  "c2", "c1", "b2", "b1", "a2", "a1",
+] as const;
+
+export type FirstTeamAgeGroup = (typeof FIRST_TEAM_AGE_GROUPS)[number];
+
+export const NEXT_AGE_GROUP: Record<FirstTeamAgeGroup, FirstTeamAgeGroup | null> = {
+  g2: "g1", g1: "f2", f2: "f1", f1: "e2", e2: "e1", e1: "d2",
+  d2: "d1", d1: "c2", c2: "c1", c1: "b2", b2: "b1", b1: "a2",
+  a2: "a1", a1: null,
+};
+
+export function isFirstTeamAgeGroup(value: string): value is FirstTeamAgeGroup {
+  return (FIRST_TEAM_AGE_GROUPS as readonly string[]).includes(value);
 }

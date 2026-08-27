@@ -46,6 +46,8 @@ export type ClubInvitation = {
   role: Role;
   ageGroup: string;
   groupId?: string | null;
+  clubId?: string | null;
+  teamId?: string | null;
   invitedBy: string;
   expiresAt: string;
   acceptedAt?: string | null;

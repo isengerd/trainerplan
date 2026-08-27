@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, Dumbbell, Edit3,
   Home, Library, LogOut, Menu, MoreVertical, Pause, Play, Plus, Settings, Share2, Shield,
@@ -10,12 +11,13 @@ import { library, materialCatalog, type Exercise, type MaterialId } from "@/data
 import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
 import { ageGroupForBirthday } from "@/lib/age-groups";
 import { Pitch } from "./Pitch";
-import { Avatar, CalendarPage, LoginScreen, ProfilePage, TeamPage } from "./ClubModules";
+import { Avatar, CalendarPage, ProfilePage, TeamPage } from "./ClubModules";
 import { AdminSettingsPage } from "./AdminSettings";
 import { ExerciseCreator } from "./ExerciseCreator";
 import { ExerciseLibrary } from "./ExerciseBrowser";
 import { TrainingTemplates, type TrainingTemplate } from "./TrainingTemplates";
 import { TournamentPlanningPage } from "./TournamentPlanning";
+import { FirstLoginSetup } from "./FirstLoginSetup";
 
 function localToday() {
   const parts = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date());
@@ -71,6 +73,7 @@ const featuredTemplates: TrainingTemplate[] = [
 
 type BootstrapData = {
   currentUser: ClubUser;
+  setupRequired?: boolean;
   users: ClubUser[];
   events: ClubEvent[];
   exercises: Exercise[];
@@ -97,6 +100,7 @@ function youtubeEmbed(url?: string) {
 }
 
 export function TrainerApp() {
+  const router = useRouter();
   const [view, setView] = useState<"overview" | "plan" | "exercises" | "calendar" | "tournaments" | "team" | "profile" | "settings">("overview");
   const [selectedDay, setSelectedDay] = useState(initialPlanKey);
   const [targetPhase, setTargetPhase] = useState<Exercise["category"]>("Einstieg");
@@ -108,6 +112,7 @@ export function TrainerApp() {
   const [users, setUsers] = useState<ClubUser[]>([]);
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [setupRequired, setSetupRequired] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [exerciseLibrary, setExerciseLibrary] = useState<Exercise[]>(library);
@@ -126,6 +131,7 @@ export function TrainerApp() {
   const [planMeta, setPlanMeta] = useState<Record<string, TrainingPlanMeta>>({});
   const [toastMessage, setToastMessage] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const planDataReady = useRef(false);
   const lastPersistedPlan = useRef("");
@@ -133,6 +139,10 @@ export function TrainerApp() {
   const autoSaveChain = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => { void loadBootstrap(); }, []);
+
+  useEffect(() => {
+    if (authReady && !currentUserId) router.replace("/login");
+  }, [authReady, currentUserId, router]);
 
   useEffect(() => {
     const theme = clubSettings.theme ?? "light";
@@ -149,7 +159,7 @@ export function TrainerApp() {
     setPlanSaveState("saving");
     const timer = window.setTimeout(() => {
       autoSaveChain.current = autoSaveChain.current.then(async () => {
-        const didSave = await syncResource("plans", payload);
+        const didSave = await syncTrainingPlans(payload);
         if (!didSave) {
           setPlanSaveState("error");
           return;
@@ -190,6 +200,7 @@ export function TrainerApp() {
     setUsers(data.users);
     setEvents(data.events);
     setCurrentUserId(data.currentUser.id);
+    setSetupRequired(Boolean(data.setupRequired));
     setExerciseLibrary(data.exercises);
     setClubSettings({ ...initialSettings, ...data.settings });
     setPlans(migratedPlans);
@@ -214,18 +225,6 @@ export function TrainerApp() {
     }
   }
 
-  async function login(email: string, password: string) {
-    try {
-      const response = await fetch("/api/v1/auth/login", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-      const result = await response.json() as { error?: string };
-      if (!response.ok) return result.error ?? "Anmeldung fehlgeschlagen.";
-      await loadBootstrap();
-      return null;
-    } catch {
-      return "Der Server ist gerade nicht erreichbar.";
-    }
-  }
-
   async function logout() {
     await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" }).catch(() => undefined);
     setCurrentUserId(null);
@@ -233,9 +232,10 @@ export function TrainerApp() {
     setUsers([]);
   }
 
-  async function syncResource(resource: "users" | "events" | "exercises" | "settings" | "plans" | "templates", data: unknown) {
+  async function syncResource(resource: "users" | "settings", data: unknown) {
     try {
-      const response = await fetch("/api/v1/state", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resource, data }) });
+      const endpoint = resource === "users" ? "/api/v1/users" : "/api/v1/settings";
+      const response = await fetch(endpoint, { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       const result = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Speichern fehlgeschlagen.");
       return true;
@@ -245,11 +245,66 @@ export function TrainerApp() {
     }
   }
 
+  async function syncTrainingPlans(data: { plans: Record<string, Exercise[]>; planMeta: Record<string, TrainingPlanMeta> }) {
+    try {
+      const response = await fetch("/api/v1/training-plans", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Trainingsplan konnte nicht gespeichert werden.");
+      return true;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Trainingsplan konnte nicht gespeichert werden.");
+      return false;
+    }
+  }
+
   function updateUsers(next: ClubUser[]) {
     const normalized = next.map((user) => user.role === "player" ? { ...user, ageGroup: ageGroupForBirthday(user.birthday) ?? "" } : user);
     setUsers(normalized); void syncResource("users", normalized);
   }
-  function updateEvents(next: ClubEvent[]) { setEvents(next); void syncResource("events", next); }
+  function eventDetails(event: ClubEvent) {
+    const { responses: _responses, ...details } = event;
+    return details;
+  }
+
+  async function syncEvents(next: ClubEvent[]) {
+    const previous = events;
+    const previousById = new Map(previous.map((event) => [event.id, event]));
+    const nextById = new Map(next.map((event) => [event.id, event]));
+    try {
+      for (const event of previous) {
+        if (nextById.has(event.id)) continue;
+        const response = await fetch(`/api/v1/events/${encodeURIComponent(event.id)}`, { method: "DELETE", credentials: "include" });
+        if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "Termin konnte nicht gelöscht werden.");
+      }
+      for (const event of next) {
+        if (!previousById.has(event.id)) {
+          const response = await fetch("/api/v1/events", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(event) });
+          if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "Termin konnte nicht erstellt werden.");
+          continue;
+        }
+        const previousEvent = previousById.get(event.id)!;
+        if (JSON.stringify(eventDetails(previousEvent)) !== JSON.stringify(eventDetails(event))) {
+          const response = await fetch(`/api/v1/events/${encodeURIComponent(event.id)}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(event) });
+          if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "Termin konnte nicht geändert werden.");
+        }
+        if (currentUserId && previousEvent.responses[currentUserId] !== event.responses[currentUserId]) {
+          const response = await fetch(`/api/v1/events/${encodeURIComponent(event.id)}/attendance`, { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: event.responses[currentUserId] ?? null }) });
+          if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "Teilnahme konnte nicht gespeichert werden.");
+        }
+      }
+      const response = await fetch("/api/v1/events", { credentials: "include", cache: "no-store" });
+      const result = await response.json() as { events?: ClubEvent[]; error?: string };
+      if (!response.ok || !result.events) throw new Error(result.error ?? "Termine konnten nicht geladen werden.");
+      setEvents(result.events);
+      return true;
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Termine konnten nicht gespeichert werden.");
+      return false;
+    }
+  }
+
+  function updateEvents(next: ClubEvent[]) { setEvents(next); void syncEvents(next); }
+
   function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next); }
 
@@ -258,7 +313,7 @@ export function TrainerApp() {
     const next = [...previous.filter((plan) => plan.eventId !== eventId), { eventId, squads }];
     setTournamentPlans(next);
     try {
-      const response = await fetch("/api/v1/tournament-squads", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventId, squads }) });
+      const response = await fetch(`/api/v1/events/${encodeURIComponent(eventId)}/squads`, { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ squads }) });
       const result = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Mannschaft konnte nicht gespeichert werden.");
       return true;
@@ -273,7 +328,7 @@ export function TrainerApp() {
     const previous = events;
     const next = [...events, event];
     setEvents(next);
-    const saved = await syncResource("events", next);
+    const saved = await syncEvents(next);
     if (!saved) setEvents(previous);
     return saved;
   }
@@ -300,7 +355,27 @@ export function TrainerApp() {
 
   function persistTemplates(next: TrainingTemplate[]) {
     setTrainingTemplates(next);
-    void syncResource("templates", next);
+    void syncTemplates(next);
+  }
+
+  async function syncTemplates(next: TrainingTemplate[]) {
+    const previous = trainingTemplates;
+    const previousById = new Map(previous.map((template) => [template.id, template]));
+    const nextById = new Map(next.map((template) => [template.id, template]));
+    try {
+      for (const template of previous) {
+        if (nextById.has(template.id)) continue;
+        const response = await fetch(`/api/v1/templates/${encodeURIComponent(template.id)}`, { method: "DELETE", credentials: "include" });
+        if (!response.ok) throw new Error("Vorlage konnte nicht gelöscht werden.");
+      }
+      for (const template of next) {
+        const existing = previousById.get(template.id);
+        const response = await fetch(existing ? `/api/v1/templates/${encodeURIComponent(template.id)}` : "/api/v1/templates", { method: existing ? "PATCH" : "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(template) });
+        if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error ?? "Vorlage konnte nicht gespeichert werden.");
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Vorlage konnte nicht gespeichert werden.");
+    }
   }
 
   function saveTrainingTemplate(template: TrainingTemplate) {
@@ -422,12 +497,22 @@ export function TrainerApp() {
     setPlans((current) => ({ ...current, [selectedDay]: (current[selectedDay] ?? []).map((item) => item.id === id ? { ...item, category } : item) }));
   }
 
+  async function syncExercise(item: Exercise, exists: boolean) {
+    try {
+      const response = await fetch(exists ? `/api/v1/exercises/${encodeURIComponent(item.id)}` : "/api/v1/exercises", { method: exists ? "PATCH" : "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item) });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Übung konnte nicht gespeichert werden.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Übung konnte nicht gespeichert werden.");
+    }
+  }
+
   function saveExercise(item: Exercise) {
     const exists = exerciseLibrary.some((exercise) => exercise.id === item.id);
     const nextLibrary = exists ? exerciseLibrary.map((exercise) => exercise.id === item.id ? item : exercise) : [...exerciseLibrary, item];
     setExerciseLibrary(nextLibrary);
     setPlans((current) => Object.fromEntries(Object.entries(current).map(([day, dayPlan]) => [day, dayPlan.map((planned) => planned.id === item.id || planned.id.startsWith(`${item.id}-`) ? { ...item, id: planned.id, category: planned.category, trainerId: planned.trainerId, internalTeam: planned.internalTeam } : planned)])));
-    void syncResource("exercises", nextLibrary);
+    void syncExercise(item, exists);
     setCreatorOpen(false);
     setEditingExercise(null);
   }
@@ -436,7 +521,9 @@ export function TrainerApp() {
     if (!canManageClub || !window.confirm(`„${item.title}“ wirklich aus der Übungsbibliothek löschen? Bereits geplante Trainings bleiben unverändert.`)) return;
     const nextLibrary = exerciseLibrary.filter((exercise) => exercise.id !== item.id);
     setExerciseLibrary(nextLibrary);
-    void syncResource("exercises", nextLibrary);
+    void fetch(`/api/v1/exercises/${encodeURIComponent(item.id)}`, { method: "DELETE", credentials: "include" }).then(async (response) => {
+      if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error ?? "Übung konnte nicht gelöscht werden.");
+    }).catch((error: unknown) => showToast(error instanceof Error ? error.message : "Übung konnte nicht gelöscht werden."));
     showToast(`${item.title} wurde gelöscht`);
   }
 
@@ -444,7 +531,7 @@ export function TrainerApp() {
     const payload = { plans, planMeta };
     const serialized = JSON.stringify(payload);
     setPlanSaveState("saving");
-    const didSave = await syncResource("plans", payload);
+    const didSave = await syncTrainingPlans(payload);
     if (didSave) {
       lastPersistedPlan.current = serialized;
       latestPlanSnapshot.current = serialized;
@@ -501,7 +588,9 @@ export function TrainerApp() {
 
   // Der Login bleibt auch während der kurzen Sitzungsprüfung bedienbar. So hängt die
   // App bei einem veralteten Browser-Bundle oder einer langsamen API nie im Splashscreen.
-  if (!authReady || !currentUser) return <LoginScreen onLogin={login} />;
+  if (!authReady) return <div className="auth-loading">Trainerplan wird geladen …</div>;
+  if (!currentUser) return null;
+  if (setupRequired) return <FirstLoginSetup user={currentUser} onComplete={loadBootstrap} />;
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : "Profil";
   const moduleContent = view === "calendar"
@@ -528,7 +617,6 @@ export function TrainerApp() {
           <a className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}><CalendarDays /> Trainingsplan</a>
           <a className={view === "exercises" ? "active" : ""} onClick={() => setView("exercises")}><Library /> Übungen</a>
           {(clubSettings.teamFeatureEnabled || currentUser.role === "admin") && <a className={view === "team" ? "active" : ""} onClick={() => setView("team")}><Dumbbell /> Mannschaft</a>}
-          {currentUser.role === "admin" && <a className={view === "settings" ? "active" : ""} onClick={() => setView("settings")}><Settings /> Einstellungen</a>}
         </nav>
         <div className="account-card" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /><span><strong>{currentUser.name}</strong><small>{currentUser.role === "admin" ? "Admin" : currentUser.role === "trainer" ? "Trainer" : "Spieler"}</small></span><button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Abmelden"><LogOut /></button></div>
       </aside>
@@ -538,7 +626,15 @@ export function TrainerApp() {
           <div><span className="eyebrow">FC KICKER · F-JUGEND</span><h1>{viewTitle}</h1><p>{view === "plan" ? `${days[0].full} – ${days[days.length - 1].full}` : view === "calendar" ? "Termine und Verfügbarkeiten" : "Dein Team auf einen Blick"}</p></div>
           <div className="top-actions">
             {view === "plan" && canManageClub && <><button className="ghost"><Share2 /> <span>Teilen</span></button><button className={`auto-save-status ${planSaveState}`} onClick={planSaveState === "error" ? retryPlanSave : undefined} disabled={planSaveState !== "error"}><Check /><span>{planSaveState === "saving" ? "Wird gespeichert …" : planSaveState === "error" ? "Erneut versuchen" : "Automatisch gespeichert"}</span></button></>}
-            <button className="avatar top-avatar" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /></button>
+            <div className="account-menu-wrap">
+              <button className="avatar top-avatar" onClick={() => setAccountMenuOpen((open) => !open)} aria-label="Benutzermenü öffnen" aria-expanded={accountMenuOpen}><Avatar user={currentUser} size="small" /></button>
+              {accountMenuOpen && <div className="account-menu" role="menu" onMouseDown={(event) => event.stopPropagation()}>
+                <div className="account-menu-head"><Avatar user={currentUser} size="medium" /><span><strong>{currentUser.name}</strong><small>{currentUser.email}</small></span></div>
+                <button role="menuitem" onClick={() => { setAccountMenuOpen(false); setProfileUserId(currentUser.id); setView("profile"); }}><Users /><span>Mein Profil</span><ChevronRight /></button>
+                {currentUser.role === "admin" && <button role="menuitem" onClick={() => { setAccountMenuOpen(false); setView("settings"); }}><Settings /><span>Einstellungen</span><ChevronRight /></button>}
+                <button role="menuitem" onClick={() => { setAccountMenuOpen(false); void logout(); }}><LogOut /><span>Abmelden</span><ChevronRight /></button>
+              </div>}
+            </div>
           </div>
         </header>
 

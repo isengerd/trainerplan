@@ -1,0 +1,715 @@
+openapi: 3.1.0
+info:
+  title: Trainerplan API
+  version: 1.0.0
+  description: |
+    Versionierte HTTP-API für die Trainerplan-Web-App und native Clients.
+    Browser verwenden eine HTTP-only-Cookie-Session; native Clients verwenden
+    das beim Login ausgegebene Bearer-Token.
+servers:
+  - url: /api/v1
+    description: Aktuelle API-Version
+tags:
+  - name: Authentifizierung
+  - name: Bootstrap
+  - name: Termine
+  - name: Trainingspläne
+  - name: Übungen
+  - name: Mannschaft
+  - name: Vorlagen
+  - name: Einladungen
+security:
+  - bearerAuth: []
+  - sessionCookie: []
+paths:
+  /auth/login:
+    post:
+      tags: [Authentifizierung]
+      security: []
+      summary: Anmelden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Anmeldung erfolgreich
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, token, expiresAt]
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  token: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/register/club:
+    post:
+      tags: [Authentifizierung]
+      security: []
+      summary: Verein mit erster Mannschaft und Admin-Konto anlegen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClubRegistrationRequest' }
+      responses:
+        '201':
+          description: Verein, Mannschaft und Admin wurden angelegt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, club, token, expiresAt]
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  club: { $ref: '#/components/schemas/ClubRegistrationResult' }
+                  token: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/register:
+    post:
+      tags: [Authentifizierung]
+      security: []
+      summary: Persönlichen Zugang anlegen
+      description: Erstellt nur den Zugang. Vereins- und Profildaten werden nach der ersten Anmeldung über das Onboarding erfasst.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 12, maxLength: 256 }
+      responses:
+        '201': { description: Zugang erstellt }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /auth/me:
+    get:
+      tags: [Authentifizierung]
+      summary: Aktuellen Benutzer laden
+      responses:
+        '200':
+          description: Benutzer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { user: { $ref: '#/components/schemas/User' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Authentifizierung]
+      summary: Sitzung beenden
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /auth/password:
+    put:
+      tags: [Authentifizierung]
+      summary: Passwort ändern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword, confirmation]
+              properties:
+                currentPassword: { type: string, minLength: 1, maxLength: 256 }
+                newPassword: { type: string, minLength: 12, maxLength: 256 }
+                confirmation: { type: string, minLength: 12, maxLength: 256 }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /auth/email-change:
+    post:
+      tags: [Authentifizierung]
+      summary: E-Mail-Adresse zur Bestätigung ändern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newEmail, currentPassword]
+              properties:
+                targetUserId: { type: string }
+                newEmail: { type: string, format: email }
+                currentPassword: { type: string }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '409': { $ref: '#/components/responses/Conflict' } }
+  /auth/email-change/confirm:
+    post:
+      tags: [Authentifizierung]
+      security: []
+      summary: E-Mail-Änderung bestätigen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties: { token: { type: string } }
+      responses: { '200': { $ref: '#/components/responses/Ok' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /bootstrap:
+    get:
+      tags: [Bootstrap]
+      summary: Initialen App-Zustand laden
+      responses:
+        '200':
+          description: Aggregierter App-Zustand
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentUser: { $ref: '#/components/schemas/User' }
+                  users: { type: array, items: { $ref: '#/components/schemas/User' } }
+                  events: { type: array, items: { $ref: '#/components/schemas/Event' } }
+                  exercises: { type: array, items: { $ref: '#/components/schemas/Exercise' } }
+                  settings: { $ref: '#/components/schemas/Settings' }
+                  plans: { $ref: '#/components/schemas/Plans' }
+                  planMeta: { type: object, additionalProperties: { $ref: '#/components/schemas/PlanMeta' } }
+                  templates: { type: array, items: { $ref: '#/components/schemas/Template' } }
+                  groups: { type: array, items: { $ref: '#/components/schemas/Group' } }
+                  ageGroups: { type: array, items: { $ref: '#/components/schemas/AgeGroup' } }
+                  invitations: { type: array, items: { $ref: '#/components/schemas/Invitation' } }
+                  tournamentPlans: { type: array, items: { $ref: '#/components/schemas/TournamentPlan' } }
+                  setupRequired: { type: boolean }
+
+  /onboarding/club:
+    post:
+      tags: [Authentifizierung]
+      summary: Verein nach der ersten Anmeldung einrichten
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, clubName, ageGroup]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+                clubName: { type: string, minLength: 2, maxLength: 120 }
+                designation: { type: string, maxLength: 80, description: Optionale Zusatzbezeichnung, z. B. Blau oder Mädchen }
+                ageGroup: { type: string, enum: [g2, g1, f2, f1, e2, e1, d2, d1, c2, c1, b2, b1, a2, a1] }
+      responses:
+        '200': { description: Verein eingerichtet }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /training-plans:
+    get:
+      tags: [Trainingspläne]
+      summary: Trainingspläne laden
+      responses:
+        '200':
+          description: Trainingspläne
+          content:
+            application/json: { schema: { $ref: '#/components/schemas/PlansPayload' } }
+    put:
+      tags: [Trainingspläne]
+      summary: Trainingspläne speichern
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/PlansPayload' } }
+      responses:
+        '200': { description: Trainingspläne gespeichert, content: { application/json: { schema: { $ref: '#/components/schemas/PlansPayload' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /events:
+    get:
+      tags: [Termine]
+      summary: Sichtbare Termine laden
+      responses:
+        '200':
+          description: Termine
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { events: { type: array, items: { $ref: '#/components/schemas/Event' } } }
+    post:
+      tags: [Termine]
+      summary: Termin erstellen
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/EventWrite' } } }
+      responses:
+        '201':
+          description: Erstellter Termin
+          content: { application/json: { schema: { type: object, properties: { event: { $ref: '#/components/schemas/Event' } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [Termine]
+      summary: Terminliste oder Teilnahmeänderungen speichern (Kompatibilität)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties: { events: { type: array, items: { $ref: '#/components/schemas/Event' } } }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /events/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/ResourceId' }
+    patch:
+      tags: [Termine]
+      summary: Termin ändern
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/EventWrite' } } }
+      responses:
+        '200': { description: Termin geändert, content: { application/json: { schema: { type: object, properties: { event: { $ref: '#/components/schemas/Event' } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Termine]
+      summary: Termin löschen
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+  /events/{id}/attendance:
+    parameters: [{ $ref: '#/components/parameters/ResourceId' }]
+    put:
+      tags: [Termine]
+      summary: Eigene Teilnahme setzen oder entfernen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { value: { oneOf: [{ $ref: '#/components/schemas/Attendance' }, { type: 'null' }] } }
+      responses:
+        '200': { description: Teilnahme aktualisiert, content: { application/json: { schema: { type: object, properties: { event: { $ref: '#/components/schemas/Event' } } } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /events/{id}/squads:
+    parameters: [{ $ref: '#/components/parameters/ResourceId' }]
+    get:
+      tags: [Mannschaft]
+      summary: Turniermannschaften laden
+      responses:
+        '200': { description: Mannschaftsplanung geladen, content: { application/json: { schema: { $ref: '#/components/schemas/SquadsPayload' } } } }
+    put:
+      tags: [Mannschaft]
+      summary: Turniermannschaften speichern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [squads]
+              properties: { squads: { type: array, items: { $ref: '#/components/schemas/Squad' } } }
+      responses:
+        '200': { description: Mannschaftsplanung gespeichert, content: { application/json: { schema: { $ref: '#/components/schemas/SquadsPayload' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /exercises:
+    get:
+      tags: [Übungen]
+      summary: Übungsbibliothek laden
+      responses:
+        '200': { description: Übungsbibliothek, content: { application/json: { schema: { type: object, properties: { exercises: { type: array, items: { $ref: '#/components/schemas/Exercise' } } } } } } }
+    post:
+      tags: [Übungen]
+      summary: Übung erstellen
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Exercise' } } }
+      responses:
+        '201': { description: Übung erstellt, content: { application/json: { schema: { type: object, properties: { exercise: { $ref: '#/components/schemas/Exercise' } } } } } }
+  /exercises/{id}:
+    parameters: [{ $ref: '#/components/parameters/ResourceId' }]
+    patch:
+      tags: [Übungen]
+      summary: Übung ändern
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Exercise' } } }
+      responses:
+        '200': { description: Übung geändert, content: { application/json: { schema: { type: object, properties: { exercise: { $ref: '#/components/schemas/Exercise' } } } } } }
+    delete:
+      tags: [Übungen]
+      summary: Übung löschen
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+
+  /users:
+    get:
+      tags: [Mannschaft]
+      summary: Sichtbare Benutzer laden
+      responses: { '200': { description: Benutzer geladen, content: { application/json: { schema: { type: object, properties: { users: { type: array, items: { $ref: '#/components/schemas/User' } } } } } } } }
+    put:
+      tags: [Mannschaft]
+      summary: Benutzerprofile speichern
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } }
+      responses: { '200': { description: Benutzer gespeichert, content: { application/json: { schema: { type: object, properties: { users: { type: array, items: { $ref: '#/components/schemas/User' } } } } } } } }
+  /settings:
+    get:
+      tags: [Mannschaft]
+      summary: Vereinseinstellungen laden
+      responses: { '200': { description: Einstellungen geladen, content: { application/json: { schema: { type: object, properties: { settings: { $ref: '#/components/schemas/Settings' } } } } } } }
+    put:
+      tags: [Mannschaft]
+      summary: Vereinseinstellungen speichern
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Settings' } } }
+      responses: { '200': { description: Einstellungen gespeichert, content: { application/json: { schema: { type: object, properties: { settings: { $ref: '#/components/schemas/Settings' } } } } } } }
+  /templates:
+    get:
+      tags: [Vorlagen]
+      summary: Trainingsvorlagen laden
+      responses: { '200': { description: Vorlagen geladen, content: { application/json: { schema: { type: object, properties: { templates: { type: array, items: { $ref: '#/components/schemas/Template' } } } } } } } }
+    post:
+      tags: [Vorlagen]
+      summary: Trainingsvorlage erstellen
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Template' } } }
+      responses: { '201': { description: Vorlage erstellt, content: { application/json: { schema: { type: object, properties: { template: { $ref: '#/components/schemas/Template' } } } } } } }
+  /templates/{id}:
+    parameters: [{ $ref: '#/components/parameters/ResourceId' }]
+    patch:
+      tags: [Vorlagen]
+      summary: Trainingsvorlage ändern
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Template' } } }
+      responses: { '200': { description: Vorlage geändert, content: { application/json: { schema: { type: object, properties: { template: { $ref: '#/components/schemas/Template' } } } } } } }
+    delete:
+      tags: [Vorlagen]
+      summary: Trainingsvorlage löschen
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+
+  /groups:
+    put:
+      tags: [Mannschaft]
+      summary: Gruppen speichern
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groups]
+              properties: { groups: { type: array, items: { $ref: '#/components/schemas/Group' } } }
+      responses: { '200': { description: Gruppen gespeichert, content: { application/json: { schema: { type: object, properties: { groups: { type: array, items: { $ref: '#/components/schemas/Group' } } } } } } } }
+  /invitations:
+    post:
+      tags: [Einladungen]
+      summary: Einladung erstellen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string }
+                role: { $ref: '#/components/schemas/Role' }
+                groupId: { type: [string, 'null'] }
+                sendEmail: { type: boolean }
+      responses: { '201': { description: Einladung erstellt, content: { application/json: { schema: { type: object, properties: { invitation: { $ref: '#/components/schemas/Invitation' }, link: { type: string, format: uri }, emailSent: { type: boolean } } } } } } }
+  /invitations/{id}:
+    parameters: [{ $ref: '#/components/parameters/ResourceId' }]
+    delete:
+      tags: [Einladungen]
+      summary: Einladung zurückziehen
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+  /invitations/accept:
+    get:
+      tags: [Einladungen]
+      security: []
+      summary: Einladung prüfen
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses: { '200': { description: Einladung ist gültig }, '404': { $ref: '#/components/responses/NotFound' } }
+    post:
+      tags: [Einladungen]
+      security: []
+      summary: Einladung annehmen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                name: { type: string }
+                password: { type: string, minLength: 12, maxLength: 256 }
+      responses: { '200': { description: Zugang erstellt }, '409': { $ref: '#/components/responses/Conflict' } }
+  /admin/smtp:
+    get:
+      tags: [Mannschaft]
+      summary: SMTP-Status laden
+      responses: { '200': { description: SMTP-Status, content: { application/json: { schema: { $ref: '#/components/schemas/SmtpStatus' } } } } }
+    post:
+      tags: [Mannschaft]
+      summary: SMTP-Verbindung prüfen
+      responses: { '200': { $ref: '#/components/responses/Ok' } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: session-token }
+    sessionCookie: { type: apiKey, in: cookie, name: trainerplan_session }
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 160 }
+  responses:
+    Ok:
+      description: Erfolgreich
+      content: { application/json: { schema: { $ref: '#/components/schemas/Ok' } } }
+    BadRequest:
+      description: Ungültige Anfrage
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Nicht angemeldet
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Keine Berechtigung
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Ressource nicht gefunden
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: Konflikt
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    RateLimited:
+      description: Zu viele Anfragen
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties: { error: { type: string } }
+    Ok:
+      type: object
+      properties: { ok: { type: boolean, example: true } }
+    Role: { type: string, enum: [admin, trainer, player] }
+    Attendance: { type: string, enum: [yes, no, maybe] }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1, maxLength: 256 }
+    ClubRegistrationRequest:
+      type: object
+      required: [name, email, password, clubName, teamName]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 12, maxLength: 256 }
+        clubName: { type: string, minLength: 2, maxLength: 120 }
+        teamName: { type: string, minLength: 2, maxLength: 120 }
+        ageGroup: { type: string, maxLength: 40 }
+    ClubRegistrationResult:
+      type: object
+      required: [name, teamName]
+      properties:
+        name: { type: string }
+        teamName: { type: string }
+    User:
+      type: object
+      required: [id, name, email, role, position, phone, birthday, ageGroup, dribblingRating, shootingRating, passingRating]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/Role' }
+        position: { type: string }
+        number: { type: [integer, 'null'] }
+        ballNumber: { type: [integer, 'null'] }
+        phone: { type: string }
+        birthday: { type: string, format: date }
+        ageGroup: { type: string }
+        avatar: { type: [string, 'null'] }
+        groupId: { type: [string, 'null'] }
+        dribblingRating: { type: integer, minimum: 0, maximum: 5 }
+        shootingRating: { type: integer, minimum: 0, maximum: 5 }
+        passingRating: { type: integer, minimum: 0, maximum: 5 }
+        internalTeam: { type: [string, 'null'], enum: [A, B, null] }
+    EventWrite:
+      type: object
+      required: [type, title, date, startTime, endTime, meetingTime, location, description, maxParticipants]
+      properties:
+        type: { type: string, enum: [training, tournament, event] }
+        title: { type: string }
+        date: { type: string, format: date }
+        startTime: { type: string, pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' }
+        endTime: { type: string }
+        meetingTime: { type: string }
+        location: { type: string }
+        address: { type: string }
+        description: { type: string }
+        trainerNote: { type: string }
+        weather: { $ref: '#/components/schemas/Weather' }
+        maxParticipants: { type: integer, minimum: 1 }
+    Event:
+      allOf:
+        - $ref: '#/components/schemas/EventWrite'
+        - type: object
+          required: [id, responses]
+          properties:
+            id: { type: string }
+            responses: { type: object, additionalProperties: { $ref: '#/components/schemas/Attendance' } }
+    Weather:
+      type: object
+      required: [condition, label, temperature]
+      properties:
+        condition: { type: string, enum: [sunny, partly-cloudy, cloudy] }
+        label: { type: string }
+        temperature: { type: integer, minimum: -50, maximum: 60 }
+    Exercise:
+      type: object
+      required: [id, title, description, duration, players, ageGroup, ageRange, category, accent, intensity, focus, setup, coaching, materials, fieldSize, variant]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        duration: { type: integer, minimum: 1, maximum: 300 }
+        players: { type: string }
+        ageGroup: { type: string, enum: [F-Jugend] }
+        ageRange: { type: string, enum: [U8, U9, U8/U9] }
+        category: { type: string, enum: [Ankommen, Einstieg, Hauptteil, Abschlussspiel] }
+        accent: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }
+        intensity: { type: string, enum: [Niedrig, Mittel, Hoch] }
+        focus: { type: array, items: { type: string } }
+        setup: { type: string }
+        coaching: { type: array, items: { type: string } }
+        materials: { type: array, items: { type: object, required: [id, count], properties: { id: { type: string }, count: { type: integer, minimum: 1 } } } }
+        fieldSize: { type: string }
+        variant: { type: integer, minimum: 0 }
+        youtubeUrl: { type: string, format: uri }
+        trainerId: { type: [string, 'null'] }
+        internalTeam: { type: [string, 'null'], enum: [A, B, null] }
+    Plans:
+      type: object
+      additionalProperties:
+        type: array
+        items: { $ref: '#/components/schemas/Exercise' }
+    PlanMeta:
+      type: object
+      required: [name, focus]
+      properties: { name: { type: string }, focus: { type: array, items: { type: string } } }
+    PlansPayload:
+      type: object
+      required: [plans, planMeta]
+      properties:
+        plans: { $ref: '#/components/schemas/Plans' }
+        planMeta: { type: object, additionalProperties: { $ref: '#/components/schemas/PlanMeta' } }
+    Squad:
+      type: object
+      required: [id, eventId, name, playerIds]
+      properties:
+        id: { type: string }
+        eventId: { type: string }
+        name: { type: string }
+        trainerId: { type: [string, 'null'] }
+        playerIds: { type: array, items: { type: string } }
+    SquadsPayload:
+      type: object
+      required: [eventId, squads]
+      properties:
+        eventId: { type: string }
+        squads: { type: array, items: { $ref: '#/components/schemas/Squad' } }
+    TournamentPlan:
+      type: object
+      required: [eventId, squads]
+      properties:
+        eventId: { type: string }
+        squads: { type: array, items: { $ref: '#/components/schemas/Squad' } }
+    Template:
+      type: object
+      required: [id, name, kind, exercises]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        kind: { type: string, enum: [plan, phase] }
+        phase: { type: string }
+        focus: { type: array, items: { type: string } }
+        autoApply: { type: boolean }
+        exercises: { type: array, items: { $ref: '#/components/schemas/Exercise' } }
+    Settings:
+      type: object
+      required: [theme, teamFeatureEnabled, attendanceEnabled, waitlistEnabled, showResponsesToPlayers, automaticReminders, splitTeamsEnabled, trainingDeadlineHours, tournamentDeadlineHours, eventDeadlineHours, defaultTrainingCapacity, defaultTournamentCapacity, clubName, teamName, tournamentMinFYouth, tournamentMaxTeamSize, tournamentTrainerRequired, tournamentNotifications, tournamentDefaultSquadName, ageGroupIds]
+      properties:
+        theme: { type: string, enum: [dark, light] }
+        teamFeatureEnabled: { type: boolean }
+        attendanceEnabled: { type: boolean }
+        waitlistEnabled: { type: boolean }
+        showResponsesToPlayers: { type: boolean }
+        automaticReminders: { type: boolean }
+        splitTeamsEnabled: { type: boolean }
+        trainingDeadlineHours: { type: integer, minimum: 0 }
+        tournamentDeadlineHours: { type: integer, minimum: 0 }
+        eventDeadlineHours: { type: integer, minimum: 0 }
+        defaultTrainingCapacity: { type: integer, minimum: 1 }
+        defaultTournamentCapacity: { type: integer, minimum: 1 }
+        clubName: { type: string }
+        teamName: { type: string }
+        tournamentMinFYouth: { type: integer, minimum: 0 }
+        tournamentMaxTeamSize: { type: integer, minimum: 0 }
+        tournamentTrainerRequired: { type: boolean }
+        tournamentNotifications: { type: boolean }
+        tournamentDefaultSquadName: { type: string }
+        ageGroupIds: { type: array, items: { type: string } }
+    Group:
+      type: object
+      required: [id, name, description, color]
+      properties: { id: { type: string }, name: { type: string }, description: { type: string }, color: { type: string } }
+    AgeGroup:
+      type: object
+      required: [id, name, ageRange, sortOrder]
+      properties: { id: { type: string }, name: { type: string }, ageRange: { type: string }, sortOrder: { type: integer } }
+    Invitation:
+      type: object
+      required: [id, email, name, role, ageGroup, expiresAt, createdAt]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        ageGroup: { type: string }
+        groupId: { type: [string, 'null'] }
+        invitedBy: { type: string }
+        expiresAt: { type: string, format: date-time }
+        acceptedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+    SmtpStatus:
+      type: object
+      required: [configured]
+      properties:
+        configured: { type: boolean }
+        host: { type: string }
+        port: { type: integer }
+        secure: { type: boolean }
+        from: { type: string }

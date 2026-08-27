@@ -3,7 +3,9 @@ import { authenticatedUser, safeUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureApplicationData, eventFromDatabase } from "@/lib/server-data";
 import { invitationDto } from "@/lib/invitations";
+import { getUsers } from "@/lib/users";
 import { smtpStatus } from "@/lib/smtp";
+import { ensureClubConfig, scopedResourceWhere } from "@/lib/club-context";
 
 export const dynamic = "force-dynamic";
 
@@ -11,28 +13,31 @@ export async function GET(request: NextRequest) {
   const currentUser = await authenticatedUser(request);
   if (!currentUser) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   await ensureApplicationData();
+  const activeMembership = await prisma.membership.findFirst({ where: { userId: currentUser.id, status: "active" }, select: { id: true, clubId: true, teamId: true } });
+  const scopedConfig = activeMembership ? await ensureClubConfig(activeMembership) : null;
   const [users, events, exercises, config, groups, ageGroups, invitations, tournamentSquads] = await Promise.all([
-    prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] }),
-    prisma.clubEvent.findMany({ include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
-    prisma.exerciseRecord.findMany({ orderBy: { createdAt: "asc" } }),
-    prisma.appConfig.findUniqueOrThrow({ where: { id: "default" } }),
+    getUsers(currentUser),
+    prisma.clubEvent.findMany({ where: activeMembership ? { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } : { clubId: null }, include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
+    prisma.exerciseRecord.findMany({ where: activeMembership ? { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } : { clubId: null }, orderBy: { createdAt: "asc" } }),
+    Promise.resolve(scopedConfig ?? prisma.appConfig.findUnique({ where: { id: "default" } })),
     prisma.teamGroup.findMany({ orderBy: { name: "asc" } }),
     prisma.ageGroup.findMany({ orderBy: { sortOrder: "asc" } }),
     currentUser.role === "admin"
-      ? prisma.invitation.findMany({ include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } })
+      ? prisma.invitation.findMany({ where: activeMembership?.clubId ? { clubId: activeMembership.clubId, ...(activeMembership.teamId ? { teamId: activeMembership.teamId } : {}) } : undefined, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } })
       : Promise.resolve([]),
-    prisma.tournamentSquad.findMany({ include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } }),
+    prisma.tournamentSquad.findMany({ where: activeMembership ? { event: { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } } : undefined, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } }),
   ]);
+  if (!config) return NextResponse.json({ error: "Die Konfiguration konnte nicht geladen werden." }, { status: 500 });
   const settings = config.settings as { teamFeatureEnabled?: boolean; showResponsesToPlayers?: boolean };
   const visibleUsers = currentUser.role === "player" && settings.teamFeatureEnabled === false
     ? users.filter((member) => member.id === currentUser.id)
     : users;
   return NextResponse.json({
     currentUser: safeUser(currentUser),
+    setupRequired: !activeMembership,
     users: visibleUsers.map((member) => {
-      const safe = safeUser(member);
-      if (currentUser.role !== "player" || member.id === currentUser.id) return safe;
-      return { ...safe, email: "", phone: "", birthday: "" };
+      if (currentUser.role !== "player" || member.id === currentUser.id) return member;
+      return { ...member, email: "", phone: "", birthday: "" };
     }),
     events: events.map((event) => {
       const mapped = eventFromDatabase(event);

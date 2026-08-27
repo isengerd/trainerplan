@@ -1,5 +1,5 @@
-import { TrainerApp } from "@/components/TrainerApp";
+import { LandingPage } from "@/components/LandingPage";
 
 export default function Home() {
-  return <TrainerApp />;
+  return <LandingPage />;
 }
