@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Capacitor setzt die Klasse nach dem Start der nativen Hülle. */
+html.native-app {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+html.native-app body { user-select: none; }
+html.native-app :where(input, textarea, [contenteditable="true"]) { user-select: text; }
+html.native-app .mobile-head { padding-top: max(10px, env(safe-area-inset-top)); }
+html.native-app .bottom-nav { height: calc(70px + env(safe-area-inset-bottom)); }
+
 :root {
   color-scheme: dark;
   --bg-app: #0a1f0f;
