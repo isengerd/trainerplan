@@ -13,6 +13,181 @@ html.native-app :where(input, textarea, [contenteditable="true"]) { user-select:
 html.native-app .mobile-head { padding-top: max(10px, env(safe-area-inset-top)); }
 html.native-app .bottom-nav { height: calc(70px + env(safe-area-inset-bottom)); }
 
+/* Native Einstiegseiten: kompakt, app-typisch und getrennt von der Marketing-Webseite. */
+html.native-app,
+html.native-app body { height: 100%; overflow: hidden; }
+
+html.native-app .marketing-page {
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(36, 202, 112, .13), transparent 34%),
+    #f8fafb;
+}
+html.native-app .marketing-header {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 28px) 20px 12px;
+}
+html.native-app .marketing-header nav,
+html.native-app .marketing-header .marketing-actions,
+html.native-app .marketing-hero-visual,
+html.native-app .marketing-feature-strip,
+html.native-app .marketing-bottom,
+html.native-app .marketing-footer,
+html.native-app .marketing-trust { display: none !important; }
+html.native-app .marketing-logo span { width: 52px; height: 52px; border-radius: 15px; font-size: 18px; }
+html.native-app .marketing-logo strong { font-size: 15px; }
+html.native-app .marketing-menu-button {
+  display: grid !important;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-left: auto;
+  border-radius: 12px;
+}
+html.native-app .marketing-menu-button svg { width: 27px; height: 27px; }
+html.native-app .marketing-header nav.is-open {
+  top: calc(100% - 4px);
+  display: grid !important;
+}
+html.native-app .marketing-hero {
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  margin: 0;
+  padding: 10px 24px calc(env(safe-area-inset-bottom) + 36px);
+}
+html.native-app .marketing-hero-copy { width: min(100%, 430px); text-align: center; }
+html.native-app .marketing-hero .marketing-eyebrow { font-size: 9px; line-height: 1.6; }
+html.native-app .marketing-hero h1 {
+  margin: 22px auto 18px;
+  font-size: clamp(45px, 13.2vw, 64px);
+  line-height: .91;
+}
+html.native-app .marketing-hero-copy > p { margin: 0 auto; font-size: 15px; line-height: 1.5; }
+html.native-app .marketing-hero-actions { display: grid; gap: 11px; margin-top: 32px; }
+html.native-app .marketing-primary,
+html.native-app .marketing-secondary { width: 100%; min-height: 58px; box-sizing: border-box; }
+
+html.native-app .standalone-login {
+  height: 100dvh;
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(36, 202, 112, .12), transparent 30%),
+    #f7fafb;
+}
+html.native-app .standalone-login-showcase { display: none; }
+html.native-app .standalone-login-panel {
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  place-items: start center;
+  overflow: hidden;
+  padding: calc(env(safe-area-inset-top) + 34px) 22px calc(env(safe-area-inset-bottom) + 20px);
+  background: transparent;
+}
+html.native-app .standalone-login-panel form {
+  width: min(100%, 420px);
+  box-sizing: border-box;
+  padding: 25px 22px;
+  border: 1px solid #e0e8e3;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 22px 55px rgba(30, 66, 45, .12);
+  text-align: center;
+}
+html.native-app .standalone-login-panel .standalone-close {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  width: 38px;
+  height: 38px;
+  margin: 0;
+  font-size: 27px;
+}
+html.native-app .standalone-login-panel h2 { margin: 13px 0 8px; font-size: 38px; }
+html.native-app .standalone-intro { margin: 0 0 22px; font-size: 13px; }
+html.native-app .standalone-login-panel label { margin-top: 16px; text-align: left; }
+html.native-app .standalone-login-panel label > span { margin-bottom: 7px; font-size: 13px; }
+html.native-app .standalone-login-panel label > input,
+html.native-app .standalone-login-panel .standalone-password { min-height: 56px; border-radius: 12px; }
+html.native-app .standalone-login-panel .standalone-password input { height: 52px; }
+html.native-app .standalone-login-panel .standalone-password button { height: 52px; }
+html.native-app .standalone-login-panel .standalone-submit { min-height: 54px; margin-top: 22px; font-size: 16px; }
+html.native-app .standalone-help,
+html.native-app .standalone-divider,
+html.native-app .standalone-invite { display: none; }
+html.native-app .standalone-create {
+  min-height: auto;
+  margin-top: 18px;
+  border: 0;
+  color: #267d4c;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+html.native-app .simple-registration,
+html.native-app .setup-page {
+  height: 100dvh;
+  min-height: 0;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: hidden;
+  padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 20px);
+}
+html.native-app .simple-registration-card { width: min(100%, 430px); }
+html.native-app .simple-registration-card .standalone-close { margin-bottom: 24px; }
+html.native-app .simple-registration-card h1 { margin-bottom: 30px; font-size: 36px; text-align: center; }
+html.native-app .simple-registration-card label > input,
+html.native-app .simple-registration-card .standalone-password { height: 58px; min-height: 58px; }
+html.native-app .simple-registration-card .registration-legal { margin: 22px 0; font-size: 12px; }
+html.native-app .simple-registration-card .standalone-submit { min-height: 56px; font-size: 16px; }
+html.native-app .simple-registration-footer { margin-top: 22px; }
+html.native-app .simple-registration-footer a { font-size: 14px; }
+
+html.native-app .login-page {
+  height: 100dvh;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  overflow: hidden;
+}
+html.native-app .login-page > .login-brand { display: none; }
+html.native-app .login-page > .login-panel {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px);
+  border: 0;
+  background: transparent;
+}
+html.native-app .login-page > .login-panel > :is(form, div) { width: min(100%, 430px); box-sizing: border-box; }
+
+@media (max-height: 720px) {
+  html.native-app .marketing-header { padding-top: calc(env(safe-area-inset-top) + 20px); }
+  html.native-app .marketing-logo span { width: 44px; height: 44px; }
+  html.native-app .marketing-hero h1 { margin-block: 15px; font-size: 42px; }
+  html.native-app .marketing-hero-copy > p { font-size: 13px; }
+  html.native-app .marketing-hero-actions { margin-top: 20px; }
+  html.native-app .standalone-login-panel form { padding-block: 18px; }
+  html.native-app .standalone-login-panel h2 { font-size: 32px; }
+  html.native-app .standalone-intro { margin-bottom: 12px; }
+  html.native-app .standalone-login-panel label { margin-top: 11px; }
+}
+
 :root {
   color-scheme: dark;
   --bg-app: #0a1f0f;
@@ -1037,6 +1212,90 @@ html[data-theme="light"] .template-card-actions button { border-color: #d2ded5; 
 html[data-theme="light"] .template-card-actions .apply-template { border-color: #2c9f4c; background: #238f43; color: #fff; }
 html[data-theme="light"] .template-card-actions .pinned { border-color: #94cba1; background: #ddf2e2; color: #176f33; }
 
+/* Kalenderauswahl: Terminpunkte bleiben neutral, nur die aktive Tageszelle wird grün. */
+.month-grid button:focus { outline: none; }
+.month-grid button.selected-day {
+  border-color: #49c76a;
+  background: #143822;
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(73,199,106,.12);
+}
+html[data-theme="light"] .month-grid button.selected-day {
+  border-color: #32ad55;
+  background: #d5f0dc;
+  color: #123f21;
+}
+
+/* Robustes Formularraster für Termin erstellen/bearbeiten. */
+.event-editor { display: flex; flex-direction: column; gap: 10px; }
+.event-editor .editor-head,
+.event-editor .event-type-select,
+.event-editor .editor-actions { flex: 0 0 auto; }
+.event-editor label {
+  min-width: 0;
+  box-sizing: border-box;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.event-editor label > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.event-editor input,
+.event-editor textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.event-editor input { min-height: 30px; }
+.event-editor textarea { min-height: 76px; }
+.event-editor .form-row { width: 100%; margin: 0; }
+
+@media (max-width: 760px) {
+  .modal-backdrop:has(.event-editor) { align-items: flex-end; padding: 0; }
+  .event-editor {
+    width: 100%;
+    max-height: 92dvh;
+    margin: 0;
+    padding: 18px 16px calc(14px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-width: 1px 0 0;
+    border-radius: 20px 20px 0 0;
+  }
+  .event-editor .editor-head { position: sticky; top: -18px; z-index: 3; margin: -18px -16px 0; padding: 18px 16px 12px; background: var(--panel); }
+  .event-editor .editor-head h2 { font-size: 22px; }
+  .event-editor .event-type-select { margin: 4px 0 2px; }
+  .event-editor .event-type-select button { min-height: 44px; font-size: 12px; }
+  .event-editor .form-row,
+  .event-editor .form-row:nth-of-type(2) { grid-template-columns: 1fr; gap: 10px; }
+  .event-editor .form-row:nth-of-type(2) label:last-child { grid-column: auto; }
+  .event-editor label { padding: 10px 12px; }
+  .event-editor label > span { font-size: 12px; }
+  .event-editor input,
+  .event-editor textarea { font-size: 16px; }
+  .event-editor input { min-height: 34px; }
+  .event-editor .editor-actions {
+    position: sticky;
+    bottom: calc(-14px - env(safe-area-inset-bottom));
+    z-index: 3;
+    margin: 4px -16px calc(-14px - env(safe-area-inset-bottom));
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+    background: var(--panel);
+  }
+  .event-editor .editor-actions button { min-height: 48px; font-size: 14px; }
+}
+
 @media (max-width: 760px) {
   .template-cards { grid-template-columns: 1fr; }.template-cards article { padding: 15px; }
   .template-scroll { padding-inline: 12px; }.template-head { padding-inline: 14px; }
@@ -1063,6 +1322,68 @@ html[data-theme="light"] .template-card-actions .pinned { border-color: #94cba1;
   .filter-drawer, .exercise-picker, .mobile-menu-sheet { max-width: 100dvw; }
   input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]),
   textarea, select { font-size: 16px !important; }
+}
+
+/* Smartphone-Login: kein Marketing-Vorspann, Formular direkt im sichtbaren Bereich. */
+@media (max-width: 760px) {
+  .standalone-login {
+    height: 100dvh;
+    min-height: 0;
+    display: block;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 5%, rgba(36, 202, 112, .12), transparent 28%),
+      #f7fafb;
+  }
+  .standalone-login-showcase { display: none; }
+  .standalone-login-panel {
+    height: 100%;
+    box-sizing: border-box;
+    display: grid;
+    place-items: start center;
+    overflow: hidden;
+    padding: calc(env(safe-area-inset-top) + 24px) 18px calc(env(safe-area-inset-bottom) + 14px);
+    background: transparent;
+  }
+  .standalone-login-panel form {
+    width: min(100%, 420px);
+    box-sizing: border-box;
+    padding: 62px 20px 20px;
+    border: 1px solid #e0e8e3;
+    border-radius: 20px;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 18px 45px rgba(30,66,45,.11);
+    text-align: center;
+  }
+  .standalone-login-panel .standalone-close {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    font-size: 27px;
+  }
+  .standalone-login-panel h2 { margin: 12px 0 7px; font-size: 36px; }
+  .standalone-intro { margin: 0 0 18px; font-size: 13px; }
+  .standalone-login-panel label { margin-top: 14px; text-align: left; }
+  .standalone-login-panel label > span { margin-bottom: 7px; font-size: 13px; }
+  .standalone-login-panel label > input,
+  .standalone-login-panel .standalone-password { min-height: 54px; border-radius: 12px; }
+  .standalone-login-panel .standalone-password input,
+  .standalone-login-panel .standalone-password button { height: 50px; }
+  .standalone-login-panel .standalone-submit { min-height: 52px; margin-top: 20px; font-size: 16px; }
+  .standalone-login-panel .standalone-help,
+  .standalone-login-panel .standalone-divider,
+  .standalone-login-panel .standalone-invite { display: none; }
+  .standalone-login-panel .standalone-create {
+    min-height: auto;
+    margin-top: 16px;
+    border: 0;
+    color: #267d4c;
+    font-size: 13px;
+    text-decoration: underline;
+  }
 }
 
 /* Anmeldung: freundliche, kontrastreiche Oberfläche unabhängig vom gewählten App-Theme */
