@@ -19,7 +19,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="de">
+    <html lang="de" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `if(navigator.userAgent.includes("TrainerplanNative/")){document.documentElement.classList.add("native-app",/iPhone|iPad|iPod/.test(navigator.userAgent)?"native-ios":"native-android")}` }} />
+      </head>
       <body><NativeAppBridge />{children}</body>
     </html>
   );

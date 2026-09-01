@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, Dumbbell, Edit3,
-  Home, Library, LogOut, Menu, MoreVertical, Pause, Play, Plus, Settings, Share2, Shield,
+  AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, Dumbbell, Edit3,
+  Home, Library, LogOut, MapPin, Menu, MoreVertical, Pause, Play, Plus, Settings, Share2, Shield,
   Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
@@ -554,31 +554,50 @@ export function TrainerApp() {
 
   const plannedDays = days.map((day) => ({ day, exercises: plans[day.key] ?? [] })).filter((entry) => entry.exercises.length > 0);
   const currentWeekDays = days.slice(0, 7);
-  const nextPlannedDay = plannedDays.find((entry) => entry.day.key >= todayKey) ?? plannedDays[0] ?? { day: days[todayIndex], exercises: [] };
+  const nextPlannedDay = plannedDays.find((entry) => entry.day.key >= todayKey) ?? null;
+  const upcomingEvents = [...events].filter((event) => event.date >= todayKey).sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`));
+  const nextEvent = upcomingEvents[0] ?? null;
+  const playerCount = users.filter((user) => user.role === "player").length;
+  const openResponses = nextEvent ? Math.max(0, playerCount - Object.keys(nextEvent.responses).length) : 0;
+  const nextPlanDuration = nextPlannedDay?.exercises.reduce((sum, item) => sum + item.duration, 0) ?? 0;
+  const nextPlanLabel = nextPlannedDay ? (nextPlanDuration > 0 ? "Plan öffnen" : "Plan fortsetzen") : "Training planen";
+  const firstName = currentUser?.name.trim().split(/\s+/)[0] || "Coach";
+  const openPlan = () => {
+    if (nextPlannedDay) selectDay(nextPlannedDay.day.key);
+    else goToToday();
+    setView("plan");
+  };
   const overview = (
     <section className="overview-page">
       <div className="overview-welcome">
-        <div><span className="eyebrow">GUTEN TAG, COACH</span><h1>Bereit für die nächste Einheit?</h1><p>Plane abwechslungsreiche F‑Jugend-Trainings mit viel Spielzeit und Ballaktionen.</p></div>
-        {canManageClub && <button className="primary" onClick={() => { goToToday(); setView("plan"); }}><Plus /> Training planen</button>}
+        <div><span className="eyebrow">GUTEN TAG, {firstName.toUpperCase()}</span><h1>Das steht als Nächstes an</h1><p>Training, Termine und offene Aufgaben auf einen Blick.</p></div>
       </div>
-      <div className="overview-stats">
-        <article><span className="stat-icon green"><CalendarDays /></span><span><small>GEPLANTE EINHEITEN</small><strong>{plannedDays.length}</strong><p>im Planungszeitraum</p></span></article>
-        <article><span className="stat-icon blue"><Clock3 /></span><span><small>TRAININGSZEIT</small><strong>{plannedDays.reduce((sum, entry) => sum + entry.exercises.reduce((duration, item) => duration + item.duration, 0), 0)} Min</strong><p>für deine F‑Jugend</p></span></article>
-        <article><span className="stat-icon yellow"><Library /></span><span><small>ÜBUNGSDATENBANK</small><strong>{exerciseLibrary.length}</strong><p>altersgerechte Übungen</p></span></article>
-      </div>
-      <div className="overview-grid">
-        <section className="overview-card next-session">
-          <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>{nextPlannedDay.day.short} · {nextPlannedDay.day.time} Uhr</h2></div><button onClick={() => { selectDay(nextPlannedDay.day.key); setView("plan"); }}>Plan öffnen <ChevronRight /></button></div>
-          <div className="next-session-main"><div className="date-tile"><strong>{nextPlannedDay.day.date}</strong><span>{nextPlannedDay.day.month}</span></div><div><span className="session-status"><i /> GEPLANT & GESPEICHERT</span><h3>{planMeta[nextPlannedDay.day.key]?.name ?? nextPlannedDay.day.theme}</h3><p>Sportplatz Nord · {nextPlannedDay.exercises.length} Übungen · {nextPlannedDay.exercises.reduce((sum, item) => sum + item.duration, 0)} Minuten</p>{exerciseAssignmentSummary(nextPlannedDay.exercises).length > 0 && <div className="training-assignment-badges">{exerciseAssignmentSummary(nextPlannedDay.exercises).map((label) => <span key={label}>{label}</span>)}</div>}</div></div>
-          <div className="session-exercises">{nextPlannedDay.exercises.slice(0, 4).map((item) => <button key={item.id} onClick={() => setDetail(item)}><Pitch variant={item.variant} /><span>{item.title}</span></button>)}</div>
+      <section className={`overview-card next-session overview-primary ${nextPlannedDay ? "has-session" : "empty-session"}`}>
+        <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>{nextPlannedDay ? `${nextPlannedDay.day.full} · ${nextPlannedDay.day.time} Uhr` : "Noch kein Training geplant"}</h2></div></div>
+        {nextPlannedDay ? <>
+          <div className="next-session-main"><div className="date-tile"><strong>{nextPlannedDay.day.date}</strong><span>{nextPlannedDay.day.month}</span></div><div><span className="session-status"><i /> PLAN FERTIG</span><h3>{planMeta[nextPlannedDay.day.key]?.name ?? nextPlannedDay.day.theme}</h3><p><MapPin /> {nextEvent?.location || "Ort noch nicht eingetragen"}</p><p>{nextPlannedDay.exercises.length} Übungen · {nextPlanDuration} Minuten{nextEvent ? ` · ${Object.values(nextEvent.responses).filter((value) => value === "yes").length} Zusagen` : ""}</p></div></div>
+          <div className="overview-primary-actions"><button className="primary" onClick={openPlan}>{nextPlanLabel} <ChevronRight /></button>{nextEvent && <button onClick={() => setView("calendar")}><Users /> Teilnehmer</button>}</div>
+        </> : <div className="overview-empty"><CalendarDays /><div><strong>Plane deine nächste Einheit</strong><p>Lege einen Trainingstag fest und stelle anschließend die Übungen zusammen.</p></div>{canManageClub && <button className="primary" onClick={openPlan}><Plus /> Training planen</button>}</div>}
+      </section>
+
+      {(openResponses > 0 || (nextPlannedDay && !nextEvent)) && <section className="overview-card overview-todos"><div className="overview-card-title"><div><span className="eyebrow">NOCH ZU ERLEDIGEN</span><h2>Offene Aufgaben</h2></div></div>{openResponses > 0 && <button onClick={() => setView("calendar")}><AlertTriangle /><span><strong>{openResponses} Rückmeldungen fehlen</strong><small>Verfügbarkeit für den nächsten Termin prüfen</small></span><ChevronRight /></button>}{nextPlannedDay && !nextEvent && <button onClick={() => setView("calendar")}><AlertTriangle /><span><strong>Termindetails fehlen</strong><small>Ort und Teilnehmer zum Training ergänzen</small></span><ChevronRight /></button>}</section>}
+
+      {canManageClub && <section className="overview-quick-actions" aria-label="Schnellzugriffe"><button onClick={openPlan}><Plus /><span>Training</span></button><button onClick={() => setView("calendar")}><CalendarDays /><span>Termin</span></button><button onClick={() => setView("exercises")}><Library /><span>Übungen</span></button><button onClick={() => setView(clubSettings.teamFeatureEnabled || currentUser?.role === "admin" ? "team" : "profile")}><Users /><span>Team</span></button></section>}
+
+      <div className="overview-stats overview-stats-compact"><span><strong>{plannedDays.length}</strong> Einheiten</span><i /><span><strong>{plannedDays.reduce((sum, entry) => sum + entry.exercises.reduce((duration, item) => duration + item.duration, 0), 0)}</strong> Min</span><i /><span><strong>{exerciseLibrary.length}</strong> Übungen</span></div>
+
+      <div className="overview-grid overview-secondary-grid">
+        <section className="overview-card upcoming-overview">
+          <div className="overview-card-title"><div><span className="eyebrow">ALS NÄCHSTES</span><h2>Termine</h2></div><button onClick={() => setView("calendar")}>Zum Kalender <ChevronRight /></button></div>
+          {upcomingEvents.slice(0, 3).map((event) => <button className="overview-event-row" key={event.id} onClick={() => setView("calendar")}><span><strong>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</strong><small>{event.startTime}</small></span><span><strong>{event.title}</strong><small>{event.location || "Ort offen"}</small></span><ChevronRight /></button>)}
+          {!upcomingEvents.length && <p className="overview-no-events">Keine weiteren Termine eingetragen.</p>}
         </section>
         <section className="overview-card week-plans">
           <div className="overview-card-title"><div><span className="eyebrow">DIESE WOCHE</span><h2>Trainingspläne</h2></div></div>
-          {currentWeekDays.map((day) => {
+          {currentWeekDays.slice(0, 4).map((day) => {
             const dayPlan = plans[day.key] ?? [];
             const dayTotal = dayPlan.reduce((sum, item) => sum + item.duration, 0);
-            const assignment = exerciseAssignmentSummary(dayPlan).join(" · ");
-            return <button className="week-plan-row" key={day.key} onClick={() => { selectDay(day.key); setView("plan"); }}><span className={dayPlan.length ? "has-plan" : ""}>{day.short}<strong>{day.date}</strong></span><span><strong>{dayPlan.length ? planMeta[day.key]?.name ?? day.theme : "Training anlegen"}</strong><small>{dayPlan.length ? `${dayPlan.length} Übungen · ${dayTotal} Min${assignment ? ` · ${assignment}` : ""}` : "Noch nicht geplant"}</small></span><ChevronRight /></button>;
+            return <button className="week-plan-row" key={day.key} onClick={() => { selectDay(day.key); setView("plan"); }}><span className={dayPlan.length ? "has-plan" : ""}>{day.short}<strong>{day.date}</strong></span><span><strong>{dayPlan.length ? planMeta[day.key]?.name ?? day.theme : "Training anlegen"}</strong><small>{dayPlan.length ? `${dayPlan.length} Übungen · ${dayTotal} Min` : "Noch nicht geplant"}</small></span><ChevronRight /></button>;
           })}
         </section>
       </div>
@@ -723,7 +742,7 @@ export function TrainerApp() {
         <nav className="bottom-nav">
           <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><Home /><span>Übersicht</span></button>
           <button className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /><span>Kalender</span></button>
-          <button className="fab" onClick={() => view === "plan" ? setLibraryOpen(true) : setView("plan")} aria-label={view === "plan" ? "Übung hinzufügen" : "Trainingsplan öffnen"}>{view === "plan" ? <Plus /> : <CalendarDays />}</button>
+          <button className="fab" onClick={() => view === "plan" ? setLibraryOpen(true) : openPlan()} aria-label={view === "plan" ? "Übung hinzufügen" : "Training anlegen"}><Plus /><span>{view === "plan" ? "Übung" : "Training"}</span></button>
           <button className={view === "team" ? "active" : ""} onClick={() => setView(clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? "team" : "profile")}><Users /><span>Team</span></button>
           <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>Mannschaftsplanung</span></button>
         </nav>

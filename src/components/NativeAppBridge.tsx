@@ -8,9 +8,15 @@ export function NativeAppBridge() {
 
     async function configureNativeShell() {
       const { Capacitor } = await import("@capacitor/core");
-      if (!Capacitor.isNativePlatform()) return;
+      const markedAsNative = navigator.userAgent.includes("TrainerplanNative/");
+      if (!Capacitor.isNativePlatform() && !markedAsNative) return;
 
-      document.documentElement.classList.add("native-app", `native-${Capacitor.getPlatform()}`);
+      const platform = Capacitor.isNativePlatform()
+        ? Capacitor.getPlatform()
+        : /iPhone|iPad|iPod/.test(navigator.userAgent) ? "ios" : "android";
+      document.documentElement.classList.add("native-app", `native-${platform}`);
+
+      if (!Capacitor.isNativePlatform()) return;
 
       const [{ App }, { SplashScreen }, { StatusBar, Style }] = await Promise.all([
         import("@capacitor/app"),
