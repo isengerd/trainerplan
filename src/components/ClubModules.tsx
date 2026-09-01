@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bell, CalendarDays, Camera, Check, ChevronLeft, ChevronRight, Clock3, Cloud, CloudSun, Edit3,
+  AlertTriangle, Bell, CalendarDays, Camera, Check, ChevronLeft, ChevronRight, Clock3, Cloud, CloudSun, Copy, Edit3,
   Info, KeyRound, Lock, Mail, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
   ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
@@ -96,16 +96,16 @@ export function CalendarPage({ events, users, settings, currentUser, onEventsCha
   }
 
   return <section className="calendar-page module-page">
-    <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => setEditing({ ...emptyEvent, maxParticipants: settings.defaultTrainingCapacity })}><Plus /> Termin erstellen</button>}</div>
+    <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => setEditing({ ...emptyEvent, date: new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity })}><Plus /> Termin erstellen</button>}</div>
     <div className="calendar-layout"><section className="month-card"><div className="month-head"><button><ChevronLeft /></button><h2>Juli 2026</h2><button><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dayEvents = day ? events.filter((event) => Number(event.date.slice(-2)) === day) : []; return <button className={day === selectedDay ? "selected-day" : ""} key={index} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDay(day); clickEvent.currentTarget.blur(); if (dayEvents[0]) setSelected(dayEvents[0]); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
       <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; return <button className={selected?.id === event.id ? "active" : ""} key={event.id} onClick={() => setSelected(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.startTime} Uhr · {event.location}</p></span><span className="capacity-mini">{yes}/{event.maxParticipants}</span></button>; })}</section>
     </div>
-    {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditing({ ...selected }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}
-    {editing && <EventEditor event={editing} onClose={() => setEditing(null)} onSave={saveEvent} />}
+    {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}
+    {editing && <EventEditor event={editing} settings={settings} users={users} onClose={() => setEditing(null)} onSave={saveEvent} />}
   </section>;
 }
 
-function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, onDelete, onClose, onSaveNote, canManage }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; currentUser: ClubUser; onRespond: (value: Attendance) => void; onEdit: () => void; onDelete: () => void; onClose: () => void; onSaveNote: (note: string) => void; canManage: boolean }) {
+function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, onDuplicate, onDelete, onClose, onSaveNote, canManage }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; currentUser: ClubUser; onRespond: (value: Attendance) => void; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; onClose: () => void; onSaveNote: (note: string) => void; canManage: boolean }) {
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | Attendance | "open">("all");
   const [note, setNote] = useState(event.trainerNote ?? "");
   const [noteSaved, setNoteSaved] = useState(false);
@@ -156,15 +156,40 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
         </div>
       </div>
 
-      {canManage && <footer className="event-popup-actions"><button onClick={onDelete}><Trash2 /> Termin löschen</button><button onClick={onEdit}><Edit3 /> Termin bearbeiten</button></footer>}
+      {canManage && <footer className="event-popup-actions"><button className="event-delete-action" onClick={onDelete}><Trash2 /> Löschen</button><button onClick={onDuplicate}><Copy /> Kopieren</button><button className="primary" onClick={onEdit}><Edit3 /> Bearbeiten</button></footer>}
     </section>
   </div>;
 }
 
-function EventEditor({ event, onClose, onSave }: { event: ClubEvent; onClose: () => void; onSave: (event: ClubEvent) => void }) {
+function EventEditor({ event, settings, users, onClose, onSave }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; onClose: () => void; onSave: (event: ClubEvent) => void }) {
   const [form, setForm] = useState(event);
+  const [error, setError] = useState("");
   const set = (key: keyof ClubEvent, value: string | number) => setForm((current) => ({ ...current, [key]: value }));
-  return <div className="modal-backdrop"><form className="event-editor" onSubmit={(e) => { e.preventDefault(); onSave(form); }}><div className="editor-head"><div><span className="eyebrow">TERMIN VERWALTEN</span><h2>{event.id ? "Termin bearbeiten" : "Neuen Termin erstellen"}</h2></div><button type="button" onClick={onClose}><X /></button></div><div className="event-type-select">{(["training", "tournament", "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => set("type", type)} key={type}>{eventLabels[type]}</button>)}</div><label><span>Titel</span><input required value={form.title} onChange={(e) => set("title", e.target.value)} /></label><div className="form-row"><label><span>Datum</span><input type="date" required value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label><span>Max. Teilnehmer</span><input type="number" min="1" max="99" required value={form.maxParticipants} onChange={(e) => set("maxParticipants", Number(e.target.value))} /></label></div><div className="form-row"><label><span>Beginn</span><input type="time" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} /></label><label><span>Ende</span><input type="time" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} /></label><label><span>Treffen</span><input type="time" value={form.meetingTime} onChange={(e) => set("meetingTime", e.target.value)} /></label></div><label><span>Kurzer Ortsname</span><input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="z. B. Sportplatz Nord" /></label><label><span>Vollständige Adresse für Navigation</span><input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="Straße, Hausnummer, PLZ, Ort" /></label><label><span>Beschreibung</span><textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} /></label><div className="editor-actions"><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> Speichern</button></div></form></div>;
+  const deadlineHours = form.type === "training" ? settings.trainingDeadlineHours : form.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
+  const deadline = form.date && form.startTime ? new Date(new Date(`${form.date}T${form.startTime}:00`).getTime() - deadlineHours * 60 * 60 * 1000) : null;
+  const players = users.filter((user) => user.role === "player").length;
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (form.meetingTime > form.startTime) return setError("Die Treffzeit muss vor dem Beginn liegen.");
+    if (form.endTime <= form.startTime) return setError("Das Ende muss nach dem Beginn liegen.");
+    setError(""); onSave(form);
+  }
+  return <div className="modal-backdrop event-editor-backdrop" onMouseDown={onClose}><form className="event-editor" onSubmit={submit} onMouseDown={(e) => e.stopPropagation()}>
+    <div className="editor-head"><div><span className="eyebrow">TERMINPLANUNG</span><h2>{event.id ? "Termin bearbeiten" : "Neuen Termin erstellen"}</h2><p>Alle wichtigen Angaben für Mannschaft und Trainer.</p></div><button type="button" onClick={onClose} aria-label="Terminplanung schließen"><X /></button></div>
+    <div className="event-type-select">{(["training", "tournament", "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => setForm((current) => ({ ...current, type, maxParticipants: type === "tournament" ? settings.defaultTournamentCapacity : type === "training" ? settings.defaultTrainingCapacity : current.maxParticipants }))} key={type}>{eventLabels[type]}</button>)}</div>
+
+    <section className="event-editor-section"><header><Info /><span><strong>Informationen</strong><small>Was findet statt?</small></span></header><label><span>Name des Termins</span><input required maxLength={160} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={form.type === "training" ? "z. B. Training – Dribbling & Torschuss" : form.type === "tournament" ? "z. B. Kinderfußball-Festival" : "z. B. Mannschaftsabend"} /></label><label><span>Zusätzliche Informationen <em>optional</em></span><textarea rows={3} maxLength={5000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Ausrüstung, Ablauf oder wichtige Hinweise für das Team …" /></label></section>
+
+    <section className="event-editor-section"><header><Clock3 /><span><strong>Datum und Uhrzeit</strong><small>Treffen, Beginn und Ende</small></span></header><div className="editor-date-row"><label><span>Datum</span><input type="date" required value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label><span>Treffen</span><input type="time" required value={form.meetingTime} onChange={(e) => set("meetingTime", e.target.value)} /></label><label><span>Beginn</span><input type="time" required value={form.startTime} onChange={(e) => set("startTime", e.target.value)} /></label><label><span>Ende</span><input type="time" required value={form.endTime} onChange={(e) => set("endTime", e.target.value)} /></label></div></section>
+
+    <section className="event-editor-section"><header><Navigation /><span><strong>Ort und Anfahrt</strong><small>Damit alle den Treffpunkt finden</small></span></header><div className="form-row"><label><span>Ort / Platz</span><input required maxLength={180} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="z. B. Sportplatz Nord" /></label><label><span>Vollständige Adresse <em>optional</em></span><input maxLength={300} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="Straße, Hausnummer, PLZ, Ort" /></label></div></section>
+
+    <section className="event-editor-section"><header><Users /><span><strong>Teilnahme</strong><small>Wer wird eingeplant?</small></span></header><div className="event-audience"><Check /><span><strong>Alle aktiven Spieler</strong><small>{players} Spieler erhalten den Termin und können {settings.attendanceEnabled ? "zu- oder absagen" : "den Termin ansehen"}.</small></span></div><div className="form-row"><label><span>Teilnehmerlimit</span><input type="number" inputMode="numeric" min="1" max="99" required value={form.maxParticipants} onChange={(e) => set("maxParticipants", Number(e.target.value))} /></label><div className="event-setting-summary"><Clock3 /><span><strong>Rückmeldefrist</strong><small>{settings.attendanceEnabled && deadline ? `${deadline.toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr` : "Zu-/Absagen sind deaktiviert"}</small></span></div></div></section>
+
+    <section className="event-editor-section event-notification-summary"><header><Bell /><span><strong>Benachrichtigungen</strong><small>{settings.automaticReminders ? "Offene Rückmeldungen werden automatisch erinnert." : "Automatische Erinnerungen sind in den Einstellungen deaktiviert."}</small></span></header></section>
+    {error && <div className="event-editor-error"><AlertTriangle />{error}</div>}
+    <div className="editor-actions"><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> {event.id ? "Aktualisieren" : "Termin erstellen"}</button></div>
+  </form></div>;
 }
 
 function RatingRow({ label, value, disabled, onChange }: { label: string; value: number; disabled: boolean; onChange: (value: number) => void }) {
