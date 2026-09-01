@@ -31,7 +31,7 @@ export function LoginScreen({ onLogin }: { onLogin: (email: string, password: st
 
   return <main className="login-page">
     <section className="login-brand"><span className="brand-mark"><Shield /></span><span className="eyebrow">TRAINERPLAN CLUB</span><h1>Ein Team.<br />Ein gemeinsamer Plan.</h1><p>Training, Termine und Zusagen für deine Mannschaft – übersichtlich an einem Ort.</p><div className="login-feature"><CalendarDays /><span><strong>Kalender & Termine</strong><small>Alle wissen, wann und wo es losgeht.</small></span></div><div className="login-feature"><Users /><span><strong>Mannschaft organisieren</strong><small>Rollen, Profile und Teilnahme verwalten.</small></span></div></section>
-    <section className="login-panel"><form onSubmit={submit}><span className="eyebrow">WILLKOMMEN ZURÜCK</span><h2>Anmelden</h2><p>Melde dich mit deinem persönlichen Zugang an.</p><label><span>E-Mail-Adresse</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></div></label><label><span>Passwort</span><div><Lock /><input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>{error && <div className="login-error">{error}</div>}<button className="primary login-submit" type="submit" disabled={loading}>{loading ? "Anmeldung läuft …" : <>Anmelden <ChevronRight /></>}</button><div className="login-links"><a href="/registrieren">Verein neu anlegen</a><span>·</span><span>Einladungslink aus der E-Mail öffnen</span></div></form></section>
+    <section className="login-panel"><form onSubmit={submit}><span className="eyebrow">WILLKOMMEN ZURÜCK</span><h2>Anmelden</h2><p>Melde dich mit deinem persönlichen Zugang an.</p><label><span>E-Mail-Adresse</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></div></label><label><span>Passwort</span><div><Lock /><input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>{error && <div className="login-error">{error}</div>}<button className="primary login-submit" type="submit" disabled={loading}>{loading ? "Anmeldung läuft …" : <>Anmelden <ChevronRight /></>}</button><div className="login-links"><span>Zugang nur über persönliche Einladung</span></div></form></section>
   </main>;
 }
 
@@ -60,9 +60,25 @@ const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026
 export function CalendarPage({ events, users, settings, currentUser, onEventsChange }: { events: ClubEvent[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
   const [editing, setEditing] = useState<ClubEvent | null>(null);
-  const [selectedDay, setSelectedDay] = useState(15);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1, 12);
+  });
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
-  const monthDays = Array.from({ length: 35 }, (_, index) => index - 2).map((day) => day > 0 && day <= 31 ? day : null);
+  const monthYear = visibleMonth.getFullYear();
+  const monthIndex = visibleMonth.getMonth();
+  const leadingDays = (new Date(monthYear, monthIndex, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(monthYear, monthIndex + 1, 0).getDate();
+  const monthDays = Array.from({ length: Math.ceil((leadingDays + daysInMonth) / 7) * 7 }, (_, index) => {
+    const day = index - leadingDays + 1;
+    return day > 0 && day <= daysInMonth ? day : null;
+  });
+  const monthLabel = visibleMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+  const changeMonth = (offset: number) => {
+    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1, 12));
+    setSelectedDate(null);
+  };
   const upcoming = [...events].sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`));
 
   function saveEvent(event: ClubEvent) {
@@ -97,7 +113,7 @@ export function CalendarPage({ events, users, settings, currentUser, onEventsCha
 
   return <section className="calendar-page module-page">
     <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => setEditing({ ...emptyEvent, date: new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity })}><Plus /> Termin erstellen</button>}</div>
-    <div className="calendar-layout"><section className="month-card"><div className="month-head"><button><ChevronLeft /></button><h2>Juli 2026</h2><button><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dayEvents = day ? events.filter((event) => Number(event.date.slice(-2)) === day) : []; return <button className={day === selectedDay ? "selected-day" : ""} key={index} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDay(day); clickEvent.currentTarget.blur(); if (dayEvents[0]) setSelected(dayEvents[0]); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
+    <div className="calendar-layout"><section className="month-card"><div className="month-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat"><ChevronLeft /></button><h2>{monthLabel}</h2><button type="button" onClick={() => changeMonth(1)} aria-label="Nächster Monat"><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dateKey = day ? `${monthYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : ""; const dayEvents = day ? events.filter((event) => event.date === dateKey) : []; return <button className={dateKey === selectedDate ? "selected-day" : ""} key={`${monthYear}-${monthIndex}-${index}`} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDate(dateKey); clickEvent.currentTarget.blur(); if (dayEvents[0]) setSelected(dayEvents[0]); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
       <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; return <button className={selected?.id === event.id ? "active" : ""} key={event.id} onClick={() => setSelected(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.startTime} Uhr · {event.location}</p></span><span className="capacity-mini">{yes}/{event.maxParticipants}</span></button>; })}</section>
     </div>
     {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}

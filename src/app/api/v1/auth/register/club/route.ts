@@ -7,10 +7,12 @@ import { createSession, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib
 import { ApiInputError, clientIp, emailValue, rateLimit, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 import { uniqueClubSlug } from "@/lib/registration";
+import { publicRegistrationEnabled } from "@/lib/registration-access";
 
 type RegistrationBody = { name?: unknown; email?: unknown; password?: unknown; clubName?: unknown; teamName?: unknown; ageGroup?: unknown };
 
 export async function POST(request: NextRequest) {
+  if (!publicRegistrationEnabled()) return NextResponse.json({ error: "Die öffentliche Registrierung ist derzeit geschlossen. Bitte nutze einen persönlichen Einladungslink." }, { status: 403 });
   const attempt = rateLimit(`register-club:${clientIp(request)}`, 5, 60 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Registrierungsversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
 

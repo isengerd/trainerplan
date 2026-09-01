@@ -742,7 +742,7 @@ export function TrainerApp() {
         <nav className="bottom-nav">
           <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><Home /><span>Übersicht</span></button>
           <button className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /><span>Kalender</span></button>
-          <button className="fab" onClick={() => view === "plan" ? setLibraryOpen(true) : openPlan()} aria-label={view === "plan" ? "Übung hinzufügen" : "Training anlegen"}><Plus /><span>{view === "plan" ? "Übung" : "Training"}</span></button>
+          <button className={view === "plan" ? "active" : ""} onClick={openPlan} aria-label="Trainingsplanung öffnen"><Dumbbell /><span>Training</span></button>
           <button className={view === "team" ? "active" : ""} onClick={() => setView(clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? "team" : "profile")}><Users /><span>Team</span></button>
           <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>Mannschaftsplanung</span></button>
         </nav>
