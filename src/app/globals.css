@@ -889,6 +889,18 @@ html[data-theme="light"] .registration-form-row select { border-color: #d5e1d9; 
 html[data-theme="light"] .registration-footnote, html[data-theme="light"] .invitation-password-hint { color: #718178; }
 html[data-theme="light"] :where(.login-panel label>div,.profile-card label,.event-editor label,.exercise-creator label,.template-name,.smtp-status,.group-editor>div,.invite-form label:not(.send-mail-toggle)) { border-color: #dce5df; background: #f3f7f4; }
 html[data-theme="light"] :where(input,textarea,select) { color: #17251c; }
+html[data-theme="light"] .exercise-creator label > span,
+html[data-theme="light"] .exercise-creator legend { color: #657b6d; }
+html[data-theme="light"] .exercise-creator input::placeholder,
+html[data-theme="light"] .exercise-creator textarea::placeholder { color: #93a39a; opacity: 1; }
+html[data-theme="light"] .exercise-creator .creator-phase { border: 1px solid #b9dcc2; background: #e7f5ea; }
+html[data-theme="light"] .exercise-creator .creator-phase span,
+html[data-theme="light"] .exercise-creator .creator-phase small { color: #607568; }
+html[data-theme="light"] .exercise-creator .creator-phase strong { color: #176f35; }
+html[data-theme="light"] .exercise-creator fieldset { border-color: #d6e2d9; background: #fbfdfb; }
+html[data-theme="light"] .exercise-creator .material-selector button { border-color: #d2dfd5; background: #edf4ef; color: #405548; }
+html[data-theme="light"] .exercise-creator .material-selector .selected button { border-color: #55b86e; background: #daf2e0; color: #176f35; }
+html[data-theme="light"] .exercise-creator .material-selector input { border-color: #ccdcd0; background: #fff; color: #17251c; }
 html[data-theme="light"] .theme-options > button { background: #f1f5f2; color: #475b4e; } html[data-theme="light"] .theme-options > button.active { background: #e8f5eb; }
 
 /* Helles Design: kontrastreiche Komponenten statt dunkelgrüner Restflächen */
