@@ -606,10 +606,10 @@ export function TrainerApp() {
 
         {nextTournament && <section className="overview-card overview-tournament-teams">
           <div className="overview-card-title"><div><span className="eyebrow">MANNSCHAFTEN ZUM NÄCHSTEN TURNIER</span><h2>{nextTournament.title}</h2></div><button onClick={() => setView("tournaments")}>Planung <ChevronRight /></button></div>
-          {nextTournamentSquads.length ? <div className="overview-squad-list">{nextTournamentSquads.slice(0, 3).map((squad) => {
+          {nextTournamentSquads.length ? <div className="overview-squad-list">{nextTournamentSquads.slice(0, 4).map((squad) => {
             const trainer = users.find((user) => user.id === squad.trainerId);
-            return <button key={squad.id} onClick={() => setView("tournaments")}><span className="overview-squad-avatar">{trainer ? <Avatar user={trainer} size="small" /> : <Users />}</span><span><strong>{squad.name}</strong><small>{squad.playerIds.length} Spieler · {trainer?.name || "Trainer offen"}</small></span><ChevronRight /></button>;
-          })}{nextTournamentSquads.length > 3 && <button className="overview-more-squads" onClick={() => setView("tournaments")}>+ {nextTournamentSquads.length - 3} weitere Mannschaften</button>}</div> : <button className="overview-empty-squads" onClick={() => setView("tournaments")}><Users /><span><strong>Noch keine Mannschaft angelegt</strong><small>Spieler und Trainer für dieses Turnier zuordnen</small></span><ChevronRight /></button>}
+            return <button key={squad.id} title={`${squad.name}: ${trainer?.name || "Trainer offen"}`} aria-label={`${squad.name}, ${trainer?.name || "Trainer offen"}, Mannschaftsplanung öffnen`} onClick={() => setView("tournaments")}><span className={`overview-squad-avatar ${trainer ? "" : "is-open"}`}>{trainer ? <Avatar user={trainer} size="small" /> : <Plus />}</span><strong>{squad.name}</strong></button>;
+          })}</div> : <button className="overview-empty-squads" onClick={() => setView("tournaments")}><Users /><span><strong>Noch keine Mannschaft angelegt</strong><small>Spieler und Trainer für dieses Turnier zuordnen</small></span><ChevronRight /></button>}
         </section>}
       </div>
     </section>

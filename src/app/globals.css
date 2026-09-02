@@ -1763,3 +1763,20 @@ html[data-theme="light"] .toast svg { color: #22a447; }
 @media (max-width: 760px) {
   .tournament-selector > button { min-height: 88px; }
 }
+
+/* Kompakte Turnierzuordnung im Dashboard: maximal vier Trainer nebeneinander. */
+.overview-tournament-teams .overview-squad-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.overview-tournament-teams .overview-squad-list > button { min-width: 0; min-height: 76px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 7px; padding: 6px 2px; border: 0; background: transparent; text-align: center; }
+.overview-tournament-teams .overview-squad-list > button:hover .overview-squad-avatar { border-color: #60d37b; transform: translateY(-1px); }
+.overview-tournament-teams .overview-squad-list > button > strong { width: 100%; overflow: hidden; color: var(--text); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.overview-tournament-teams .overview-squad-avatar { width: 48px; height: 48px; flex: 0 0 48px; border: 2px solid #315d3e; box-shadow: 0 5px 14px rgba(0,0,0,.16); transition: border-color .15s ease, transform .15s ease; }
+.overview-tournament-teams .overview-squad-avatar.is-open { border-style: dashed; background: transparent; box-shadow: none; }
+.overview-tournament-teams .overview-squad-avatar.is-open svg { width: 19px; }
+html[data-theme="light"] .overview-tournament-teams .overview-squad-avatar { border-color: #9fd7ad; box-shadow: 0 5px 14px rgba(30,90,47,.12); }
+html[data-theme="light"] .overview-tournament-teams .overview-squad-avatar.is-open { background: #f3f7f4; box-shadow: none; }
+
+@media (max-width: 380px) {
+  .overview-tournament-teams .overview-squad-list { gap: 5px; }
+  .overview-tournament-teams .overview-squad-avatar { width: 44px; height: 44px; flex-basis: 44px; }
+  .overview-tournament-teams .overview-squad-list > button > strong { font-size: 7px; }
+}
