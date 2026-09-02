@@ -57,7 +57,15 @@ export function TeamPage({ users, currentUser, onUsersChange, onProfile, onInvit
 
 const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", trainerIds: [], maxParticipants: 14, responses: {} };
 
-export function CalendarPage({ events, plannedTrainingDates = [], users, settings, currentUser, onEventsChange }: { events: ClubEvent[]; plannedTrainingDates?: string[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void }) {
+type PlannedCalendarTraining = { date: string; title: string; startTime: string };
+
+function shiftedTime(time: string, minutes: number) {
+  const [hours, minute] = time.split(":").map(Number);
+  const total = (hours * 60 + minute + minutes + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, onEventsChange }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
   const [editing, setEditing] = useState<ClubEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -66,6 +74,7 @@ export function CalendarPage({ events, plannedTrainingDates = [], users, setting
     return new Date(now.getFullYear(), now.getMonth(), 1, 12);
   });
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
+  const plannedTrainingByDate = new Map(plannedTrainings.map((training) => [training.date, training]));
   const monthYear = visibleMonth.getFullYear();
   const monthIndex = visibleMonth.getMonth();
   const leadingDays = (new Date(monthYear, monthIndex, 1).getDay() + 6) % 7;
@@ -117,9 +126,20 @@ export function CalendarPage({ events, plannedTrainingDates = [], users, setting
     onEventsChange(events.map((event) => event.id === updated.id ? updated : event));
   }
 
+  function openCalendarDay(dateKey: string, dayEvents: ClubEvent[]) {
+    const trainingEvent = dayEvents.find((event) => event.type === "training");
+    if (trainingEvent) return setSelected(trainingEvent);
+    const plannedTraining = plannedTrainingByDate.get(dateKey);
+    if (plannedTraining && canManage) {
+      setEditing({ ...emptyEvent, date: dateKey, title: plannedTraining.title, startTime: plannedTraining.startTime, meetingTime: shiftedTime(plannedTraining.startTime, -10), endTime: shiftedTime(plannedTraining.startTime, 75), location: "" });
+      return;
+    }
+    if (dayEvents[0]) setSelected(dayEvents[0]);
+  }
+
   return <section className="calendar-page module-page">
     <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => setEditing({ ...emptyEvent, date: new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity })}><Plus /> Termin erstellen</button>}</div>
-    <div className="calendar-layout"><section className="month-card"><div className="month-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat"><ChevronLeft /></button><h2>{monthLabel}</h2><button type="button" onClick={() => changeMonth(1)} aria-label="Nächster Monat"><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dateKey = day ? `${monthYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : ""; const dayEvents = day ? events.filter((event) => event.date === dateKey) : []; const hasPlannedTraining = plannedTrainingDates.includes(dateKey) && !dayEvents.some((event) => event.type === "training"); return <button className={dateKey === selectedDate ? "selected-day" : ""} key={`${monthYear}-${monthIndex}-${index}`} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDate(dateKey); clickEvent.currentTarget.blur(); if (dayEvents[0]) setSelected(dayEvents[0]); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}{hasPlannedTraining && <i className="training" />}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
+    <div className="calendar-layout"><section className="month-card"><div className="month-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat"><ChevronLeft /></button><h2>{monthLabel}</h2><button type="button" onClick={() => changeMonth(1)} aria-label="Nächster Monat"><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dateKey = day ? `${monthYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : ""; const dayEvents = day ? events.filter((event) => event.date === dateKey) : []; const hasPlannedTraining = plannedTrainingByDate.has(dateKey) && !dayEvents.some((event) => event.type === "training"); return <button className={dateKey === selectedDate ? "selected-day" : ""} key={`${monthYear}-${monthIndex}-${index}`} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDate(dateKey); clickEvent.currentTarget.blur(); openCalendarDay(dateKey, dayEvents); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}{hasPlannedTraining && <i className="training" />}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
       <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; return <button className={selected?.id === event.id ? "active" : ""} key={event.id} onClick={() => setSelected(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.startTime} Uhr · {event.location}</p></span><span className="capacity-mini">{yes}/{event.maxParticipants}</span></button>; })}</section>
     </div>
     {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}
