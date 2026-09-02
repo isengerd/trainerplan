@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, Dumbbell, Edit3,
-  Home, Library, LogOut, MapPin, Menu, MoreVertical, Pause, Play, Plus, Settings, Share2, Shield,
+  Home, Library, LogOut, MapPin, Menu, MoreVertical, Plus, Settings, Share2, Shield,
   Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
@@ -108,7 +108,6 @@ export function TrainerApp() {
   const [plans, setPlans] = useState<Record<string, Exercise[]>>({});
   const [detail, setDetail] = useState<Exercise | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
-  const [animation, setAnimation] = useState(true);
   const [planSaveState, setPlanSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [users, setUsers] = useState<ClubUser[]>([]);
   const [events, setEvents] = useState<ClubEvent[]>([]);
@@ -768,8 +767,7 @@ export function TrainerApp() {
           <section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="exercise-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="detail-top"><div className="detail-badges"><span className="category-pill" style={{ "--accent": detail.accent } as React.CSSProperties}>{detail.category}</span><span className="age-detail-badge">{detail.ageGroup} · {detail.ageRange}</span></div><button className="icon-button" onClick={() => setDetail(null)} aria-label="Details schließen"><X /></button></div>
             <div className="detail-hero">
-              <Pitch variant={detail.variant} animated={animation} label={`Animierte Darstellung für ${detail.title}`} />
-              <button className="play-button" onClick={() => setAnimation((current) => !current)}>{animation ? <Pause /> : <Play />}{animation ? "Animation pausieren" : "Animation starten"}</button>
+              <Pitch variant={detail.variant} label={`Aufbauskizze für ${detail.title}`} />
             </div>
             {youtubeEmbed(detail.youtubeUrl) && <div className="youtube-embed"><iframe src={youtubeEmbed(detail.youtubeUrl)!} title={`Video zu ${detail.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>}
             <div className="detail-content">
