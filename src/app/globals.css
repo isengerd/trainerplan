@@ -1045,6 +1045,21 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
   .overview-next-date strong { font-size: 17px; }
   .overview-squad-list > button { min-height: 51px; }
 }
+
+.calendar-export-content { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #0b1814; }
+.calendar-export-content > span { min-width: 0; }
+.calendar-export-content strong,
+.calendar-export-content small { display: block; }
+.calendar-export-content strong { font-size: 10px; }
+.calendar-export-content small { margin-top: 4px; color: var(--muted); font-size: 8px; line-height: 1.45; }
+.calendar-export-content > a { flex: 0 0 auto; min-height: 38px; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #40b95d; border-radius: 8px; background: #249b47; color: #fff; font-size: 9px; font-weight: 750; text-decoration: none; }
+.calendar-export-content > a svg { width: 15px; }
+html[data-theme="light"] .calendar-export-content { border-color: #d8e3db; background: #f3f7f4; }
+
+@media (max-width: 700px) {
+  .calendar-export-content { display: grid; gap: 12px; padding: 11px; }
+  .calendar-export-content > a { justify-content: center; min-height: 44px; }
+}
 html[data-theme="light"] .session-exercises button > span,
 html[data-theme="light"] .library-copy strong { color: #263d30; }
 html[data-theme="light"] .quick-add { border-color: #9dcea9; background: #d9f2df; color: #167235; }
@@ -1765,18 +1780,42 @@ html[data-theme="light"] .toast svg { color: #22a447; }
 }
 
 /* Kompakte Turnierzuordnung im Dashboard: maximal vier Trainer nebeneinander. */
-.overview-tournament-teams .overview-squad-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.overview-tournament-teams .overview-squad-list > button { min-width: 0; min-height: 76px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 7px; padding: 6px 2px; border: 0; background: transparent; text-align: center; }
-.overview-tournament-teams .overview-squad-list > button:hover .overview-squad-avatar { border-color: #60d37b; transform: translateY(-1px); }
-.overview-tournament-teams .overview-squad-list > button > strong { width: 100%; overflow: hidden; color: var(--text); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.overview-tournament-teams .overview-squad-avatar { width: 48px; height: 48px; flex: 0 0 48px; border: 2px solid #315d3e; box-shadow: 0 5px 14px rgba(0,0,0,.16); transition: border-color .15s ease, transform .15s ease; }
-.overview-tournament-teams .overview-squad-avatar.is-open { border-style: dashed; background: transparent; box-shadow: none; }
-.overview-tournament-teams .overview-squad-avatar.is-open svg { width: 19px; }
-html[data-theme="light"] .overview-tournament-teams .overview-squad-avatar { border-color: #9fd7ad; box-shadow: 0 5px 14px rgba(30,90,47,.12); }
-html[data-theme="light"] .overview-tournament-teams .overview-squad-avatar.is-open { background: #f3f7f4; box-shadow: none; }
+.overview-event-squads { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; padding: 11px 12px 0; border-top: 1px solid var(--line); }
+.overview-event-squads .overview-squad-list { display: grid; grid-template-columns: repeat(4, minmax(58px, 1fr)); gap: 10px; }
+.overview-event-squads .overview-squad-list > button { min-width: 0; min-height: 68px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 6px; padding: 3px 2px; border: 0; background: transparent; text-align: center; }
+.overview-event-squads .overview-squad-list > button:hover .overview-squad-avatar { border-color: #60d37b; transform: translateY(-1px); }
+.overview-event-squads .overview-squad-list > button > strong { width: 100%; overflow: hidden; color: var(--text); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.overview-event-squads .overview-squad-avatar { width: 48px; height: 48px; flex: 0 0 48px; border: 2px solid #315d3e; box-shadow: 0 5px 14px rgba(0,0,0,.16); transition: border-color .15s ease, transform .15s ease; }
+.overview-event-squads .overview-squad-avatar.is-open { border-style: dashed; background: transparent; box-shadow: none; }
+.overview-event-squads .overview-squad-avatar.is-open svg { width: 19px; }
+.overview-squad-planning { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; border: 0; background: transparent; color: #66d781; font-size: 8px; font-weight: 750; }
+.overview-squad-planning svg { width: 13px; }
+html[data-theme="light"] .overview-event-squads .overview-squad-avatar { border-color: #9fd7ad; box-shadow: 0 5px 14px rgba(30,90,47,.12); }
+html[data-theme="light"] .overview-event-squads .overview-squad-avatar.is-open { background: #f3f7f4; box-shadow: none; }
 
 @media (max-width: 380px) {
-  .overview-tournament-teams .overview-squad-list { gap: 5px; }
-  .overview-tournament-teams .overview-squad-avatar { width: 44px; height: 44px; flex-basis: 44px; }
-  .overview-tournament-teams .overview-squad-list > button > strong { font-size: 7px; }
+  .overview-event-squads .overview-squad-list { gap: 5px; }
+  .overview-event-squads .overview-squad-avatar { width: 44px; height: 44px; flex-basis: 44px; }
+  .overview-event-squads .overview-squad-list > button > strong { font-size: 7px; }
+}
+
+.settings-subnav { position: sticky; top: 0; z-index: 35; display: flex; gap: 7px; margin: -8px 0 14px; padding: 9px 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; background: linear-gradient(180deg, var(--bg) 74%, transparent); }
+.settings-subnav::-webkit-scrollbar { display: none; }
+.settings-subnav button { flex: 0 0 auto; min-height: 36px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: #12231d; color: #a8bbb2; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.settings-subnav button:hover,
+.settings-subnav button:focus-visible { border-color: #50ca6d; background: #193c27; color: #72df8b; outline: none; }
+.admin-settings-layout .settings-card { scroll-margin-top: 62px; }
+html[data-theme="light"] .settings-subnav { background: linear-gradient(180deg, #f7faf8 74%, rgba(247,250,248,0)); }
+html[data-theme="light"] .settings-subnav button { border-color: #d6e2d9; background: #fff; color: #476151; box-shadow: 0 3px 10px rgba(32,75,45,.05); }
+html[data-theme="light"] .settings-subnav button:hover,
+html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #4fc46a; background: #e7f6eb; color: #187c37; }
+
+@media (max-width: 700px) {
+  .settings-subnav { top: calc(58px + env(safe-area-inset-top)); margin: -5px -12px 10px; padding: 8px 12px 11px; }
+  .settings-subnav button { min-height: 40px; padding-inline: 13px; font-size: 10px; }
+  .admin-settings-layout .settings-card { scroll-margin-top: calc(116px + env(safe-area-inset-top)); }
+  .overview-event-squads { align-items: stretch; gap: 5px; padding-inline: 2px; }
+  .overview-event-squads .overview-squad-list { flex: 1 1 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .overview-squad-planning { width: 34px; justify-content: center; overflow: hidden; font-size: 0; }
+  .overview-squad-planning svg { width: 16px; }
 }
