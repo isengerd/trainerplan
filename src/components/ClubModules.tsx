@@ -244,7 +244,7 @@ function EventEditor({ event, plannedTraining = false, settings, users, onClose,
 
     <section className="event-editor-section event-notification-summary"><header><Bell /><span><strong>Benachrichtigungen</strong><small>{settings.automaticReminders ? "Offene Rückmeldungen werden automatisch erinnert." : "Automatische Erinnerungen sind in den Einstellungen deaktiviert."}</small></span></header></section>
     {error && <div className="event-editor-error"><AlertTriangle />{error}</div>}
-    <div className={`editor-actions ${onDelete ? "with-delete" : ""}`}>{onDelete && <button className="event-delete-action" type="button" onClick={onDelete}><Trash2 /> Löschen</button>}<button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> {plannedTraining || event.id ? "Änderungen speichern" : "Termin erstellen"}</button></div>
+    <div className={`editor-actions ${onDelete ? "with-delete" : ""}`}>{onDelete && <button className="event-delete-action icon-only-delete" type="button" onClick={onDelete} aria-label="Training löschen" title="Training löschen"><Trash2 /></button>}<button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> {plannedTraining || event.id ? "Änderungen speichern" : "Termin erstellen"}</button></div>
   </form></div>;
 }
 
