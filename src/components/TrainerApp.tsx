@@ -610,7 +610,7 @@ export function TrainerApp() {
             const trainer = users.find((user) => user.id === squad.trainerId);
             const teamName = overviewSquadName(squad.name, index);
             return <button key={squad.id} title={`${teamName}: ${trainer?.name || "Trainer offen"}`} aria-label={`${teamName}, ${trainer?.name || "Trainer offen"}, Mannschaftsplanung öffnen`} onClick={() => setView("tournaments")}><span className={`overview-squad-avatar ${trainer ? "" : "is-open"}`}>{trainer ? <Avatar user={trainer} size="small" /> : <Plus />}</span><strong>{teamName}</strong></button>;
-          })}</div><button className="overview-squad-planning" onClick={() => setView("tournaments")}>Mannschaften planen <ChevronRight /></button></div>}
+          })}</div></div>}
         </section>
       </div>
     </section>

@@ -25,7 +25,10 @@ const eventDate = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateS
 export function TournamentPlanningPage(props: Props) {
   const { events, users, plans, settings, ageGroups, currentUser, onPlansChange, onCreateTournament } = props;
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
-  const tournaments = useMemo(() => events.filter((event) => event.type === "tournament").sort((a, b) => a.date.localeCompare(b.date)), [events]);
+  const tournaments = useMemo(() => {
+    const todayKey = today();
+    return events.filter((event) => event.type === "tournament" && event.date >= todayKey).sort((a, b) => a.date.localeCompare(b.date));
+  }, [events]);
   const [selectedId, setSelectedId] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -33,7 +36,7 @@ export function TournamentPlanningPage(props: Props) {
 
   useEffect(() => {
     if (selectedId && tournaments.some((event) => event.id === selectedId)) return;
-    setSelectedId(tournaments.find((event) => event.date >= today())?.id ?? tournaments[0]?.id ?? "");
+    setSelectedId(tournaments[0]?.id ?? "");
   }, [selectedId, tournaments]);
   useEffect(() => { if (!message) return; const timer = window.setTimeout(() => setMessage(""), 2800); return () => window.clearTimeout(timer); }, [message]);
 

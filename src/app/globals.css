@@ -1788,8 +1788,6 @@ html[data-theme="light"] .toast svg { color: #22a447; }
 .overview-event-squads .overview-squad-avatar { width: 48px; height: 48px; flex: 0 0 48px; border: 2px solid #315d3e; box-shadow: 0 5px 14px rgba(0,0,0,.16); transition: border-color .15s ease, transform .15s ease; }
 .overview-event-squads .overview-squad-avatar.is-open { border-style: dashed; background: transparent; box-shadow: none; }
 .overview-event-squads .overview-squad-avatar.is-open svg { width: 19px; }
-.overview-squad-planning { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; border: 0; background: transparent; color: #66d781; font-size: 8px; font-weight: 750; }
-.overview-squad-planning svg { width: 13px; }
 html[data-theme="light"] .overview-event-squads .overview-squad-avatar { border-color: #9fd7ad; box-shadow: 0 5px 14px rgba(30,90,47,.12); }
 html[data-theme="light"] .overview-event-squads .overview-squad-avatar.is-open { background: #f3f7f4; box-shadow: none; }
 
@@ -1816,6 +1814,4 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
   .admin-settings-layout .settings-card { scroll-margin-top: calc(116px + env(safe-area-inset-top)); }
   .overview-event-squads { align-items: stretch; gap: 5px; padding-inline: 2px; }
   .overview-event-squads .overview-squad-list { flex: 1 1 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .overview-squad-planning { width: 34px; justify-content: center; overflow: hidden; font-size: 0; }
-  .overview-squad-planning svg { width: 16px; }
 }

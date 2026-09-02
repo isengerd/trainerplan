@@ -79,7 +79,8 @@ export function CalendarPage({ events, users, settings, currentUser, onEventsCha
     setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1, 12));
     setSelectedDate(null);
   };
-  const upcoming = [...events].sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`));
+  const todayKey = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+  const upcoming = events.filter((event) => event.date >= todayKey).sort((a, b) => `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`));
 
   function saveEvent(event: ClubEvent) {
     const next = event.id ? events.map((item) => item.id === event.id ? event : item) : [...events, { ...event, id: `event-${Date.now()}` }];
