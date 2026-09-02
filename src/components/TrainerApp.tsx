@@ -611,7 +611,7 @@ export function TrainerApp() {
           })}
         </section>
       </div>
-      <section className="overview-card quick-library"><div className="overview-card-title"><div><span className="eyebrow">EMPFOHLEN FÜR U8/U9</span><h2>Beliebte Übungen</h2></div><button onClick={() => setView("exercises")}>Alle Übungen <ChevronRight /></button></div><div>{exerciseLibrary.slice(4, 8).map((item) => <article key={item.id}><button onClick={() => setDetail(item)}><Pitch variant={item.variant} /></button><span><small>in jeder Phase</small><strong>{item.title}</strong><p>{item.duration} Min · {item.ageRange}</p></span>{canManageClub && <button className="quick-add" onClick={() => addExercise(item)}><Plus /></button>}</article>)}</div></section>
+      <section className="overview-card quick-library"><div className="overview-card-title"><div><span className="eyebrow">EMPFOHLEN FÜR U8/U9</span><h2>Beliebte Übungen</h2></div><button onClick={() => setView("exercises")}>Alle Übungen <ChevronRight /></button></div><div>{exerciseLibrary.slice(4, 8).map((item) => <article key={item.id}><button onClick={() => setDetail(item)}><Pitch variant={item.variant} caption={item.title} /></button><span><small>in jeder Phase</small><strong>{item.title}</strong><p>{item.duration} Min · {item.ageRange}</p></span>{canManageClub && <button className="quick-add" onClick={() => addExercise(item)}><Plus /></button>}</article>)}</div></section>
     </section>
   );
 
@@ -729,7 +729,7 @@ export function TrainerApp() {
                       const index = plan.findIndex((planned) => planned.id === item.id);
                       return <article className="exercise" key={item.id} style={{ "--accent": item.accent } as React.CSSProperties}>
                         <div className="stage"><i /><span>{String(index + 1).padStart(2, "0")}</span><select className="phase-select" value={item.category} onChange={(event) => changeExercisePhase(item.id, event.target.value as Exercise["category"])}>{phases.map((option) => <option key={option}>{option}</option>)}</select></div>
-                        <button className="exercise-preview" onClick={() => setDetail(item)} aria-label={`${item.title} öffnen`}><Pitch variant={item.variant} /></button>
+                        <button className="exercise-preview" onClick={() => setDetail(item)} aria-label={`${item.title} öffnen`}><Pitch variant={item.variant} caption={item.title} /></button>
                         <button className="exercise-copy" onClick={() => setDetail(item)}>{exerciseAssignmentLabel(item) && <span className="mobile-stage with-assignment">{exerciseAssignmentLabel(item)}</span>}<h3>{item.title}</h3><p>{item.description}</p><small><Users /> {item.players}<Clock3 /> {item.duration} Min <CircleGauge /> {item.intensity}</small></button>
                         {canManageClub && <div className="exercise-row-actions">{clubSettings.splitTeamsEnabled && <button className="exercise-assignment-button" onClick={() => setAssignmentExerciseId(item.id)} aria-label={`Team und Trainer für ${item.title} festlegen`} title="Team und Trainer"><Users /></button>}<button className="remove-button" onClick={() => removeExercise(item.id)} aria-label={`${item.title} entfernen`}><Trash2 /></button></div>}
                       </article>;
@@ -767,7 +767,7 @@ export function TrainerApp() {
           <section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="exercise-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="detail-top"><div className="detail-badges"><span className="category-pill" style={{ "--accent": detail.accent } as React.CSSProperties}>{detail.category}</span><span className="age-detail-badge">{detail.ageGroup} · {detail.ageRange}</span></div><button className="icon-button" onClick={() => setDetail(null)} aria-label="Details schließen"><X /></button></div>
             <div className="detail-hero">
-              <Pitch variant={detail.variant} label={`Aufbauskizze für ${detail.title}`} />
+              <Pitch variant={detail.variant} caption={detail.title} label={`Aufbauskizze für ${detail.title}`} />
             </div>
             {youtubeEmbed(detail.youtubeUrl) && <div className="youtube-embed"><iframe src={youtubeEmbed(detail.youtubeUrl)!} title={`Video zu ${detail.title}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>}
             <div className="detail-content">
@@ -777,6 +777,7 @@ export function TrainerApp() {
               <div className="detail-section"><h3>Organisation</h3><p>{detail.setup}</p></div>
               <div className="detail-section"><h3>Material</h3><div className="detail-materials">{detail.materials.map((material) => <span key={material.id}><Boxes /> <strong>{material.count}</strong> {materialCatalog[material.id].name}</span>)}</div></div>
               <div className="detail-section"><h3>Coachingpunkte</h3><ul>{detail.coaching.map((point) => <li key={point}><Check />{point}</li>)}</ul></div>
+              {detail.variations?.length ? <div className="detail-section detail-variations"><h3>Varianten</h3><ul>{detail.variations.map((variation) => <li key={variation}><Sparkles />{variation}</li>)}</ul></div> : null}
             </div>
             <div className="detail-actions"><button className="secondary" onClick={() => setDetail(null)}>Schließen</button>{canManageClub && <button className="secondary" onClick={() => { setEditingExercise(detail); setCreatorOpen(true); setDetail(null); }}><Edit3 /> Bearbeiten</button>}{canManageClub && <button className="primary" onClick={() => { addExercise(detail); setDetail(null); }}><Plus /> Zum Training</button>}</div>
           </section>

@@ -129,6 +129,7 @@ export function validateExercises(value: unknown): Exercise[] {
       focus: stringList(input.focus, "Schwerpunkte", 12, 80),
       setup: textValue(input.setup, "Organisation", 8_000, 1),
       coaching: stringList(input.coaching, "Coachingpunkte", 20, 500),
+      variations: input.variations === undefined ? undefined : stringList(input.variations, "Varianten", 12, 500),
       materials,
       fieldSize: textValue(input.fieldSize, "Feldgröße", 120, 1),
       variant: integerValue(input.variant, "Grafikvariante", 0, 10_000),

@@ -153,11 +153,45 @@ const scenes: Scene[] = [
     players: [{ x: 50, y: 16, toX: 72, toY: 75, team: "yellow" }, { x: 20, y: 78, toX: 50, toY: 16, team: "yellow" }, { x: 80, y: 78, toX: 20, toY: 78, team: "yellow" }, { x: 50, y: 84, toX: 80, toY: 78, team: "yellow" }, { x: 50, y: 52, toX: 60, toY: 62, team: "blue" }],
     routes: [{ x1: 50, y1: 16, x2: 80, y2: 78, kind: "ball" }, { x1: 80, y1: 78, x2: 20, y2: 78, kind: "ball" }, { x1: 20, y1: 78, x2: 50, y2: 16, kind: "ball" }], ball: { x: 50, y: 18, toX: 78, toY: 76 }, cones: [{ x: 50, y: 10 }, { x: 12, y: 84 }, { x: 88, y: 84 }],
   },
+  {
+    title: "Passen und dem Ball nachlaufen",
+    players: [{ x: 22, y: 36, toX: 78, toY: 36, team: "yellow" }, { x: 15, y: 36, toX: 18, toY: 36, team: "yellow" }, { x: 78, y: 36, toX: 22, toY: 36, team: "blue" }, { x: 85, y: 36, toX: 82, toY: 36, team: "blue" }, { x: 22, y: 68, toX: 78, toY: 68, team: "yellow" }, { x: 78, y: 68, toX: 22, toY: 68, team: "blue" }],
+    routes: [{ x1: 22, y1: 36, x2: 78, y2: 36, kind: "ball" }, { x1: 22, y1: 39, x2: 72, y2: 45 }, { x1: 78, y1: 68, x2: 22, y2: 68, kind: "ball" }, { x1: 78, y1: 65, x2: 28, y2: 59 }],
+    ball: { x: 24, y: 36, toX: 76, toY: 36 }, cones: [{ x: 12, y: 36 }, { x: 88, y: 36 }, { x: 12, y: 68 }, { x: 88, y: 68 }],
+  },
+  {
+    title: "Der Führung im Abstand folgen",
+    players: [{ x: 22, y: 70, toX: 35, toY: 52, team: "yellow" }, { x: 31, y: 76, toX: 43, toY: 58, team: "blue" }, { x: 40, y: 80, toX: 52, toY: 62, team: "yellow" }, { x: 49, y: 83, toX: 61, toY: 65, team: "blue" }, { x: 58, y: 85, toX: 70, toY: 68, team: "yellow" }],
+    routes: [{ x1: 22, y1: 70, x2: 35, y2: 52 }, { x1: 35, y1: 52, x2: 62, y2: 35 }, { x1: 62, y1: 35, x2: 78, y2: 52 }],
+    ball: { x: 24, y: 72, toX: 37, toY: 54 }, cones: [{ x: 12, y: 12 }, { x: 88, y: 12 }, { x: 12, y: 88 }, { x: 88, y: 88 }],
+  },
+  {
+    title: "2 gegen 2 auf je zwei Minitore",
+    players: [{ x: 30, y: 38, toX: 48, toY: 34, team: "yellow" }, { x: 30, y: 67, toX: 48, toY: 70, team: "yellow" }, { x: 68, y: 38, toX: 56, toY: 44, team: "blue" }, { x: 68, y: 67, toX: 56, toY: 60, team: "blue" }],
+    routes: [{ x1: 30, y1: 38, x2: 48, y2: 34, kind: "ball" }, { x1: 48, y1: 34, x2: 90, y2: 22, kind: "ball" }], ball: { x: 32, y: 39, toX: 89, toY: 22 },
+    goals: [{ x: 9, y: 22, vertical: true }, { x: 9, y: 78, vertical: true }, { x: 91, y: 22, vertical: true }, { x: 91, y: 78, vertical: true }],
+  },
+  {
+    title: "Farbtor wählen und abschließen",
+    players: [{ x: 18, y: 50, toX: 62, toY: 30, team: "yellow" }, { x: 18, y: 70, toX: 62, toY: 70, team: "blue" }],
+    routes: [{ x1: 18, y1: 50, x2: 55, y2: 30, kind: "ball" }, { x1: 55, y1: 30, x2: 90, y2: 30, kind: "ball" }], ball: { x: 20, y: 51, toX: 89, toY: 30 },
+    poleGates: [{ x: 45, y: 30, rotate: 90, color: "#48d875", active: true }, { x: 45, y: 70, rotate: 90, color: "#58a6ff" }], goals: [{ x: 92, y: 30, vertical: true }, { x: 92, y: 70, vertical: true }],
+  },
+  {
+    title: "Flachpass und erster Kontakt",
+    players: [{ x: 24, y: 50, toX: 24, toY: 50, team: "yellow" }], routes: [{ x1: 25, y1: 50, x2: 80, y2: 50, kind: "ball" }], ball: { x: 27, y: 50, toX: 78, toY: 50 },
+    poleGates: [{ x: 82, y: 50, rotate: 90, color: "#d7e0dc" }], cones: [{ x: 18, y: 42 }, { x: 18, y: 58 }],
+  },
+  {
+    title: "Gezielt auf einzelne Hütchen schießen",
+    players: [{ x: 24, y: 50, toX: 32, toY: 50, team: "yellow" }], routes: [{ x1: 27, y1: 50, x2: 76, y2: 34, kind: "ball" }], ball: { x: 28, y: 50, toX: 74, toY: 35 },
+    cones: [{ x: 76, y: 25 }, { x: 76, y: 38 }, { x: 76, y: 51 }, { x: 76, y: 64 }, { x: 76, y: 77 }, { x: 18, y: 42 }, { x: 18, y: 58 }],
+  },
 ];
 
-type PitchProps = { variant?: number; animated?: boolean; label?: string };
+type PitchProps = { variant?: number; animated?: boolean; label?: string; caption?: string };
 
-export function Pitch({ variant = 0, animated = false, label }: PitchProps) {
+export function Pitch({ variant = 0, animated = false, label, caption }: PitchProps) {
   const scene = scenes[variant % scenes.length];
   return (
     <div className={`pitch scene-pitch ${animated ? "is-animated" : ""}`} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
@@ -173,7 +207,7 @@ export function Pitch({ variant = 0, animated = false, label }: PitchProps) {
       {scene.cones?.map((cone, index) => <span key={`cone-${index}`} className="scene-cone" style={{ left: `${cone.x}%`, top: `${cone.y}%` }} />)}
       {scene.players.map((player, index) => <span key={index} className={`scene-player team-${player.team}`} style={{ "--x": `${player.x}%`, "--y": `${player.y}%`, "--x2": `${player.toX}%`, "--y2": `${player.toY}%`, "--delay": `${player.delay ?? index * -.18}s` } as React.CSSProperties}><i /></span>)}
       {scene.ball && <span className="scene-ball" style={{ "--x": `${scene.ball.x}%`, "--y": `${scene.ball.y}%`, "--x2": `${scene.ball.toX}%`, "--y2": `${scene.ball.toY}%` } as React.CSSProperties} />}
-      <span className="scene-caption">{scene.title}</span>
+      <span className="scene-caption">{caption ?? scene.title}</span>
     </div>
   );
 }
