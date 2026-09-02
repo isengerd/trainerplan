@@ -176,11 +176,11 @@ export const library: Exercise[] = [
     materials: [{ id: "balls", count: 6 }, { id: "cones", count: 18 }], fieldSize: "Kreis · 20–24 m", variant: 19, youtubeUrl: "https://www.youtube.com/watch?v=8ZCRctHczgU",
   },
   {
-    id: "farbenpass-kompass", title: "Farbenpass-Kompass", description: "Nach einem Farbzeichen lösen sich die Kinder vom Zentrum, spielen durch das passende Passtor und besetzen eine neue Position.",
+    id: "farbenpass-kompass", title: "Farbenpass-Kompass", description: "Der Trainer ruft eine Farbe. Nur die Kinder am passenden Farbtor passen durch ihr Tor und tauschen anschließend die Plätze.",
     duration: 12, players: "8–16", ageGroup: "F-Jugend", ageRange: "U8/U9", category: "Einstieg", accent: "#58a6ff", intensity: "Mittel",
-    focus: ["Passspiel", "Wahrnehmung"], setup: "Vier farblich markierte Hütchentore als Kompass um ein 16 × 16 m großes Zentrum stellen. Je zwei bis vier Kinder starten an jeder Seite.",
-    coaching: ["Vor der Ballannahme zur Farbe orientieren", "Flach durch das Tor passen", "Nach dem Pass sofort eine freie Seite anlaufen"],
-    materials: [{ id: "balls", count: 4 }, { id: "cones", count: 16 }], fieldSize: "20 × 20 m", variant: 20,
+    focus: ["Passspiel", "Reaktion", "Orientierung"], setup: "Vier verschiedenfarbige Hütchentore mit viel Abstand als Kompass aufbauen. An jedem Tor stehen sich zwei kleine Gruppen gegenüber; die erste Gruppe hat einen Ball. Der Trainer ruft eine Farbe. Am gerufenen Tor passt das erste Kind flach durch das Tor, läuft dem Ball nach und stellt sich gegenüber an. Der Empfänger nimmt den Ball an und wartet auf das nächste Farbkommando.",
+    coaching: ["Zuerst Farbe hören, dann starten", "Ball flach und mittig durch das Tor spielen", "Dem Pass sofort auf die andere Seite folgen", "Empfänger steht bereit und nimmt mit dem ersten Kontakt sauber an", "Zunächst nur eine Farbe rufen; später zwei Farben gleichzeitig"],
+    materials: [{ id: "balls", count: 4 }, { id: "cones", count: 8 }, { id: "bibs", count: 4 }], fieldSize: "20 × 20 m", variant: 20,
   },
   {
     id: "drei-gegen-drei-chaosstart", title: "3 gegen 3 – Chaosstart", description: "Beide Teams starten aus unterschiedlichen Ecken. Der Trainer eröffnet jede Runde neu, sodass sofort überraschende Duelle entstehen.",

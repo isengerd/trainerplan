@@ -1,6 +1,6 @@
 type Player = { x: number; y: number; toX: number; toY: number; team: "yellow" | "blue"; delay?: number };
 type Route = { x1: number; y1: number; x2: number; y2: number; kind?: "run" | "ball" };
-type Scene = { title: string; players: Player[]; routes: Route[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number }[]; river?: boolean };
+type Scene = { title: string; players: Player[]; routes: Route[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean };
 
 const scenes: Scene[] = [
   {
@@ -120,10 +120,10 @@ const scenes: Scene[] = [
     ball: { x: 50, y: 15, toX: 50, toY: 35 }, cones: [{ x: 45, y: 38 }, { x: 50, y: 36 }, { x: 55, y: 38 }, { x: 61, y: 45 }, { x: 63, y: 50 }, { x: 61, y: 55 }, { x: 55, y: 62 }, { x: 50, y: 64 }, { x: 45, y: 62 }, { x: 39, y: 55 }, { x: 37, y: 50 }, { x: 39, y: 45 }, { x: 50, y: 8 }, { x: 86, y: 25 }, { x: 86, y: 75 }, { x: 50, y: 92 }, { x: 14, y: 75 }, { x: 14, y: 25 }],
   },
   {
-    title: "Farbtor erkennen und neu besetzen",
-    players: [{ x: 50, y: 50, toX: 50, toY: 18, team: "yellow" }, { x: 25, y: 50, toX: 18, toY: 78, team: "blue" }, { x: 75, y: 50, toX: 82, toY: 22, team: "yellow" }, { x: 50, y: 75, toX: 78, toY: 82, team: "blue" }],
-    routes: [{ x1: 25, y1: 50, x2: 50, y2: 50, kind: "ball" }, { x1: 50, y1: 50, x2: 50, y2: 18, kind: "ball" }, { x1: 50, y1: 50, x2: 78, y2: 82 }], ball: { x: 27, y: 50, toX: 50, toY: 18 },
-    poleGates: [{ x: 50, y: 12 }, { x: 88, y: 50, rotate: 90 }, { x: 50, y: 88 }, { x: 12, y: 50, rotate: 90 }],
+    title: "GRÜN: passen & Plätze tauschen",
+    players: [{ x: 50, y: 43, toX: 50, toY: 17, team: "yellow" }, { x: 50, y: 17, toX: 50, toY: 43, team: "blue", delay: -.25 }, { x: 62, y: 50, toX: 62, toY: 50, team: "yellow" }, { x: 83, y: 50, toX: 83, toY: 50, team: "blue" }, { x: 50, y: 62, toX: 50, toY: 62, team: "yellow" }, { x: 50, y: 83, toX: 50, toY: 83, team: "blue" }, { x: 17, y: 50, toX: 17, toY: 50, team: "yellow" }, { x: 38, y: 50, toX: 38, toY: 50, team: "blue" }],
+    routes: [{ x1: 50, y1: 43, x2: 50, y2: 17, kind: "ball" }, { x1: 50, y1: 17, x2: 50, y2: 43 }], ball: { x: 50, y: 40, toX: 50, toY: 20 },
+    poleGates: [{ x: 50, y: 30, color: "#48d875", active: true }, { x: 72, y: 50, rotate: 90, color: "#58a6ff" }, { x: 50, y: 72, color: "#f5c451" }, { x: 28, y: 50, rotate: 90, color: "#ff6b6b" }],
   },
   {
     title: "3 gegen 3 aus diagonalen Ecken",
@@ -169,7 +169,7 @@ export function Pitch({ variant = 0, animated = false, label }: PitchProps) {
       {scene.goals?.map((goal, index) => <span key={`goal-${index}`} className={`scene-goal ${goal.vertical ? "vertical" : ""}`} style={{ left: `${goal.x}%`, top: `${goal.y}%` }} />)}
       {scene.river && <span className="scene-river"><i>KROKODIL-ZONE</i></span>}
       {scene.bridges?.map((bridge, index) => <span key={`bridge-${index}`} className="scene-bridge" style={{ left: `${bridge.x}%`, top: `${bridge.y}%`, transform: `translate(-50%, -50%) rotate(${bridge.rotate ?? 0}deg)` }}><i /><b /></span>)}
-      {scene.poleGates?.map((gate, index) => <span key={`pole-gate-${index}`} className="scene-pole-gate" style={{ left: `${gate.x}%`, top: `${gate.y}%`, transform: `translate(-50%, -50%) rotate(${gate.rotate ?? 0}deg)` }}><i /><b /></span>)}
+      {scene.poleGates?.map((gate, index) => <span key={`pole-gate-${index}`} className={`scene-pole-gate ${gate.active ? "active" : ""}`} style={{ left: `${gate.x}%`, top: `${gate.y}%`, transform: `translate(-50%, -50%) rotate(${gate.rotate ?? 0}deg)`, "--gate-color": gate.color ?? "#ffcf57" } as React.CSSProperties}><i /><b /></span>)}
       {scene.cones?.map((cone, index) => <span key={`cone-${index}`} className="scene-cone" style={{ left: `${cone.x}%`, top: `${cone.y}%` }} />)}
       {scene.players.map((player, index) => <span key={index} className={`scene-player team-${player.team}`} style={{ "--x": `${player.x}%`, "--y": `${player.y}%`, "--x2": `${player.toX}%`, "--y2": `${player.toY}%`, "--delay": `${player.delay ?? index * -.18}s` } as React.CSSProperties}><i /></span>)}
       {scene.ball && <span className="scene-ball" style={{ "--x": `${scene.ball.x}%`, "--y": `${scene.ball.y}%`, "--x2": `${scene.ball.toX}%`, "--y2": `${scene.ball.toY}%` } as React.CSSProperties} />}
