@@ -42,3 +42,16 @@ export async function sendEmailChangeMail(input: { to: string; name: string; lin
     text: `Hallo ${input.name},\n\n${input.requestedBy ? `${input.requestedBy} hat als Vereinsadmin eine neue E-Mail-Adresse für dein Trainerplan-Konto hinterlegt.` : "du hast eine neue E-Mail-Adresse für dein Trainerplan-Konto hinterlegt."}\n\nBitte bestätige die neue Adresse über diesen Link:\n\n${input.link}\n\nDer Link ist 60 Minuten gültig. Falls du die Änderung nicht erwartest, öffne den Link nicht und informiere deinen Verein.`,
   });
 }
+
+export async function sendEventMail(input: { to: string; name: string; actor: string; action: "created" | "updated" | "deleted"; event: { title: string; date: string; startTime: string; meetingTime: string; location: string; address?: string }; link: string }) {
+  const transport = smtpTransport();
+  const date = new Date(`${input.event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+  const action = input.action === "created" ? "erstellt" : input.action === "updated" ? "aktualisiert" : "abgesagt";
+  const subject = input.action === "created" ? "Neuer Termin" : input.action === "updated" ? "Termin aktualisiert" : "Termin abgesagt";
+  await transport.sendMail({
+    from: process.env.SMTP_FROM,
+    to: input.to,
+    subject: `${subject}: ${input.event.title}`,
+    text: `Hallo ${input.name},\n\n${input.actor} hat den Termin „${input.event.title}“ ${action}.\n\nDatum: ${date}\nTreffen: ${input.event.meetingTime} Uhr\nBeginn: ${input.event.startTime} Uhr\nOrt: ${input.event.location}${input.event.address ? `\nAdresse: ${input.event.address}` : ""}${input.action === "deleted" ? "" : `\n\nTermin in Trainerplan öffnen: ${input.link}\n\nBitte gib deine Zu- oder Absage in Trainerplan ab.`}`,
+  });
+}

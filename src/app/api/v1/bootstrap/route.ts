@@ -5,6 +5,7 @@ import { ensureApplicationData, eventFromDatabase } from "@/lib/server-data";
 import { invitationDto } from "@/lib/invitations";
 import { getUsers } from "@/lib/users";
 import { smtpStatus } from "@/lib/smtp";
+import { pushStatus } from "@/lib/push";
 import { ensureClubConfig, scopedResourceWhere } from "@/lib/club-context";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
     ageGroups: ageGroups.map(({ id, name, ageRange, sortOrder }) => ({ id, name, ageRange, sortOrder })),
     invitations: invitations.map(invitationDto),
     smtp: currentUser.role === "admin" ? smtpStatus() : { configured: false },
+    push: currentUser.role === "admin" ? { ...pushStatus(), devices: await prisma.devicePushToken.count({ where: { userId: currentUser.id } }) } : { configured: false, devices: 0 },
     tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, typeof tournamentSquads>>((plans, squad) => {
       if (currentUser.role === "player" && !squad.players.some((assignment) => assignment.playerId === currentUser.id)) return plans;
       (plans[squad.eventId] ??= []).push(squad);

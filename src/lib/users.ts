@@ -32,6 +32,7 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
   if (allowed.some((entry) => !existingIds.has(entry.id))) throw new ApiInputError("Ein Benutzerkonto existiert nicht.");
   if (actor.role === "admin") {
     const changedRoles = new Map(allowed.map((entry) => [entry.id, entry.role]));
+    if ((changedRoles.get(actor.id) ?? actor.role) !== "admin") throw new ApiInputError("Du kannst dir die eigene Adminrolle nicht entziehen. Übertrage die Administration bei Bedarf zuerst an eine andere Person.");
     if (!existingUsers.some((entry) => (changedRoles.get(entry.id) ?? entry.role) === "admin")) throw new ApiInputError("Mindestens ein Admin muss erhalten bleiben.");
     const groupIds = [...new Set(allowed.map((entry) => entry.groupId).filter((id): id is string => Boolean(id)))];
     if (groupIds.length && await prisma.teamGroup.count({ where: { id: { in: groupIds } } }) !== groupIds.length) throw new ApiInputError("Eine ausgewählte Gruppe existiert nicht.");

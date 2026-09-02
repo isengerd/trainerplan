@@ -7,6 +7,8 @@ import { eventToDatabase } from "@/lib/server-data";
 import { prisma } from "@/lib/db";
 import { validateEvents } from "@/lib/validators";
 import { activeClubScope, scopedResourceWhere } from "@/lib/club-context";
+import { notifyEventChange } from "@/lib/event-notifications";
+import { applicationUrl } from "@/lib/invitations";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,9 @@ export async function POST(request: NextRequest) {
     const scope = await activeClubScope(user);
     if (!scope) return NextResponse.json({ error: "Der Vereinskontext ist noch nicht eingerichtet." }, { status: 409 });
     await prisma.clubEvent.create({ data: { id: event.id, ...eventToDatabase(event), ...scopedResourceWhere(scope) } });
-    return NextResponse.json({ event: (await getEvents(user)).find((item) => item.id === event.id) }, { status: 201 });
+    const savedEvent = (await getEvents(user)).find((item) => item.id === event.id);
+    const notifications = savedEvent ? await notifyEventChange({ event: savedEvent, scope, actor: user, action: "created", appUrl: applicationUrl(request) }).catch(() => ({ email: 0, push: 0 })) : { email: 0, push: 0 };
+    return NextResponse.json({ event: savedEvent, notifications }, { status: 201 });
   } catch (error) {
     const result = apiError(error);
     return NextResponse.json({ error: result.message }, { status: result.status });

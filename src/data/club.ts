@@ -54,6 +54,7 @@ export type ClubInvitation = {
   createdAt: string;
 };
 export type SmtpStatus = { configured: boolean; host?: string; port?: number; secure?: boolean; from?: string };
+export type PushStatus = { configured: boolean; devices: number };
 
 export type ClubEvent = {
   id: string;

@@ -8,7 +8,7 @@ import {
   Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
-import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
+import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type PushStatus, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
 import { ageGroupForBirthday } from "@/lib/age-groups";
 import { Pitch } from "./Pitch";
 import { Avatar, CalendarPage, ProfilePage, TeamPage } from "./ClubModules";
@@ -85,6 +85,7 @@ type BootstrapData = {
   ageGroups: AgeGroupOption[];
   invitations: ClubInvitation[];
   smtp: SmtpStatus;
+  push: PushStatus;
   tournamentPlans: TournamentPlan[];
 };
 
@@ -123,6 +124,7 @@ export function TrainerApp() {
   const [ageGroups, setAgeGroups] = useState<AgeGroupOption[]>([]);
   const [invitations, setInvitations] = useState<ClubInvitation[]>([]);
   const [smtp, setSmtp] = useState<SmtpStatus>({ configured: false });
+  const [push, setPush] = useState<PushStatus>({ configured: false, devices: 0 });
   const [tournamentPlans, setTournamentPlans] = useState<TournamentPlan[]>([]);
   const [trainingTemplates, setTrainingTemplates] = useState<TrainingTemplate[]>([]);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -139,6 +141,12 @@ export function TrainerApp() {
   const autoSaveChain = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => { void loadBootstrap(); }, []);
+
+  useEffect(() => {
+    const refreshPushStatus = () => void loadBootstrap();
+    window.addEventListener("trainerplan:push-registered", refreshPushStatus);
+    return () => window.removeEventListener("trainerplan:push-registered", refreshPushStatus);
+  }, []);
 
   useEffect(() => {
     if (authReady && !currentUserId) router.replace("/login");
@@ -210,6 +218,7 @@ export function TrainerApp() {
     setAgeGroups(data.ageGroups);
     setInvitations(data.invitations);
     setSmtp(data.smtp);
+    setPush(data.push);
     setTournamentPlans(data.tournamentPlans ?? []);
   }
 
@@ -226,6 +235,8 @@ export function TrainerApp() {
   }
 
   async function logout() {
+    const pushToken = window.localStorage.getItem("trainerplan-push-token");
+    if (pushToken) await fetch("/api/v1/push-tokens", { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: pushToken }) }).catch(() => undefined);
     await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" }).catch(() => undefined);
     setCurrentUserId(null);
     planDataReady.current = false;
@@ -259,7 +270,7 @@ export function TrainerApp() {
 
   function updateUsers(next: ClubUser[]) {
     const normalized = next.map((user) => user.role === "player" ? { ...user, ageGroup: ageGroupForBirthday(user.birthday) ?? "" } : user);
-    setUsers(normalized); void syncResource("users", normalized);
+    setUsers(normalized); void syncResource("users", normalized).then((saved) => { if (!saved) void loadBootstrap(); });
   }
   function eventDetails(event: ClubEvent) {
     const { responses: _responses, ...details } = event;
@@ -621,7 +632,7 @@ export function TrainerApp() {
       : view === "profile" && profileUser
         ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={profileUser.id === currentUser.id} canRequestEmailChange={profileUser.id === currentUser.id || currentUser.role === "admin"} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageDevelopment={canManageClub} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
         : view === "settings" && currentUser.role === "admin"
-          ? <AdminSettingsPage settings={clubSettings} users={users} groups={groups} ageGroups={ageGroups} invitations={invitations} smtp={smtp} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
+          ? <AdminSettingsPage settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} invitations={invitations} smtp={smtp} push={push} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
           : null;
 
   return (
