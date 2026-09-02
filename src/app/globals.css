@@ -1054,6 +1054,14 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
 .app-shell a > svg.lucide-chevron-right { display: none; }
 .event-editor-backdrop,
 .event-popup-backdrop { z-index: 200; }
+.editor-actions.with-delete { grid-template-columns: auto 1fr 1.4fr; }
+.editor-actions.with-delete .event-delete-action { border-color: #6e3935; background: #351f1c; color: #f08b82; }
+.editor-actions.with-delete .event-delete-action svg { width: 15px; }
+
+@media (max-width: 700px) {
+  .editor-actions.with-delete { grid-template-columns: 1fr 1fr; }
+  .editor-actions.with-delete .event-delete-action { grid-column: 1 / -1; }
+}
 .overview-todos > button { grid-template-columns: 30px 1fr; }
 .overview-next-event-main { grid-template-columns: 48px 1fr; }
 .overview-event-row { grid-template-columns: 50px 1fr; }

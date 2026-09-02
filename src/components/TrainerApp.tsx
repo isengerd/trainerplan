@@ -318,6 +318,12 @@ export function TrainerApp() {
   function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next); }
 
+  function deletePlannedTraining(date: string) {
+    setPlans((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== date)));
+    setPlanMeta((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== date)));
+    showToast("Training und Trainingsplan wurden gelöscht.");
+  }
+
   async function updateTournamentPlan(eventId: string, squads: TournamentSquad[]) {
     const previous = tournamentPlans;
     const next = [...previous.filter((plan) => plan.eventId !== eventId), { eventId, squads }];
@@ -628,7 +634,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={Object.entries(plans).filter(([, exercises]) => exercises.length > 0).map(([date]) => { const day = days.find((item) => item.key === date); return { date, title: planMeta[date]?.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} />
+    ? <CalendarPage events={events} plannedTrainings={Object.entries(plans).filter(([, exercises]) => exercises.length > 0).map(([date]) => { const day = days.find((item) => item.key === date); return { date, title: planMeta[date]?.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} onPlansChange={updateTournamentPlan} onCreateTournament={createTournament} />
     : view === "team"

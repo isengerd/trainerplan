@@ -65,9 +65,10 @@ function shiftedTime(time: string, minutes: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, onEventsChange }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void }) {
+export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
   const [editing, setEditing] = useState<ClubEvent | null>(null);
+  const [editingPlannedDate, setEditingPlannedDate] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const now = new Date();
@@ -93,7 +94,7 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
 
   function saveEvent(event: ClubEvent) {
     const next = event.id ? events.map((item) => item.id === event.id ? event : item) : [...events, { ...event, id: `event-${Date.now()}` }];
-    onEventsChange(next); setEditing(null); setSelected(event.id ? event : next[next.length - 1]);
+    onEventsChange(next); setEditing(null); setEditingPlannedDate(null); setSelected(event.id ? event : next[next.length - 1]);
   }
 
   function respond(value: Attendance) {
@@ -131,6 +132,7 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
     if (trainingEvent) return setSelected(trainingEvent);
     const plannedTraining = plannedTrainingByDate.get(dateKey);
     if (plannedTraining && canManage) {
+      setEditingPlannedDate(dateKey);
       setEditing({ ...emptyEvent, date: dateKey, title: plannedTraining.title, startTime: plannedTraining.startTime, meetingTime: shiftedTime(plannedTraining.startTime, -10), endTime: shiftedTime(plannedTraining.startTime, 75), location: "" });
       return;
     }
@@ -138,12 +140,12 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
   }
 
   return <section className="calendar-page module-page">
-    <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => setEditing({ ...emptyEvent, date: new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity })}><Plus /> Termin erstellen</button>}</div>
+    <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => { setEditingPlannedDate(null); setEditing({ ...emptyEvent, date: new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity }); }}><Plus /> Termin erstellen</button>}</div>
     <div className="calendar-layout"><section className="month-card"><div className="month-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat"><ChevronLeft /></button><h2>{monthLabel}</h2><button type="button" onClick={() => changeMonth(1)} aria-label="Nächster Monat"><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dateKey = day ? `${monthYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : ""; const dayEvents = day ? events.filter((event) => event.date === dateKey) : []; const hasPlannedTraining = plannedTrainingByDate.has(dateKey) && !dayEvents.some((event) => event.type === "training"); return <button className={dateKey === selectedDate ? "selected-day" : ""} key={`${monthYear}-${monthIndex}-${index}`} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDate(dateKey); clickEvent.currentTarget.blur(); openCalendarDay(dateKey, dayEvents); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}{hasPlannedTraining && <i className="training" />}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
       <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; return <button className={selected?.id === event.id ? "active" : ""} key={event.id} onClick={() => setSelected(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.startTime} Uhr · {event.location}</p></span><span className="capacity-mini">{yes}/{event.maxParticipants}</span></button>; })}</section>
     </div>
-    {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}
-    {editing && <EventEditor event={editing} settings={settings} users={users} onClose={() => setEditing(null)} onSave={saveEvent} />}
+    {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditingPlannedDate(null); setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditingPlannedDate(null); setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}
+    {editing && <EventEditor event={editing} plannedTraining={Boolean(editingPlannedDate)} settings={settings} users={users} onClose={() => { setEditing(null); setEditingPlannedDate(null); }} onDelete={editingPlannedDate && onDeletePlannedTraining ? () => { if (!window.confirm("Training und den zugehörigen Trainingsplan wirklich löschen?")) return; onDeletePlannedTraining(editingPlannedDate); setEditing(null); setEditingPlannedDate(null); } : undefined} onSave={saveEvent} />}
   </section>;
 }
 
@@ -205,7 +207,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
   </div>;
 }
 
-function EventEditor({ event, settings, users, onClose, onSave }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; onClose: () => void; onSave: (event: ClubEvent) => void }) {
+function EventEditor({ event, plannedTraining = false, settings, users, onClose, onSave, onDelete }: { event: ClubEvent; plannedTraining?: boolean; settings: ClubSettings; users: ClubUser[]; onClose: () => void; onSave: (event: ClubEvent) => void; onDelete?: () => void }) {
   const [form, setForm] = useState(event);
   const [error, setError] = useState("");
   const set = (key: keyof ClubEvent, value: string | number) => setForm((current) => ({ ...current, [key]: value }));
@@ -227,7 +229,7 @@ function EventEditor({ event, settings, users, onClose, onSave }: { event: ClubE
     setError(""); onSave(form);
   }
   return <div className="modal-backdrop event-editor-backdrop" onMouseDown={onClose}><form className="event-editor" onSubmit={submit} onMouseDown={(e) => e.stopPropagation()}>
-    <div className="editor-head"><div><span className="eyebrow">TERMINPLANUNG</span><h2>{event.id ? "Termin bearbeiten" : "Neuen Termin erstellen"}</h2><p>Alle wichtigen Angaben für Mannschaft und Trainer.</p></div><button type="button" onClick={onClose} aria-label="Terminplanung schließen"><X /></button></div>
+    <div className="editor-head"><div><span className="eyebrow">TERMINPLANUNG</span><h2>{plannedTraining ? "Training bearbeiten" : event.id ? "Termin bearbeiten" : "Neuen Termin erstellen"}</h2><p>{plannedTraining ? "Ergänze oder ändere die Termindetails des geplanten Trainings." : "Alle wichtigen Angaben für Mannschaft und Trainer."}</p></div><button type="button" onClick={onClose} aria-label="Terminplanung schließen"><X /></button></div>
     <div className="event-type-select">{(["training", "tournament", "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => setForm((current) => ({ ...current, type, maxParticipants: type === "tournament" ? settings.defaultTournamentCapacity : type === "training" ? settings.defaultTrainingCapacity : current.maxParticipants }))} key={type}>{eventLabels[type]}</button>)}</div>
 
     <section className="event-editor-section"><header><Info /><span><strong>Informationen</strong><small>Was findet statt?</small></span></header><label><span>Name des Termins</span><input required maxLength={160} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={form.type === "training" ? "z. B. Training – Dribbling & Torschuss" : form.type === "tournament" ? "z. B. Kinderfußball-Festival" : "z. B. Mannschaftsabend"} /></label><label><span>Zusätzliche Informationen <em>optional</em></span><textarea rows={3} maxLength={5000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Ausrüstung, Ablauf oder wichtige Hinweise für das Team …" /></label></section>
@@ -242,7 +244,7 @@ function EventEditor({ event, settings, users, onClose, onSave }: { event: ClubE
 
     <section className="event-editor-section event-notification-summary"><header><Bell /><span><strong>Benachrichtigungen</strong><small>{settings.automaticReminders ? "Offene Rückmeldungen werden automatisch erinnert." : "Automatische Erinnerungen sind in den Einstellungen deaktiviert."}</small></span></header></section>
     {error && <div className="event-editor-error"><AlertTriangle />{error}</div>}
-    <div className="editor-actions"><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> {event.id ? "Aktualisieren" : "Termin erstellen"}</button></div>
+    <div className={`editor-actions ${onDelete ? "with-delete" : ""}`}>{onDelete && <button className="event-delete-action" type="button" onClick={onDelete}><Trash2 /> Löschen</button>}<button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit"><Check /> {plannedTraining || event.id ? "Änderungen speichern" : "Termin erstellen"}</button></div>
   </form></div>;
 }
 
