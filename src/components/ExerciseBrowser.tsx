@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Heart, MoreVertical, Plus, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import type { Exercise } from "@/data/demo";
 import { Pitch } from "./Pitch";
@@ -54,6 +54,8 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [addedId, setAddedId] = useState("");
   const [sort, setSort] = useState<SortMode>("recommended");
+  const [focusFilter, setFocusFilter] = useState("");
+  const libraryRef = useRef<HTMLElement>(null);
 
   useEffect(() => { const timer = window.setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 200); return () => window.clearTimeout(timer); }, [search]);
   useEffect(() => { try { setFavorites(new Set(JSON.parse(window.localStorage.getItem("trainerplan-exercise-favorites") || "[]") as string[])); } catch { setFavorites(new Set()); } }, []);
@@ -68,6 +70,7 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
       && (category === "Alle Kategorien" || categoryFor(exercise) === category)
       && (!age || exercise.ageRange.split("/").includes(age))
       && (!difficulty || exercise.intensity === difficulty)
+      && (!focusFilter || exercise.focus.some((item) => item.toLocaleLowerCase("de") === focusFilter.toLocaleLowerCase("de")))
       && exercise.duration <= maxDuration
       && (playerCount === 22 || (range.min <= playerCount && range.max >= playerCount))
       && (!favoritesOnly || favorites.has(exercise.id));
@@ -75,7 +78,7 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
     if (sort === "shortest") return Array.from(filtered).sort((a, b) => a.duration - b.duration);
     if (sort === "title") return Array.from(filtered).sort((a, b) => a.title.localeCompare(b.title, "de"));
     return filtered;
-  }, [exercises, debouncedSearch, phase, category, age, difficulty, maxDuration, playerCount, favoritesOnly, favorites, sort]);
+  }, [exercises, debouncedSearch, phase, category, age, difficulty, focusFilter, maxDuration, playerCount, favoritesOnly, favorites, sort]);
 
   const categoryCounts = useMemo(() => Object.fromEntries(categories.map((item) => [item, item === "Alle Kategorien" ? exercises.length : exercises.filter((exercise) => categoryFor(exercise) === item).length])), [exercises]);
 
@@ -87,7 +90,11 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
       return next;
     });
   }
-  function reset() { setSearch(""); setPhase(""); setCategory("Alle Kategorien"); setAge(""); setDifficulty(""); setMaxDuration(60); setPlayerCount(22); setFavoritesOnly(false); }
+  function reset() { setSearch(""); setPhase(""); setCategory("Alle Kategorien"); setAge(""); setDifficulty(""); setFocusFilter(""); setMaxDuration(60); setPlayerCount(22); setFavoritesOnly(false); }
+  function filterByFocus(value: string) {
+    setFocusFilter((current) => current === value ? "" : value);
+    window.requestAnimationFrame(() => libraryRef.current?.querySelector(".library-active-filters, .library-result-summary")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
   function add(exercise: Exercise) { onAdd(exercise); setAddedId(exercise.id); window.setTimeout(() => setAddedId(""), 1400); }
 
   const filters = [
@@ -95,13 +102,14 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
     ...(category !== "Alle Kategorien" ? [{ label: category, clear: () => setCategory("Alle Kategorien") }] : []),
     ...(age ? [{ label: age, clear: () => setAge("") }] : []),
     ...(difficulty ? [{ label: difficulty, clear: () => setDifficulty("") }] : []),
+    ...(focusFilter ? [{ label: `Schwerpunkt: ${focusFilter}`, clear: () => setFocusFilter("") }] : []),
     ...(maxDuration < 60 ? [{ label: `bis ${maxDuration} Min`, clear: () => setMaxDuration(60) }] : []),
     ...(playerCount < 22 ? [{ label: `${playerCount} Spieler`, clear: () => setPlayerCount(22) }] : []),
     ...(favoritesOnly ? [{ label: "Nur Favoriten", clear: () => setFavoritesOnly(false) }] : []),
   ];
   const filterCount = filters.length;
 
-  return <section className={`unified-library ${mode}`}>
+  return <section ref={libraryRef} className={`unified-library ${mode}`}>
     <header className="unified-library-heading">
       <div><span className="eyebrow">{mode === "manage" ? "ÜBUNGSDATENBANK · F-JUGEND" : `ZIELPHASE · ${initialPhase ?? "FREI"}`}</span><h1>{mode === "manage" ? "Übungen" : "Übung auswählen"}</h1>{mode === "manage" && <p>Finde, verwalte und öffne alle Übungen an einem Ort.</p>}</div>
       <div>{mode === "manage" && canManage && <button className="library-create primary" onClick={onCreate}><Plus /> Neue Übung</button>}{onClose && <button className="library-close" onClick={onClose} aria-label="Bibliothek schließen"><X /></button>}</div>
@@ -118,7 +126,7 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
     {filters.length > 0 && <div className="library-active-filters"><div>{filters.map((filter) => <button key={filter.label} onClick={filter.clear}><X /> {filter.label}</button>)}</div><button onClick={reset}>Alle zurücksetzen</button></div>}
 
     <div className="library-result-summary"><div><strong>{results.length} Übungen</strong>{mode === "pick" && initialPhase && <span>Hinzufügen zu: <b>{initialPhase}</b></span>}</div><label>Sortieren <select value={sort} onChange={(event) => setSort(event.target.value as SortMode)}><option value="recommended">Empfohlen</option><option value="shortest">Kürzeste zuerst</option><option value="title">Name A–Z</option></select></label></div>
-    {results.length > 0 ? <div className="unified-exercise-grid">{results.map((exercise) => <ExerciseCard key={exercise.id} exercise={exercise} mode={mode} canManage={canManage} favorite={favorites.has(exercise.id)} added={addedId === exercise.id} onFavorite={() => toggleFavorite(exercise.id)} onDetail={() => onDetail(exercise)} onEdit={() => onEdit(exercise)} onDelete={() => onDelete(exercise)} onAdd={() => add(exercise)} />)}</div> : <div className="library-empty"><Search /><h2>{favoritesOnly ? "Noch keine passenden Favoriten" : "Keine Übungen gefunden"}</h2><p>{favoritesOnly ? "Zeige wieder alle Übungen oder passe die übrigen Filter an." : "Entferne einzelne Filter oder setze die Auswahl zurück."}</p><button onClick={favoritesOnly ? () => setFavoritesOnly(false) : reset}>{favoritesOnly ? <><X /> Alle Übungen anzeigen</> : <><RotateCcw /> Filter zurücksetzen</>}</button></div>}
+    {results.length > 0 ? <div className="unified-exercise-grid">{results.map((exercise) => <ExerciseCard key={exercise.id} exercise={exercise} mode={mode} canManage={canManage} favorite={favorites.has(exercise.id)} added={addedId === exercise.id} selectedFocus={focusFilter} onFocusFilter={filterByFocus} onFavorite={() => toggleFavorite(exercise.id)} onDetail={() => onDetail(exercise)} onEdit={() => onEdit(exercise)} onDelete={() => onDelete(exercise)} onAdd={() => add(exercise)} />)}</div> : <div className="library-empty"><Search /><h2>{favoritesOnly ? "Noch keine passenden Favoriten" : "Keine Übungen gefunden"}</h2><p>{favoritesOnly ? "Zeige wieder alle Übungen oder passe die übrigen Filter an." : "Entferne einzelne Filter oder setze die Auswahl zurück."}</p><button onClick={favoritesOnly ? () => setFavoritesOnly(false) : reset}>{favoritesOnly ? <><X /> Alle Übungen anzeigen</> : <><RotateCcw /> Filter zurücksetzen</>}</button></div>}
 
     {filterOpen && <FilterDrawer phase={phase} category={category} age={age} difficulty={difficulty} maxDuration={maxDuration} playerCount={playerCount} resultCount={results.length} onPhase={setPhase} onCategory={setCategory} onAge={setAge} onDifficulty={setDifficulty} onDuration={setMaxDuration} onPlayers={setPlayerCount} onReset={reset} onClose={() => setFilterOpen(false)} />}
   </section>;
@@ -142,13 +150,13 @@ export function FilterDrawer({ phase, category, age, difficulty, maxDuration, pl
   </aside></div>;
 }
 
-export function ExerciseCard({ exercise, mode, canManage, favorite, added, onFavorite, onDetail, onEdit, onDelete, onAdd }: {
-  exercise: Exercise; mode: LibraryMode; canManage: boolean; favorite: boolean; added: boolean; onFavorite: () => void; onDetail: () => void; onEdit: () => void; onDelete: () => void; onAdd: () => void;
+export function ExerciseCard({ exercise, mode, canManage, favorite, added, selectedFocus, onFocusFilter, onFavorite, onDetail, onEdit, onDelete, onAdd }: {
+  exercise: Exercise; mode: LibraryMode; canManage: boolean; favorite: boolean; added: boolean; selectedFocus: string; onFocusFilter: (focus: string) => void; onFavorite: () => void; onDetail: () => void; onEdit: () => void; onDelete: () => void; onAdd: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return <article className="unified-exercise-card">
     <div className="unified-card-visual"><button type="button" onClick={onDetail} aria-label={`${exercise.title} öffnen`}><Pitch variant={exercise.variant} caption={exercise.title} /></button><span>{exercise.ageRange}</span><button type="button" aria-pressed={favorite} className={favorite ? "card-heart active" : "card-heart"} onClick={(event) => { event.preventDefault(); event.stopPropagation(); onFavorite(); }} aria-label={favorite ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen"}><Heart fill={favorite ? "currentColor" : "none"} /></button></div>
-    <div className="unified-card-body"><button className="unified-card-title" onClick={onDetail}><strong>{exercise.title}</strong></button><p>{exercise.duration} Min · {exercise.players} Spieler · {exercise.intensity}</p><div>{exercise.focus.slice(0, 2).map((tag) => <span key={tag}>{tag}</span>)}</div></div>
+    <div className="unified-card-body"><button className="unified-card-title" onClick={onDetail}><strong>{exercise.title}</strong></button><p>{exercise.duration} Min · {exercise.players} Spieler · {exercise.intensity}</p><div>{exercise.focus.slice(0, 2).map((tag) => <button type="button" key={tag} className={selectedFocus === tag ? "active" : ""} aria-pressed={selectedFocus === tag} onClick={() => onFocusFilter(tag)} title={`Nach ${tag} filtern`}>{tag}</button>)}</div></div>
     <footer><button className="card-detail" onClick={onDetail}>Details</button>{mode === "pick" && canManage && <button className="card-add primary" onClick={onAdd}>{added ? <><Check /> Hinzugefügt</> : <><Plus /> Hinzufügen</>}</button>}{mode === "manage" && canManage && <div className="card-menu"><button onClick={() => setMenuOpen((value) => !value)} aria-label="Übungsaktionen"><MoreVertical /></button>{menuOpen && <div><button onClick={() => { setMenuOpen(false); onEdit(); }}>Bearbeiten</button><button className="danger" onClick={() => { setMenuOpen(false); onDelete(); }}>Löschen</button></div>}</div>}</footer>
   </article>;
 }
