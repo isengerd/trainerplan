@@ -625,7 +625,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} />
+    ? <CalendarPage events={events} plannedTrainingDates={Object.entries(plans).filter(([, exercises]) => exercises.length > 0).map(([date]) => date)} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} onPlansChange={updateTournamentPlan} onCreateTournament={createTournament} />
     : view === "team"

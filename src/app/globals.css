@@ -1046,6 +1046,18 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
   .overview-squad-list > button { min-height: 51px; }
 }
 
+/* Beschriftete und vollständig klickbare Elemente brauchen keinen zusätzlichen Weiter-Pfeil. */
+.app-shell button:not([aria-label]) > svg.lucide-chevron-right,
+.app-shell a > svg.lucide-chevron-right { display: none; }
+.overview-todos > button { grid-template-columns: 30px 1fr; }
+.overview-next-event-main { grid-template-columns: 48px 1fr; }
+.overview-event-row { grid-template-columns: 50px 1fr; }
+.week-plan-row { grid-template-columns: 38px 1fr; }
+
+@media (max-width: 700px) {
+  .overview-next-event-main { grid-template-columns: 44px 1fr; }
+}
+
 .event-trainer-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .event-trainer-select > button { min-width: 0; display: grid; grid-template-columns: 34px 1fr 16px; gap: 8px; align-items: center; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: #0b1814; text-align: left; }
 .event-trainer-select > button > span:nth-child(2) { min-width: 0; }
