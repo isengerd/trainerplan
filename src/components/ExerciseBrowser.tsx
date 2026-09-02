@@ -116,7 +116,7 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
     </header>
 
     <div className="library-command-bar">
-      <label><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Suche nach Übung oder Schwerpunkt..." /></label>
+      <label className={search ? "has-query" : ""}><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Suche nach Übung oder Schwerpunkt..." /></label>
       <button className={filterCount ? "library-filter-button active" : "library-filter-button"} onClick={() => setFilterOpen(true)}><SlidersHorizontal /> Filter{filterCount ? ` (${filterCount})` : ""}</button>
       <button type="button" aria-pressed={favoritesOnly} className={favoritesOnly ? "library-favorite-toggle active" : "library-favorite-toggle"} onClick={() => setFavoritesOnly((value) => !value)}>{favoritesOnly ? <X /> : <Heart />} <span>{favoritesOnly ? "Alle Übungen" : "Favoriten"}</span></button>
     </div>
