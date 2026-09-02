@@ -68,6 +68,7 @@ export type ClubEvent = {
   meetingTime: string;
   description: string;
   trainerNote?: string;
+  trainerIds?: string[];
   weather?: { condition: "sunny" | "partly-cloudy" | "cloudy"; label: string; temperature: number };
   maxParticipants: number;
   responses: Record<string, Attendance>;

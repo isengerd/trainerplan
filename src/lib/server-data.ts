@@ -46,6 +46,7 @@ export async function ensureApplicationData() {
           meetingTime: event.meetingTime,
           description: event.description,
           trainerNote: event.trainerNote,
+          trainerIds: json(event.trainerIds ?? []),
           weather: event.weather ? json(event.weather) : Prisma.JsonNull,
           maxParticipants: event.maxParticipants,
           responses: { create: Object.entries(event.responses).map(([userId, value]) => ({ userId, value })) },
@@ -85,6 +86,7 @@ export function eventFromDatabase(event: DatabaseEvent): ClubEvent {
     meetingTime: event.meetingTime,
     description: event.description,
     trainerNote: event.trainerNote ?? undefined,
+    trainerIds: Array.isArray(event.trainerIds) ? event.trainerIds.filter((id): id is string => typeof id === "string") : [],
     weather: event.weather as ClubEvent["weather"],
     maxParticipants: event.maxParticipants,
     responses: Object.fromEntries((event.responses ?? []).map((response) => [response.userId, response.value])) as ClubEvent["responses"],
@@ -103,6 +105,7 @@ export function eventToDatabase(event: ClubEvent) {
     meetingTime: event.meetingTime,
     description: event.description,
     trainerNote: event.trainerNote,
+    trainerIds: json(event.trainerIds ?? []),
     weather: event.weather ? json(event.weather) : Prisma.JsonNull,
     maxParticipants: event.maxParticipants,
   };

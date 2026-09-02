@@ -13,7 +13,6 @@ type AttendanceBody = { value?: "yes" | "no" | "maybe" | null };
 export async function PUT(request: NextRequest, context: Context) {
   const user = await authenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
-  if (user.role !== "player") return NextResponse.json({ error: "Nur Spieler können ihre eigene Teilnahme ändern." }, { status: 403 });
 
   try {
     const { id } = await context.params;
@@ -34,10 +33,20 @@ export async function PUT(request: NextRequest, context: Context) {
     const deadlineHours = event.type === "training" ? settings.trainingDeadlineHours : event.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
     if (Date.now() > berlinDateTime(storedDate, event.startTime).getTime() - deadlineHours * 3600000) throw new ApiInputError("Die Rückmeldefrist ist abgelaufen.", 409);
 
-    if (!body.value) {
+    const trainerIds = Array.isArray(event.trainerIds) ? event.trainerIds.filter((value): value is string => typeof value === "string") : [];
+    if (user.role !== "player" && event.type === "training") {
+      const isResponsible = trainerIds.includes(user.id);
+      if (body.value !== "yes" && isResponsible && trainerIds.length === 1) throw new ApiInputError("Der einzige verantwortliche Trainer kann nicht absagen. Weise zuerst einen weiteren Trainer zu.", 409);
+      const nextTrainerIds = body.value === "yes" ? [...new Set([...trainerIds, user.id])] : trainerIds.filter((id) => id !== user.id);
+      await prisma.$transaction(async (tx) => {
+        await tx.clubEvent.update({ where: { id }, data: { trainerIds: nextTrainerIds } });
+        if (!body.value) await tx.attendanceResponse.deleteMany({ where: { eventId: id, userId: user.id } });
+        else await tx.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: user.id } }, update: { value: body.value }, create: { eventId: id, userId: user.id, value: body.value } });
+      });
+    } else if (!body.value) {
       await prisma.attendanceResponse.deleteMany({ where: { eventId: id, userId: user.id } });
     } else {
-      const yesCount = event.responses.filter((response) => response.value === "yes" && response.userId !== user.id).length;
+      const yesCount = await prisma.attendanceResponse.count({ where: { eventId: id, value: "yes", userId: { not: user.id }, user: { role: "player" } } });
       const acceptedValue = body.value === "yes" && yesCount >= event.maxParticipants ? (settings.waitlistEnabled ? "maybe" : null) : body.value;
       if (!acceptedValue) throw new ApiInputError("Der Termin ist bereits voll.", 409);
       await prisma.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: user.id } }, update: { value: acceptedValue }, create: { eventId: id, userId: user.id, value: acceptedValue } });

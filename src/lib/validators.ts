@@ -74,6 +74,7 @@ export function validateEvents(value: unknown): ClubEvent[] {
     if (!validDate(date) || !timePattern.test(startTime) || !timePattern.test(endTime) || !timePattern.test(meetingTime)) throw new ApiInputError("Datum oder Uhrzeit ist ungültig.");
     const responsesInput = objectValue(input.responses, "Teilnahmen sind ungültig.");
     const responses = Object.fromEntries(Object.entries(responsesInput).map(([id, response]) => [textValue(id, "Benutzer-ID", 100, 1), enumValue(response, attendance, "Teilnahme")])) as ClubEvent["responses"];
+    const trainerIds = Array.isArray(input.trainerIds) ? [...new Set(input.trainerIds.map((id) => textValue(id, "Trainer-ID", 100, 1)))] : [];
     let weather: ClubEvent["weather"];
     if (input.weather !== undefined && input.weather !== null) {
       const candidate = objectValue(input.weather, "Wetter ist ungültig.");
@@ -88,7 +89,7 @@ export function validateEvents(value: unknown): ClubEvent[] {
       title: textValue(input.title, "Titel", 160, 1), date, startTime, endTime, meetingTime,
       location: textValue(input.location, "Ort", 180, 1), address: optionalText(input.address, "Adresse", 300) || undefined,
       description: optionalText(input.description, "Beschreibung", 5_000), trainerNote: optionalText(input.trainerNote, "Trainernotiz", 5_000) || undefined,
-      maxParticipants: integerValue(input.maxParticipants, "Teilnehmerzahl", 1, 1_000), responses,
+      maxParticipants: integerValue(input.maxParticipants, "Teilnehmerzahl", 1, 1_000), responses, trainerIds,
       weather,
     };
   });

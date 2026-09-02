@@ -1046,6 +1046,34 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
   .overview-squad-list > button { min-height: 51px; }
 }
 
+.event-trainer-select { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.event-trainer-select > button { min-width: 0; display: grid; grid-template-columns: 34px 1fr 16px; gap: 8px; align-items: center; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: #0b1814; text-align: left; }
+.event-trainer-select > button > span:nth-child(2) { min-width: 0; }
+.event-trainer-select strong,
+.event-trainer-select small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-trainer-select strong { font-size: 9px; }
+.event-trainer-select small { margin-top: 2px; color: var(--muted); font-size: 7px; }
+.event-trainer-select > button > svg { width: 14px; color: #55cc70; }
+.event-trainer-select > button.active { border-color: #4fc76a; background: #153523; }
+.next-session-copy { min-width: 0; flex: 1 1 auto; }
+.next-training-coaches { flex: 0 0 auto; display: flex; flex-direction: row-reverse; align-items: center; padding-left: 10px; }
+.next-training-coaches > span { display: block; margin-left: -8px; border: 2px solid #28633c; border-radius: 50%; box-shadow: 0 3px 9px rgba(0,0,0,.16); }
+.next-training-coaches .club-avatar { width: 38px; height: 38px; }
+
+.overview-next-event:has(.overview-event-squads) .overview-next-event-main { border-bottom: 0; border-radius: 11px 11px 0 0; }
+.overview-next-event:has(.overview-event-squads) .overview-event-squads { margin-top: 0; padding: 8px 12px 10px; border: 1px solid #294737; border-top: 0; border-radius: 0 0 11px 11px; background: #10231a; }
+html[data-theme="light"] .event-trainer-select > button { border-color: #d8e3db; background: #f3f7f4; color: #20382a; }
+html[data-theme="light"] .event-trainer-select > button.active { border-color: #62c77a; background: #e5f5e9; }
+html[data-theme="light"] .next-training-coaches > span { border-color: #a8dbb4; }
+html[data-theme="light"] .overview-next-event:has(.overview-event-squads) .overview-next-event-main,
+html[data-theme="light"] .overview-next-event:has(.overview-event-squads) .overview-event-squads { border-color: #b9dcc2; background: #e5f5e9; }
+
+@media (max-width: 700px) {
+  .event-trainer-select { grid-template-columns: 1fr; }
+  .next-training-coaches { padding-left: 4px; }
+  .next-training-coaches .club-avatar { width: 34px; height: 34px; }
+}
+
 .calendar-export-content { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #0b1814; }
 .calendar-export-content > span { min-width: 0; }
 .calendar-export-content strong,

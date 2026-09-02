@@ -22,7 +22,20 @@ export async function PATCH(request: NextRequest, context: Context) {
     const [event] = validateEvents([{ ...body, id, responses: {} }]);
     const scope = await activeClubScope(user);
     if (!scope) return NextResponse.json({ error: "Der Vereinskontext ist noch nicht eingerichtet." }, { status: 409 });
-    const updated = await prisma.clubEvent.updateMany({ where: { id, ...scopedResourceWhere(scope) }, data: eventToDatabase(event) });
+    const existing = await prisma.clubEvent.findFirst({ where: { id, ...scopedResourceWhere(scope) } });
+    if (!existing) return NextResponse.json({ error: "Der Termin wurde nicht gefunden." }, { status: 404 });
+    const trainerIds = event.type === "training" ? event.trainerIds ?? [] : [];
+    const existingTrainerIds = Array.isArray(existing.trainerIds) ? existing.trainerIds.filter((value): value is string => typeof value === "string") : [];
+    if (existing.type === "training" && event.type === "training" && existingTrainerIds.length > 0 && trainerIds.length === 0) return NextResponse.json({ error: "Der einzige verantwortliche Trainer kann nicht entfernt werden. Weise zuerst einen weiteren Trainer zu." }, { status: 409 });
+    if (trainerIds.length) {
+      const validTrainerCount = await prisma.membership.count({ where: { userId: { in: trainerIds }, clubId: scope.clubId, ...(scope.teamId ? { OR: [{ teamId: scope.teamId }, { teamId: null }] } : {}), status: "active", role: { in: ["trainer", "admin"] } } });
+      if (validTrainerCount !== trainerIds.length) return NextResponse.json({ error: "Mindestens eine Trainerzuordnung ist ungültig." }, { status: 400 });
+    }
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.clubEvent.updateMany({ where: { id, ...scopedResourceWhere(scope) }, data: eventToDatabase({ ...event, trainerIds }) });
+      for (const trainerId of trainerIds) await tx.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: trainerId } }, update: { value: "yes" }, create: { eventId: id, userId: trainerId, value: "yes" } });
+      return result;
+    });
     if (updated.count !== 1) return NextResponse.json({ error: "Der Termin wurde nicht gefunden." }, { status: 404 });
     const savedEvent = (await getEvents(user)).find((item) => item.id === id);
     const notifications = savedEvent ? await notifyEventChange({ event: savedEvent, scope, actor: user, action: "updated", appUrl: applicationUrl(request) }).catch(() => ({ email: 0, push: 0 })) : { email: 0, push: 0 };

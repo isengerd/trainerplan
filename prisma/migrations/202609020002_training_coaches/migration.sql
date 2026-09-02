@@ -1,0 +1,1 @@
+ALTER TABLE "ClubEvent" ADD COLUMN "trainerIds" JSONB NOT NULL DEFAULT '[]';

@@ -55,7 +55,7 @@ export function TeamPage({ users, currentUser, onUsersChange, onProfile, onInvit
   </section>;
 }
 
-const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", maxParticipants: 14, responses: {} };
+const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", trainerIds: [], maxParticipants: 14, responses: {} };
 
 export function CalendarPage({ events, users, settings, currentUser, onEventsChange }: { events: ClubEvent[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
@@ -101,7 +101,12 @@ export function CalendarPage({ events, users, settings, currentUser, onEventsCha
       }
       return;
     }
-    const updated = { ...selected, responses: { ...selected.responses, [currentUser.id]: value } };
+    const responsibleTrainers = selected.trainerIds ?? [];
+    if (selected.type === "training" && currentUser.role !== "player" && value !== "yes" && responsibleTrainers.includes(currentUser.id) && responsibleTrainers.length === 1) return;
+    const trainerIds = selected.type === "training" && currentUser.role !== "player"
+      ? value === "yes" ? [...new Set([...responsibleTrainers, currentUser.id])] : responsibleTrainers.filter((id) => id !== currentUser.id)
+      : responsibleTrainers;
+    const updated = { ...selected, trainerIds, responses: { ...selected.responses, [currentUser.id]: value } };
     setSelected(updated); onEventsChange(events.map((event) => event.id === updated.id ? updated : event));
   }
 
@@ -127,7 +132,8 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
   const [note, setNote] = useState(event.trainerNote ?? "");
   const [noteSaved, setNoteSaved] = useState(false);
   const players = users.filter((user) => user.role === "player");
-  const counts = { yes: 0, maybe: 0, no: 0 }; Object.values(event.responses).forEach((value) => counts[value]++);
+  const playerIds = new Set(players.map((player) => player.id));
+  const counts = { yes: 0, maybe: 0, no: 0 }; Object.entries(event.responses).forEach(([userId, value]) => { if (playerIds.has(userId)) counts[value]++; });
   const unanswered = players.filter((player) => !event.responses[player.id]).length;
   const full = counts.yes >= event.maxParticipants && event.responses[currentUser.id] !== "yes";
   const deadlineHours = event.type === "training" ? settings.trainingDeadlineHours : event.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
@@ -137,6 +143,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
   const dateLabel = new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address || event.location)}`;
   const WeatherIcon = event.weather?.condition === "sunny" ? Sun : event.weather?.condition === "partly-cloudy" ? CloudSun : Cloud;
+  const isOnlyResponsibleTrainer = event.type === "training" && currentUser.role !== "player" && (event.trainerIds ?? []).includes(currentUser.id) && event.trainerIds?.length === 1;
 
   function saveNote() {
     onSaveNote(note.trim());
@@ -163,7 +170,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
           <div className="event-main-column">
             <section className="event-information"><div className="event-section-title"><Info /><span><small>INFORMATIONEN</small><strong>Das Wichtigste zum Termin</strong></span></div><p>{event.description || "Für diesen Termin wurden noch keine weiteren Informationen hinterlegt."}</p></section>
             <section className="trainer-message"><div className="event-section-title"><Megaphone /><span><small>MITTEILUNG DES TRAINERS</small><strong>Hinweise an die Mannschaft</strong></span></div>{canManage ? <><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="z. B. Treffpunkt, Ausrüstung, Fahrgemeinschaften …" /><button onClick={saveNote}><Check /> {noteSaved ? "Gespeichert" : "Mitteilung speichern"}</button></> : <p>{event.trainerNote || "Aktuell gibt es keine zusätzliche Mitteilung des Trainers."}</p>}</section>
-            {settings.attendanceEnabled && <div className="my-response"><div><strong>Deine Teilnahme</strong><small>{responseClosed ? `Rückmeldung geschlossen · Frist war ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr` : full ? "Die maximale Teilnehmerzahl ist erreicht." : `Änderbar bis ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr`}</small></div><button className={event.responses[currentUser.id] === "yes" ? "yes active" : "yes"} disabled={full || responseClosed} onClick={() => onRespond("yes")}><ThumbsUp /> Dabei</button><button className={event.responses[currentUser.id] === "maybe" ? "maybe active" : "maybe"} disabled={responseClosed} onClick={() => onRespond("maybe")}>?</button><button className={event.responses[currentUser.id] === "no" ? "no active" : "no"} disabled={responseClosed} onClick={() => onRespond("no")}><ThumbsDown /></button></div>}
+            {settings.attendanceEnabled && <div className="my-response"><div><strong>Deine Teilnahme</strong><small>{isOnlyResponsibleTrainer ? "Du bist aktuell der einzige verantwortliche Trainer." : responseClosed ? `Rückmeldung geschlossen · Frist war ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr` : full ? "Die maximale Teilnehmerzahl ist erreicht." : `Änderbar bis ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr`}</small></div><button className={event.responses[currentUser.id] === "yes" ? "yes active" : "yes"} disabled={full || responseClosed} onClick={() => onRespond("yes")}><ThumbsUp /> Dabei</button><button className={event.responses[currentUser.id] === "maybe" ? "maybe active" : "maybe"} disabled={responseClosed || isOnlyResponsibleTrainer} onClick={() => onRespond("maybe")}>?</button><button className={event.responses[currentUser.id] === "no" ? "no active" : "no"} disabled={responseClosed || isOnlyResponsibleTrainer} onClick={() => onRespond("no")}><ThumbsDown /></button></div>}
           </div>
 
           <aside className="event-attendance-column">
@@ -185,6 +192,14 @@ function EventEditor({ event, settings, users, onClose, onSave }: { event: ClubE
   const deadlineHours = form.type === "training" ? settings.trainingDeadlineHours : form.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
   const deadline = form.date && form.startTime ? new Date(new Date(`${form.date}T${form.startTime}:00`).getTime() - deadlineHours * 60 * 60 * 1000) : null;
   const players = users.filter((user) => user.role === "player").length;
+  const trainers = users.filter((user) => user.role === "trainer" || user.role === "admin");
+  function toggleTrainer(id: string) {
+    const selected = form.trainerIds ?? [];
+    if (selected.includes(id) && selected.length === 1 && (event.trainerIds?.length ?? 0) > 0) return setError("Der einzige verantwortliche Trainer kann nicht entfernt werden. Weise zuerst einen weiteren Trainer zu.");
+    const trainerIds = selected.includes(id) ? selected.filter((trainerId) => trainerId !== id) : [...selected, id];
+    setForm((current) => ({ ...current, trainerIds, responses: trainerIds.includes(id) ? { ...current.responses, [id]: "yes" } : current.responses }));
+    setError("");
+  }
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (form.meetingTime > form.startTime) return setError("Die Treffzeit muss vor dem Beginn liegen.");
@@ -200,6 +215,8 @@ function EventEditor({ event, settings, users, onClose, onSave }: { event: ClubE
     <section className="event-editor-section"><header><Clock3 /><span><strong>Datum und Uhrzeit</strong><small>Treffen, Beginn und Ende</small></span></header><div className="editor-date-row"><label><span>Datum</span><input type="date" required value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label><span>Treffen</span><input type="time" required value={form.meetingTime} onChange={(e) => set("meetingTime", e.target.value)} /></label><label><span>Beginn</span><input type="time" required value={form.startTime} onChange={(e) => set("startTime", e.target.value)} /></label><label><span>Ende</span><input type="time" required value={form.endTime} onChange={(e) => set("endTime", e.target.value)} /></label></div></section>
 
     <section className="event-editor-section"><header><Navigation /><span><strong>Ort und Anfahrt</strong><small>Damit alle den Treffpunkt finden</small></span></header><div className="form-row"><label><span>Ort / Platz</span><input required maxLength={180} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="z. B. Sportplatz Nord" /></label><label><span>Vollständige Adresse <em>optional</em></span><input maxLength={300} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="Straße, Hausnummer, PLZ, Ort" /></label></div></section>
+
+    {form.type === "training" && <section className="event-editor-section"><header><Users /><span><strong>Verantwortliche Trainer</strong><small>Mehrere Trainer sind möglich. Die Auswahl setzt die Teilnahme automatisch auf „Dabei“.</small></span></header><div className="event-trainer-select">{trainers.map((trainer) => { const active = (form.trainerIds ?? []).includes(trainer.id); return <button type="button" className={active ? "active" : ""} aria-pressed={active} key={trainer.id} onClick={() => toggleTrainer(trainer.id)}><Avatar user={trainer} size="small" /><span><strong>{trainer.name}</strong><small>{active ? "Verantwortlich · dabei" : "Nicht zugewiesen"}</small></span>{active && <Check />}</button>; })}</div></section>}
 
     <section className="event-editor-section"><header><Users /><span><strong>Teilnahme</strong><small>Wer wird eingeplant?</small></span></header><div className="event-audience"><Check /><span><strong>Alle aktiven Spieler</strong><small>{players} Spieler erhalten den Termin und können {settings.attendanceEnabled ? "zu- oder absagen" : "den Termin ansehen"}.</small></span></div><div className="form-row"><label><span>Teilnehmerlimit</span><input type="number" inputMode="numeric" min="1" max="99" required value={form.maxParticipants} onChange={(e) => set("maxParticipants", Number(e.target.value))} /></label><div className="event-setting-summary"><Clock3 /><span><strong>Rückmeldefrist</strong><small>{settings.attendanceEnabled && deadline ? `${deadline.toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr` : "Zu-/Absagen sind deaktiviert"}</small></span></div></div></section>
 

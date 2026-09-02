@@ -179,6 +179,7 @@ model ClubEvent {
   meetingTime           String
   description           String                  @db.Text
   trainerNote           String?                 @db.Text
+  trainerIds            Json                    @default("[]")
   weather               Json?
   maxParticipants       Int
   responses             AttendanceResponse[]
