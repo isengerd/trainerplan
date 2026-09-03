@@ -38,8 +38,26 @@ export function LoginScreen({ onLogin }: { onLogin: (email: string, password: st
 export function TeamPage({ users, currentUser, onUsersChange, onProfile, onInvite }: { users: ClubUser[]; currentUser: ClubUser; onUsersChange: (users: ClubUser[]) => void; onProfile: (user: ClubUser) => void; onInvite?: () => void }) {
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"all" | Role>("all");
-  const visible = users.filter((user) => (role === "all" || user.role === role) && user.name.toLowerCase().includes(query.toLowerCase()));
+  const [numberSort, setNumberSort] = useState<{ key: "ballNumber" | "number"; direction: "asc" | "desc" } | null>(null);
+  const visible = users
+    .filter((user) => (role === "all" || user.role === role) && user.name.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => {
+      if (!numberSort) return 0;
+      const aValue = a[numberSort.key];
+      const bValue = b[numberSort.key];
+      if (aValue == null && bValue == null) return a.name.localeCompare(b.name, "de");
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+      const difference = aValue - bValue;
+      return difference === 0 ? a.name.localeCompare(b.name, "de") : numberSort.direction === "asc" ? difference : -difference;
+    });
   const players = users.filter((user) => user.role === "player");
+
+  function toggleNumberSort(key: "ballNumber" | "number") {
+    setNumberSort((current) => current?.key === key
+      ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+      : { key, direction: "asc" });
+  }
 
   function setUserRole(id: string, nextRole: Role) {
     onUsersChange(users.map((user) => user.id === id ? { ...user, role: nextRole, position: defaultPosition[nextRole] } : user));
@@ -49,8 +67,8 @@ export function TeamPage({ users, currentUser, onUsersChange, onProfile, onInvit
     <div className="module-hero"><div><span className="eyebrow">FC KICKER · F1</span><h1>Unsere Mannschaft</h1><p>F‑Jugend · U8/U9 · Saison 2025/26</p></div>{currentUser.role === "admin" && <button className="primary" onClick={onInvite}><Plus /> <span>Einladen</span></button>}</div>
     <div className="team-stats"><article><Users /><span><strong>{players.length}</strong><small>Spieler</small></span></article><article><Shield /><span><strong>{users.filter((user) => user.role === "trainer").length}</strong><small>Trainer</small></span></article><article><CalendarDays /><span><strong>2×</strong><small>Training / Woche</small></span></article></div>
     <div className="module-tools"><label className="search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Mitglied suchen" /></label><div className="filters">{(["all", "player", "guardian", "trainer", "admin"] as const).map((item) => <button className={role === item ? "on" : ""} onClick={() => setRole(item)} key={item}>{item === "all" ? "Alle" : roleLabels[item]}</button>)}</div></div>
-    <div className="team-list-head"><span>MITGLIED</span><span>POSITION</span><span>ROLLE & RECHTE</span><span>KONTAKT</span></div>
-    <div className="team-list">{visible.map((user) => <article key={user.id} onClick={() => onProfile(user)}><Avatar user={user} /><span className="member-name"><strong>{user.name}</strong><small>{user.managedProfile ? "Kinderprofil · verwaltet" : user.number ? `Trikot #${user.number}` : user.position}</small></span><span className="member-position">{user.position}</span>{currentUser.role === "admin" ? <select value={user.role} disabled={user.id === currentUser.id || user.managedProfile} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : user.managedProfile ? "Kinderprofile bleiben Spieler." : "Rolle ändern"} onClick={(event) => event.stopPropagation()} onChange={(event) => setUserRole(user.id, event.target.value as Role)}><option value="player">Spieler</option><option value="guardian">Elternteil</option><option value="trainer">Trainer</option><option value="admin">Admin</option></select> : <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>}<span className="member-contact">{user.managedProfile ? "Kein eigener Login" : user.email}</span><ChevronRight /></article>)}</div>
+    <div className="team-list-head"><span>MITGLIED</span><span>POSITION</span><span>ROLLE & RECHTE</span><button type="button" className={numberSort?.key === "ballNumber" ? "active" : ""} onClick={() => toggleNumberSort("ballNumber")} aria-label="Nach Ballnummer sortieren">BALL{numberSort?.key === "ballNumber" ? numberSort.direction === "asc" ? " 1–9" : " 9–1" : ""}</button><button type="button" className={numberSort?.key === "number" ? "active" : ""} onClick={() => toggleNumberSort("number")} aria-label="Nach Trikotnummer sortieren">TRIKOT{numberSort?.key === "number" ? numberSort.direction === "asc" ? " 1–9" : " 9–1" : ""}</button></div>
+    <div className="team-list">{visible.map((user) => <article key={user.id} onClick={() => onProfile(user)}><Avatar user={user} /><span className="member-name"><strong>{user.name}</strong><small>{user.managedProfile ? "Kinderprofil · verwaltet" : user.number != null ? `Trikot #${user.number}` : user.position}</small></span><span className="member-position">{user.position}</span>{currentUser.role === "admin" ? <select value={user.role} disabled={user.id === currentUser.id || user.managedProfile} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : user.managedProfile ? "Kinderprofile bleiben Spieler." : "Rolle ändern"} onClick={(event) => event.stopPropagation()} onChange={(event) => setUserRole(user.id, event.target.value as Role)}><option value="player">Spieler</option><option value="guardian">Elternteil</option><option value="trainer">Trainer</option><option value="admin">Admin</option></select> : <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>}<span className="member-equipment">{user.ballNumber ?? "–"}</span><span className="member-equipment">{user.number ?? "–"}</span></article>)}</div>
     <div className="rights-info"><Shield /><span><strong>Rollen und Rechte</strong><small>Admins verwalten Rollen und Zugänge. Trainer verwalten Termine, Trainings und Teilnahmen. Spieler sehen Termine und melden ihre Teilnahme.</small></span></div>
   </section>;
 }
