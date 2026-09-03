@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CalendarDays, Check, Clipboard, Clock3, CreditCard, Download, FileText, Link2, Mail, Moon, Palette, Plus, RefreshCw, Send, Server, Shield, Sun, Trash2, Trophy, UserPlus, Users } from "lucide-react";
+import { Bell, CalendarDays, Check, Clipboard, Clock3, CreditCard, Download, FileText, Link2, Mail, Moon, Palette, Plus, RefreshCw, Send, Server, Settings, Shield, Sun, Trash2, Trophy, UserPlus, Users } from "lucide-react";
 import { defaultPosition, roleLabels, type AgeGroupOption, type ClubInvitation, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
 
 type Props = {
@@ -98,6 +98,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
   const [inviteLink, setInviteLink] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [desktopSection, setDesktopSection] = useState<"general" | "members" | "calendar" | "groups" | "communication">("general");
 
   useEffect(() => { setForm({ ...settings, theme: settings.theme ?? "light" }); }, [settings]);
   useEffect(() => { setGroupForm(groups); }, [groups]);
@@ -243,11 +244,20 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
   return <section className="settings-page module-page">
     <div className="module-hero"><div><span className="eyebrow">ADMINISTRATION</span><h1>Einstellungen</h1><p>Mannschaft, Mitglieder, Rechte und Einladungen zentral verwalten.</p></div><button className="primary" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> Speichern</button></div>
 
+    <nav className="desktop-settings-nav" aria-label="Einstellungsbereiche">
+      <span>MANNSCHAFT</span>
+      <button className={desktopSection === "general" ? "active" : ""} onClick={() => setDesktopSection("general")}><Settings /> <span><strong>Allgemein</strong><small>Darstellung und Standards</small></span></button>
+      <button className={desktopSection === "members" ? "active" : ""} onClick={() => setDesktopSection("members")}><Users /> <span><strong>Mitglieder</strong><small>Rollen und Einladungen</small></span></button>
+      <button className={desktopSection === "calendar" ? "active" : ""} onClick={() => setDesktopSection("calendar")}><CalendarDays /> <span><strong>Termine</strong><small>Kalender und Turniere</small></span></button>
+      {organization?.isClubAdmin && <><span>VEREIN</span><button className={desktopSection === "groups" ? "active" : ""} onClick={() => setDesktopSection("groups")}><Users /> <span><strong>Gruppen</strong><small>Vereinsweite Gruppen</small></span></button><button className={desktopSection === "communication" ? "active" : ""} onClick={() => setDesktopSection("communication")}><Mail /> <span><strong>Kommunikation</strong><small>E-Mail und Push</small></span></button></>}
+      <button className="desktop-settings-save" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> <span><strong>Speichern</strong><small>Änderungen übernehmen</small></span></button>
+    </nav>
+
     <nav className="settings-subnav" aria-label="Einstellungsbereiche">
       {settingsSections.map((section) => <button type="button" key={section.title} onClick={() => goToSettingsSection(section.title)}>{section.label}</button>)}
     </nav>
 
-    <div className={`settings-layout admin-settings-layout ${organization?.isClubAdmin ? "account-owner-settings" : "team-admin-settings"}`}>
+    <div className={`settings-layout admin-settings-layout desktop-section-${desktopSection} ${organization?.isClubAdmin ? "account-owner-settings" : "team-admin-settings"}`}>
       <CalendarExportCard />
       <section className="settings-card settings-wide theme-settings"><div className="settings-title"><Palette /><span><h2>Farbdesign</h2><p>Das Design gilt für alle Bereiche der Web-App und wird für das Team gespeichert.</p></span></div><div className="theme-options"><button className={(form.theme ?? "light") === "dark" ? "active" : ""} onClick={() => chooseTheme("dark")}><span className="theme-preview dark"><i /><i /><i /></span><span><Moon /><strong>Dunkelgrün</strong><small>Ruhiges Design für Abend und Flutlicht</small></span>{(form.theme ?? "light") === "dark" && <Check />}</button><button className={(form.theme ?? "light") === "light" ? "active" : ""} onClick={() => chooseTheme("light")}><span className="theme-preview light"><i /><i /><i /></span><span><Sun /><strong>Hell</strong><small>Weißer Hintergrund und klare Kontraste</small></span>{(form.theme ?? "light") === "light" && <Check />}</button></div></section>
 
