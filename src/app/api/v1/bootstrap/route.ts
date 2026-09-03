@@ -6,7 +6,8 @@ import { invitationDto } from "@/lib/invitations";
 import { getUsers } from "@/lib/users";
 import { smtpStatus } from "@/lib/smtp";
 import { pushStatus } from "@/lib/push";
-import { ensureClubConfig, scopedResourceWhere } from "@/lib/club-context";
+import { activeClubScope, ensureClubConfig, scopedResourceWhere } from "@/lib/club-context";
+import { organizationContext } from "@/lib/organization";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +15,14 @@ export async function GET(request: NextRequest) {
   const currentUser = await authenticatedUser(request);
   if (!currentUser) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   await ensureApplicationData();
-  const activeMembership = await prisma.membership.findFirst({ where: { userId: currentUser.id, status: "active" }, select: { id: true, clubId: true, teamId: true } });
+  const activeMembership = await activeClubScope(currentUser);
   const scopedConfig = activeMembership ? await ensureClubConfig(activeMembership) : null;
   const [users, events, exercises, config, groups, ageGroups, invitations, tournamentSquads] = await Promise.all([
     getUsers(currentUser),
     prisma.clubEvent.findMany({ where: activeMembership ? { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } : { clubId: null }, include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
     prisma.exerciseRecord.findMany({ where: activeMembership ? { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } : { clubId: null }, orderBy: { createdAt: "asc" } }),
     Promise.resolve(scopedConfig ?? prisma.appConfig.findUnique({ where: { id: "default" } })),
-    prisma.teamGroup.findMany({ orderBy: { name: "asc" } }),
+    prisma.teamGroup.findMany({ where: activeMembership ? { clubId: activeMembership.clubId } : { clubId: null }, orderBy: { name: "asc" } }),
     prisma.ageGroup.findMany({ orderBy: { sortOrder: "asc" } }),
     currentUser.role === "admin"
       ? prisma.invitation.findMany({ where: activeMembership?.clubId ? { clubId: activeMembership.clubId, ...(activeMembership.teamId ? { teamId: activeMembership.teamId } : {}) } : undefined, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } })
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     : users;
   return NextResponse.json({
     currentUser: safeUser(currentUser),
+    organization: await organizationContext(currentUser.id),
     setupRequired: !activeMembership,
     users: visibleUsers.map((member) => {
       if (currentUser.role !== "player" || member.id === currentUser.id) return member;

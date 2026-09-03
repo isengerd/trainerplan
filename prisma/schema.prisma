@@ -42,6 +42,7 @@ model User {
   shootingRating          Int                     @default(0)
   passingRating           Int                     @default(0)
   internalTeam            String?
+  activeTeamId            String?
   group                   TeamGroup?              @relation(fields: [groupId], references: [id], onDelete: SetNull)
   invitations             Invitation[]            @relation("InvitationCreator")
   emailChangeRequests     EmailChangeRequest[]
@@ -61,8 +62,10 @@ model Club {
   id          String       @id @default(cuid())
   name        String
   slug        String       @unique
+  licenseType String       @default("single_team")
   memberships Membership[]
   teams       Team[]
+  groups      TeamGroup[]
   invitations Invitation[] @relation("ClubInvitations")
   events      ClubEvent[]
   exercises   ExerciseRecord[]
@@ -94,17 +97,21 @@ model Membership {
   userId    String
   clubId    String
   teamId    String?
+  groupId   String?
   role      Role
+  clubAdmin Boolean          @default(false)
   status    MembershipStatus @default(active)
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   team      Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  group     TeamGroup?       @relation("MembershipGroup", fields: [groupId], references: [id], onDelete: SetNull)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
   @@unique([userId, clubId, teamId])
   @@index([clubId, status])
   @@index([teamId, status])
+  @@index([groupId])
 }
 
 model EmailChangeRequest {
@@ -132,13 +139,18 @@ model AgeGroup {
 
 model TeamGroup {
   id          String       @id @default(cuid())
+  clubId      String?
   name        String
   description String       @default("")
   color       String       @default("#45d875")
   users       User[]
+  memberships Membership[] @relation("MembershipGroup")
   invitations Invitation[]
+  club        Club?        @relation(fields: [clubId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([clubId])
 }
 
 model Invitation {

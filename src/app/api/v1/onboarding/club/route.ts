@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       if (!club) throw new ApiInputError("Der Verein konnte nicht angelegt werden.", 409);
       // Store the stable catalog ID, not the display label, so the team can advance next season.
       const team = await tx.team.create({ data: { clubId: club.id, name: teamName, ageGroup } });
-      const updatedUser = await tx.user.update({ where: { id: user.id }, data: { name, ageGroup } });
-      await tx.membership.create({ data: { userId: user.id, clubId: club.id, teamId: team.id, role: "admin" } });
+      const updatedUser = await tx.user.update({ where: { id: user.id }, data: { name, ageGroup, activeTeamId: team.id } });
+      await tx.membership.create({ data: { userId: user.id, clubId: club.id, teamId: team.id, role: "admin", clubAdmin: true } });
       const config = await tx.appConfig.findUnique({ where: { id: "default" } });
       if (config) {
         const settings = { ...(config.settings as Record<string, unknown>), clubName, teamName };

@@ -27,6 +27,7 @@ export function safeUser(user: User): SafeUser {
     shootingRating: user.shootingRating,
     passingRating: user.passingRating,
     internalTeam: user.internalTeam as "A" | "B" | null,
+    activeTeamId: user.activeTeamId,
   };
 }
 
@@ -61,7 +62,11 @@ export async function authenticatedUser(request: NextRequest) {
     if (session) await prisma.apiSession.delete({ where: { id: session.id } });
     return null;
   }
-  return session.user;
+  const membership = await prisma.membership.findFirst({
+    where: { userId: session.user.id, status: "active", ...(session.user.activeTeamId ? { teamId: session.user.activeTeamId } : {}) },
+    orderBy: { createdAt: "asc" },
+  }) ?? await prisma.membership.findFirst({ where: { userId: session.user.id, status: "active" }, orderBy: { createdAt: "asc" } });
+  return membership ? { ...session.user, role: membership.role } : session.user;
 }
 
 export async function revokeSession(request: NextRequest) {

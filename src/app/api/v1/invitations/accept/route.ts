@@ -53,12 +53,14 @@ export async function POST(request: NextRequest) {
           role: invitation.role,
           ageGroup: invitation.ageGroup,
           groupId: invitation.groupId,
+          activeTeamId: invitation.teamId,
           position: defaultPosition[invitation.role],
       } });
       if (invitation.clubId) {
         const membership = await tx.membership.findFirst({ where: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId } });
-        if (membership) await tx.membership.update({ where: { id: membership.id }, data: { role: invitation.role, status: "active" } });
-        else await tx.membership.create({ data: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId, role: invitation.role } });
+        if (membership) await tx.membership.update({ where: { id: membership.id }, data: { role: invitation.role, groupId: invitation.groupId, status: "active" } });
+        else await tx.membership.create({ data: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId, role: invitation.role, groupId: invitation.groupId } });
+        if (!member.activeTeamId && invitation.teamId) await tx.user.update({ where: { id: member.id }, data: { activeTeamId: invitation.teamId } });
       }
       return member;
     });
