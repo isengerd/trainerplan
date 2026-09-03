@@ -1,4 +1,4 @@
-export type Role = "admin" | "trainer" | "player";
+export type Role = "admin" | "trainer" | "player" | "guardian";
 export type Attendance = "yes" | "no" | "maybe";
 export type EventType = "training" | "tournament" | "match" | "event";
 export type RepeatFrequency = "none" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
@@ -39,6 +39,8 @@ export type ClubUser = {
   shootingRating: number;
   passingRating: number;
   internalTeam?: InternalTeam | null;
+  managedProfile?: boolean;
+  managedPlayerIds?: string[];
 };
 
 export type TrainingPlanMeta = {
@@ -147,13 +149,14 @@ export const initialSettings: ClubSettings = {
   ageGroupIds: ["g1", "g2", "f1", "f2", "e1", "e2", "d1", "d2", "c1", "c2", "b1", "b2", "a1", "a2"],
 };
 
-export const roleLabels: Record<Role, string> = { admin: "Admin", trainer: "Trainer", player: "Spieler" };
+export const roleLabels: Record<Role, string> = { admin: "Admin", trainer: "Trainer", player: "Spieler", guardian: "Elternteil" };
 export const positionOptions: Record<Role, readonly string[]> = {
   admin: ["Vereinsadmin"],
   trainer: ["Trainer", "Cheftrainer F1", "Cheftrainer", "Co-Trainer", "Torwarttrainer", "Athletiktrainer", "Betreuer"],
   player: ["Allrounder", "Tor", "Abwehr", "Mittelfeld", "Angriff"],
+  guardian: ["Elternteil", "Erziehungsberechtigt"],
 };
-export const defaultPosition: Record<Role, string> = { admin: "Vereinsadmin", trainer: "Trainer", player: "Allrounder" };
+export const defaultPosition: Record<Role, string> = { admin: "Vereinsadmin", trainer: "Trainer", player: "Allrounder", guardian: "Elternteil" };
 export const eventLabels: Record<EventType, string> = { training: "Training", tournament: "Turnier", match: "Ligaspiel", event: "Ereignis" };
 
 export const initialEvents: ClubEvent[] = [

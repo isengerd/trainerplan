@@ -8,7 +8,7 @@ import type { ClubSettings } from "@/data/club";
 import { activeClubScope, ensureClubConfig, scopedResourceWhere } from "@/lib/club-context";
 
 type Context = { params: Promise<{ id: string }> };
-type AttendanceBody = { value?: "yes" | "no" | "maybe" | null };
+type AttendanceBody = { value?: "yes" | "no" | "maybe" | null; playerId?: string };
 
 export async function PUT(request: NextRequest, context: Context) {
   const user = await authenticatedUser(request);
@@ -27,6 +27,12 @@ export async function PUT(request: NextRequest, context: Context) {
       Promise.resolve(scopedConfig),
     ]);
     if (!event) return NextResponse.json({ error: "Der Termin wurde nicht gefunden." }, { status: 404 });
+    const responseUserId = body.playerId || user.id;
+    if (responseUserId !== user.id) {
+      const managedPlayer = await prisma.guardianPlayer.findUnique({ where: { guardianId_playerId: { guardianId: user.id, playerId: responseUserId } } });
+      const playerMembership = await prisma.membership.findFirst({ where: { userId: responseUserId, clubId: scope.clubId, teamId: scope.teamId, role: "player", status: "active" } });
+      if (!managedPlayer || !playerMembership) throw new ApiInputError("Du darfst die Teilnahme dieses Kindes nicht ändern.", 403);
+    }
     const settings = config.settings as unknown as ClubSettings;
     if (!settings.attendanceEnabled) throw new ApiInputError("Teilnahmerückmeldungen sind deaktiviert.", 403);
     const storedDate = event.date.toISOString().slice(0, 10);
@@ -34,7 +40,7 @@ export async function PUT(request: NextRequest, context: Context) {
     if (Date.now() > berlinDateTime(storedDate, event.startTime).getTime() - deadlineHours * 3600000) throw new ApiInputError("Die Rückmeldefrist ist abgelaufen.", 409);
 
     const trainerIds = Array.isArray(event.trainerIds) ? event.trainerIds.filter((value): value is string => typeof value === "string") : [];
-    if (user.role !== "player" && event.type === "training") {
+    if (responseUserId === user.id && user.role !== "player" && user.role !== "guardian" && event.type === "training") {
       const isResponsible = trainerIds.includes(user.id);
       if (body.value !== "yes" && isResponsible && trainerIds.length === 1) throw new ApiInputError("Der einzige verantwortliche Trainer kann nicht absagen. Weise zuerst einen weiteren Trainer zu.", 409);
       const nextTrainerIds = body.value === "yes" ? [...new Set([...trainerIds, user.id])] : trainerIds.filter((id) => id !== user.id);
@@ -44,12 +50,12 @@ export async function PUT(request: NextRequest, context: Context) {
         else await tx.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: user.id } }, update: { value: body.value }, create: { eventId: id, userId: user.id, value: body.value } });
       });
     } else if (!body.value) {
-      await prisma.attendanceResponse.deleteMany({ where: { eventId: id, userId: user.id } });
+      await prisma.attendanceResponse.deleteMany({ where: { eventId: id, userId: responseUserId } });
     } else {
-      const yesCount = await prisma.attendanceResponse.count({ where: { eventId: id, value: "yes", userId: { not: user.id }, user: { role: "player" } } });
+      const yesCount = await prisma.attendanceResponse.count({ where: { eventId: id, value: "yes", userId: { not: responseUserId }, user: { role: "player" } } });
       const acceptedValue = body.value === "yes" && yesCount >= event.maxParticipants ? (settings.waitlistEnabled ? "maybe" : null) : body.value;
       if (!acceptedValue) throw new ApiInputError("Der Termin ist bereits voll.", 409);
-      await prisma.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: user.id } }, update: { value: acceptedValue }, create: { eventId: id, userId: user.id, value: acceptedValue } });
+      await prisma.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: responseUserId } }, update: { value: acceptedValue }, create: { eventId: id, userId: responseUserId, value: acceptedValue } });
     }
 
     return NextResponse.json({ event: (await getEvents(user)).find((item) => item.id === id) });

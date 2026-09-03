@@ -14,12 +14,15 @@ export async function getUsers(actor: Prisma.UserGetPayload<{}>) {
     activeClubScope(actor),
   ]);
   const users = scope
-    ? (await prisma.membership.findMany({ where: { clubId: scope.clubId, status: "active", ...(scope.teamId ? { teamId: scope.teamId } : {}) }, include: { user: true } })).map((membership) => ({ ...membership.user, role: membership.role, groupId: membership.groupId })).sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name))
-    : allUsers;
+    ? (await prisma.membership.findMany({ where: { clubId: scope.clubId, status: "active", ...(scope.teamId ? { teamId: scope.teamId } : {}) }, include: { user: { include: { childrenManaged: { select: { playerId: true } } } } } })).map((membership) => ({ ...membership.user, role: membership.role, groupId: membership.groupId, managedPlayerIds: membership.user.childrenManaged.map((link) => link.playerId) })).sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name))
+    : allUsers.map((user) => ({ ...user, managedPlayerIds: [] as string[] }));
   const settings = config.settings as unknown as Pick<ClubSettings, "teamFeatureEnabled">;
-  const visibleUsers = actor.role === "player" && settings.teamFeatureEnabled === false ? users.filter((user) => user.id === actor.id) : users;
+  const actorRecord = users.find((user) => user.id === actor.id);
+  const visibleUsers = actor.role === "guardian"
+    ? users.filter((user) => user.id === actor.id || actorRecord?.managedPlayerIds.includes(user.id))
+    : actor.role === "player" && settings.teamFeatureEnabled === false ? users.filter((user) => user.id === actor.id) : users;
   return visibleUsers.map((member) => {
-    const safe = safeUser(member);
+    const safe = { ...safeUser(member), managedPlayerIds: member.managedPlayerIds ?? [] };
     if (actor.role !== "player" || member.id === actor.id) return safe;
     return { ...safe, email: "", phone: "", birthday: "" };
   });

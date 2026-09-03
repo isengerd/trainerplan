@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Zu viele Anmeldeversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(retryAfter) } });
   }
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) return NextResponse.json({ error: "E-Mail oder Passwort ist nicht korrekt." }, { status: 401 });
+  if (!user || !user.loginEnabled || !(await bcrypt.compare(password, user.passwordHash))) return NextResponse.json({ error: "E-Mail oder Passwort ist nicht korrekt." }, { status: 401 });
   const session = await createSession(user.id);
   const response = NextResponse.json({ user: safeUser(user), token: session.token, expiresAt: session.expiresAt.toISOString() });
   response.cookies.set(SESSION_COOKIE, session.token, { httpOnly: true, sameSite: "lax", secure: requestUsesHttps(request), path: "/", expires: session.expiresAt });

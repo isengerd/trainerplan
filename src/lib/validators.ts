@@ -3,7 +3,7 @@ import { positionOptions, type ClubEvent, type ClubSettings, type ClubUser, type
 import type { Exercise } from "@/data/demo";
 import { ApiInputError, assertJsonSize, emailValue, enumValue, integerValue, objectValue, optionalText, textValue } from "./api-security";
 
-const roles = ["admin", "trainer", "player"] as const satisfies readonly Role[];
+const roles = ["admin", "trainer", "player", "guardian"] as const satisfies readonly Role[];
 const attendance = ["yes", "no", "maybe"] as const satisfies readonly AttendanceValue[];
 const eventTypes = ["training", "tournament", "match", "event"] as const;
 const repeatFrequencies = ["none", "daily", "weekly", "biweekly", "monthly", "yearly"] as const;

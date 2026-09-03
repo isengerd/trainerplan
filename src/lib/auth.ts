@@ -7,7 +7,7 @@ import { ageGroupForBirthday } from "./age-groups";
 export const SESSION_COOKIE = "trainerplan_session";
 const SESSION_DAYS = 30;
 
-export type SafeUser = Omit<User, "passwordHash" | "createdAt" | "updatedAt" | "birthday"> & { birthday: string };
+export type SafeUser = Omit<User, "passwordHash" | "createdAt" | "updatedAt" | "birthday"> & { birthday: string; managedPlayerIds: string[] };
 
 export function safeUser(user: User): SafeUser {
   return {
@@ -28,6 +28,9 @@ export function safeUser(user: User): SafeUser {
     passingRating: user.passingRating,
     internalTeam: user.internalTeam as "A" | "B" | null,
     activeTeamId: user.activeTeamId,
+    managedProfile: user.managedProfile,
+    loginEnabled: user.loginEnabled,
+    managedPlayerIds: [],
   };
 }
 

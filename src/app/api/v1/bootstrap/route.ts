@@ -31,11 +31,12 @@ export async function GET(request: NextRequest) {
   ]);
   if (!config) return NextResponse.json({ error: "Die Konfiguration konnte nicht geladen werden." }, { status: 500 });
   const settings = config.settings as { teamFeatureEnabled?: boolean; showResponsesToPlayers?: boolean };
+  const managedPlayerIds = (await prisma.guardianPlayer.findMany({ where: { guardianId: currentUser.id }, select: { playerId: true } })).map((link) => link.playerId);
   const visibleUsers = currentUser.role === "player" && settings.teamFeatureEnabled === false
     ? users.filter((member) => member.id === currentUser.id)
     : users;
   return NextResponse.json({
-    currentUser: safeUser(currentUser),
+    currentUser: { ...safeUser(currentUser), managedPlayerIds },
     organization: await organizationContext(currentUser.id),
     setupRequired: !activeMembership,
     users: visibleUsers.map((member) => {
@@ -44,8 +45,8 @@ export async function GET(request: NextRequest) {
     }),
     events: events.map((event) => {
       const mapped = eventFromDatabase(event);
-      return currentUser.role === "player" && settings.showResponsesToPlayers === false
-        ? { ...mapped, responses: mapped.responses[currentUser.id] ? { [currentUser.id]: mapped.responses[currentUser.id] } : {} }
+      return (currentUser.role === "player" || currentUser.role === "guardian") && settings.showResponsesToPlayers === false
+        ? { ...mapped, responses: Object.fromEntries(Object.entries(mapped.responses).filter(([id]) => id === currentUser.id || managedPlayerIds.includes(id))) }
         : mapped;
     }),
     exercises: exercises.map((exercise) => exercise.data),
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
     push: currentUser.role === "admin" ? { ...pushStatus(), devices: await prisma.devicePushToken.count({ where: { userId: currentUser.id } }) } : { configured: false, devices: 0 },
     tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, typeof tournamentSquads>>((plans, squad) => {
       if (currentUser.role === "player" && !squad.players.some((assignment) => assignment.playerId === currentUser.id)) return plans;
+      if (currentUser.role === "guardian" && !squad.players.some((assignment) => managedPlayerIds.includes(assignment.playerId))) return plans;
       (plans[squad.eventId] ??= []).push(squad);
       return plans;
     }, {})).map(([eventId, squads]) => ({
@@ -69,7 +71,7 @@ export async function GET(request: NextRequest) {
         eventId,
         name: squad.name,
         trainerId: squad.trainerId,
-        playerIds: currentUser.role === "player" ? [] : squad.players.map((assignment) => assignment.playerId),
+        playerIds: currentUser.role === "player" ? [] : currentUser.role === "guardian" ? squad.players.map((assignment) => assignment.playerId).filter((id) => managedPlayerIds.includes(id)) : squad.players.map((assignment) => assignment.playerId),
       })),
     })),
   });

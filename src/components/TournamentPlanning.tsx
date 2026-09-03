@@ -67,7 +67,7 @@ function MatchDayOverview({ event, squads, users, settings, ageGroups, busy, onC
   useEffect(() => { setDraft(squads); setEditing(false); setError(""); }, [event.id, squads]);
   const playerList = users.filter((user) => user.role === "player");
   const players = new Map(playerList.map((user) => [user.id, user]));
-  const trainerList = users.filter((user) => user.role !== "player");
+  const trainerList = users.filter((user) => user.role === "trainer" || user.role === "admin");
   const trainers = new Map(trainerList.map((user) => [user.id, user]));
   const activeAgeNames = new Set(ageGroups.filter((ageGroup) => settings.ageGroupIds.includes(ageGroup.id)).map((ageGroup) => ageGroup.name));
   const assignedIds = new Set(draft.flatMap((squad) => squad.playerIds));

@@ -48,9 +48,9 @@ export function TeamPage({ users, currentUser, onUsersChange, onProfile, onInvit
   return <section className="team-page module-page">
     <div className="module-hero"><div><span className="eyebrow">FC KICKER · F1</span><h1>Unsere Mannschaft</h1><p>F‑Jugend · U8/U9 · Saison 2025/26</p></div>{currentUser.role === "admin" && <button className="primary" onClick={onInvite}><Plus /> <span>Einladen</span></button>}</div>
     <div className="team-stats"><article><Users /><span><strong>{players.length}</strong><small>Spieler</small></span></article><article><Shield /><span><strong>{users.filter((user) => user.role === "trainer").length}</strong><small>Trainer</small></span></article><article><CalendarDays /><span><strong>2×</strong><small>Training / Woche</small></span></article></div>
-    <div className="module-tools"><label className="search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Mitglied suchen" /></label><div className="filters">{(["all", "player", "trainer", "admin"] as const).map((item) => <button className={role === item ? "on" : ""} onClick={() => setRole(item)} key={item}>{item === "all" ? "Alle" : roleLabels[item]}</button>)}</div></div>
+    <div className="module-tools"><label className="search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Mitglied suchen" /></label><div className="filters">{(["all", "player", "guardian", "trainer", "admin"] as const).map((item) => <button className={role === item ? "on" : ""} onClick={() => setRole(item)} key={item}>{item === "all" ? "Alle" : roleLabels[item]}</button>)}</div></div>
     <div className="team-list-head"><span>MITGLIED</span><span>POSITION</span><span>ROLLE & RECHTE</span><span>KONTAKT</span></div>
-    <div className="team-list">{visible.map((user) => <article key={user.id} onClick={() => onProfile(user)}><Avatar user={user} /><span className="member-name"><strong>{user.name}</strong><small>{user.number ? `Trikot #${user.number}` : user.position}</small></span><span className="member-position">{user.position}</span>{currentUser.role === "admin" ? <select value={user.role} disabled={user.id === currentUser.id} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : "Rolle ändern"} onClick={(event) => event.stopPropagation()} onChange={(event) => setUserRole(user.id, event.target.value as Role)}><option value="player">Spieler</option><option value="trainer">Trainer</option><option value="admin">Admin</option></select> : <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>}<span className="member-contact">{user.email}</span><ChevronRight /></article>)}</div>
+    <div className="team-list">{visible.map((user) => <article key={user.id} onClick={() => onProfile(user)}><Avatar user={user} /><span className="member-name"><strong>{user.name}</strong><small>{user.managedProfile ? "Kinderprofil · verwaltet" : user.number ? `Trikot #${user.number}` : user.position}</small></span><span className="member-position">{user.position}</span>{currentUser.role === "admin" ? <select value={user.role} disabled={user.id === currentUser.id || user.managedProfile} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : user.managedProfile ? "Kinderprofile bleiben Spieler." : "Rolle ändern"} onClick={(event) => event.stopPropagation()} onChange={(event) => setUserRole(user.id, event.target.value as Role)}><option value="player">Spieler</option><option value="guardian">Elternteil</option><option value="trainer">Trainer</option><option value="admin">Admin</option></select> : <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>}<span className="member-contact">{user.managedProfile ? "Kein eigener Login" : user.email}</span><ChevronRight /></article>)}</div>
     <div className="rights-info"><Shield /><span><strong>Rollen und Rechte</strong><small>Admins verwalten Rollen und Zugänge. Trainer verwalten Termine, Trainings und Teilnahmen. Spieler sehen Termine und melden ihre Teilnahme.</small></span></div>
   </section>;
 }
@@ -97,26 +97,26 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
     onEventsChange(next); setEditing(null); setEditingPlannedDate(null); setSelected(event.id ? event : next[next.length - 1]);
   }
 
-  function respond(value: Attendance) {
+  function respond(responseUserId: string, value: Attendance) {
     if (!selected || !settings.attendanceEnabled) return;
     const deadlineHours = selected.type === "training" ? settings.trainingDeadlineHours : selected.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
     const deadline = new Date(`${selected.date}T${selected.startTime}:00`).getTime() - deadlineHours * 60 * 60 * 1000;
     if (Date.now() > deadline) return;
     const yesCount = Object.values(selected.responses).filter((answer) => answer === "yes").length;
-    const previous = selected.responses[currentUser.id];
+    const previous = selected.responses[responseUserId];
     if (value === "yes" && previous !== "yes" && yesCount >= selected.maxParticipants) {
       if (settings.waitlistEnabled) {
-        const waiting = { ...selected, responses: { ...selected.responses, [currentUser.id]: "maybe" as Attendance } };
+        const waiting = { ...selected, responses: { ...selected.responses, [responseUserId]: "maybe" as Attendance } };
         setSelected(waiting); onEventsChange(events.map((event) => event.id === waiting.id ? waiting : event));
       }
       return;
     }
     const responsibleTrainers = selected.trainerIds ?? [];
-    if (selected.type === "training" && currentUser.role !== "player" && value !== "yes" && responsibleTrainers.includes(currentUser.id) && responsibleTrainers.length === 1) return;
-    const trainerIds = selected.type === "training" && currentUser.role !== "player"
+    if (responseUserId === currentUser.id && selected.type === "training" && currentUser.role !== "player" && currentUser.role !== "guardian" && value !== "yes" && responsibleTrainers.includes(currentUser.id) && responsibleTrainers.length === 1) return;
+    const trainerIds = responseUserId === currentUser.id && selected.type === "training" && currentUser.role !== "player" && currentUser.role !== "guardian"
       ? value === "yes" ? [...new Set([...responsibleTrainers, currentUser.id])] : responsibleTrainers.filter((id) => id !== currentUser.id)
       : responsibleTrainers;
-    const updated = { ...selected, trainerIds, responses: { ...selected.responses, [currentUser.id]: value } };
+    const updated = { ...selected, trainerIds, responses: { ...selected.responses, [responseUserId]: value } };
     setSelected(updated); onEventsChange(events.map((event) => event.id === updated.id ? updated : event));
   }
 
@@ -149,15 +149,19 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
   </section>;
 }
 
-function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, onDuplicate, onDelete, onClose, onSaveNote, canManage }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; currentUser: ClubUser; onRespond: (value: Attendance) => void; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; onClose: () => void; onSaveNote: (note: string) => void; canManage: boolean }) {
+function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, onDuplicate, onDelete, onClose, onSaveNote, canManage }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; currentUser: ClubUser; onRespond: (userId: string, value: Attendance) => void; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; onClose: () => void; onSaveNote: (note: string) => void; canManage: boolean }) {
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | Attendance | "open">("all");
   const [note, setNote] = useState(event.trainerNote ?? "");
   const [noteSaved, setNoteSaved] = useState(false);
   const players = users.filter((user) => user.role === "player");
+  const managedPlayers = players.filter((player) => currentUser.managedPlayerIds?.includes(player.id));
+  const responseSubjects = managedPlayers.length ? (currentUser.role === "guardian" ? managedPlayers : [currentUser, ...managedPlayers]) : [currentUser];
+  const [responseUserId, setResponseUserId] = useState(responseSubjects[0]?.id ?? currentUser.id);
+  const responseSubject = responseSubjects.find((subject) => subject.id === responseUserId) ?? responseSubjects[0];
   const playerIds = new Set(players.map((player) => player.id));
   const counts = { yes: 0, maybe: 0, no: 0 }; Object.entries(event.responses).forEach(([userId, value]) => { if (playerIds.has(userId)) counts[value]++; });
   const unanswered = players.filter((player) => !event.responses[player.id]).length;
-  const full = counts.yes >= event.maxParticipants && event.responses[currentUser.id] !== "yes";
+  const full = counts.yes >= event.maxParticipants && (!responseSubject || event.responses[responseSubject.id] !== "yes");
   const deadlineHours = event.type === "training" ? settings.trainingDeadlineHours : event.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
   const deadline = new Date(new Date(`${event.date}T${event.startTime}:00`).getTime() - deadlineHours * 60 * 60 * 1000);
   const responseClosed = Date.now() > deadline.getTime();
@@ -165,7 +169,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
   const dateLabel = new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address || event.location)}`;
   const WeatherIcon = event.weather?.condition === "sunny" ? Sun : event.weather?.condition === "partly-cloudy" ? CloudSun : Cloud;
-  const isOnlyResponsibleTrainer = event.type === "training" && currentUser.role !== "player" && (event.trainerIds ?? []).includes(currentUser.id) && event.trainerIds?.length === 1;
+  const isOnlyResponsibleTrainer = event.type === "training" && currentUser.role !== "player" && currentUser.role !== "guardian" && (event.trainerIds ?? []).includes(currentUser.id) && event.trainerIds?.length === 1;
 
   function saveNote() {
     onSaveNote(note.trim());
@@ -192,7 +196,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onEdit, o
           <div className="event-main-column">
             <section className="event-information"><div className="event-section-title"><Info /><span><small>INFORMATIONEN</small><strong>Das Wichtigste zum Termin</strong></span></div><p>{event.description || "Für diesen Termin wurden noch keine weiteren Informationen hinterlegt."}</p></section>
             <section className="trainer-message"><div className="event-section-title"><Megaphone /><span><small>MITTEILUNG DES TRAINERS</small><strong>Hinweise an die Mannschaft</strong></span></div>{canManage ? <><textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="z. B. Treffpunkt, Ausrüstung, Fahrgemeinschaften …" /><button onClick={saveNote}><Check /> {noteSaved ? "Gespeichert" : "Mitteilung speichern"}</button></> : <p>{event.trainerNote || "Aktuell gibt es keine zusätzliche Mitteilung des Trainers."}</p>}</section>
-            {settings.attendanceEnabled && <div className="my-response"><div><strong>Deine Teilnahme</strong><small>{isOnlyResponsibleTrainer ? "Du bist aktuell der einzige verantwortliche Trainer." : responseClosed ? `Rückmeldung geschlossen · Frist war ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr` : full ? "Die maximale Teilnehmerzahl ist erreicht." : `Änderbar bis ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr`}</small></div><button className={event.responses[currentUser.id] === "yes" ? "yes active" : "yes"} disabled={full || responseClosed} onClick={() => onRespond("yes")}><ThumbsUp /> Dabei</button><button className={event.responses[currentUser.id] === "maybe" ? "maybe active" : "maybe"} disabled={responseClosed || isOnlyResponsibleTrainer} onClick={() => onRespond("maybe")}>?</button><button className={event.responses[currentUser.id] === "no" ? "no active" : "no"} disabled={responseClosed || isOnlyResponsibleTrainer} onClick={() => onRespond("no")}><ThumbsDown /></button></div>}
+            {settings.attendanceEnabled && responseSubject && <div className="my-response guardian-response"><div><strong>{responseSubject.id !== currentUser.id ? `${responseSubject.name}: Teilnahme` : "Deine Teilnahme"}</strong>{responseSubjects.length > 1 && <select aria-label="Person auswählen" value={responseSubject.id} onChange={(event) => setResponseUserId(event.target.value)}>{responseSubjects.map((person) => <option key={person.id} value={person.id}>{person.id === currentUser.id ? `${person.name} (ich)` : person.name}</option>)}</select>}<small>{isOnlyResponsibleTrainer ? "Du bist aktuell der einzige verantwortliche Trainer." : responseClosed ? `Rückmeldung geschlossen · Frist war ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr` : full ? "Die maximale Teilnehmerzahl ist erreicht." : `Änderbar bis ${deadline.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} Uhr`}</small></div><button className={event.responses[responseSubject.id] === "yes" ? "yes active" : "yes"} disabled={full || responseClosed} onClick={() => onRespond(responseSubject.id, "yes")}><ThumbsUp /> Dabei</button><button className={event.responses[responseSubject.id] === "maybe" ? "maybe active" : "maybe"} disabled={responseClosed || isOnlyResponsibleTrainer} onClick={() => onRespond(responseSubject.id, "maybe")}>?</button><button className={event.responses[responseSubject.id] === "no" ? "no active" : "no"} disabled={responseClosed || isOnlyResponsibleTrainer} onClick={() => onRespond(responseSubject.id, "no")}><ThumbsDown /></button></div>}
           </div>
 
           <aside className="event-attendance-column">

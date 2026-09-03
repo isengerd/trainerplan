@@ -10,7 +10,7 @@ import { defaultPosition } from "@/data/club";
 
 async function invitationForToken(token: string) {
   if (!token) return null;
-  return prisma.invitation.findUnique({ where: { tokenHash: invitationTokenHash(token) }, include: { group: true, team: true, club: true } });
+  return prisma.invitation.findUnique({ where: { tokenHash: invitationTokenHash(token) }, include: { group: true, team: true, club: true, managedPlayer: true } });
 }
 
 export async function GET(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   const invitation = await invitationForToken(request.nextUrl.searchParams.get("token") || "");
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
-  return NextResponse.json({ email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, expiresAt: invitation.expiresAt.toISOString() });
+  return NextResponse.json({ email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, managedPlayer: invitation.managedPlayer?.name, expiresAt: invitation.expiresAt.toISOString() });
 }
 
 export async function POST(request: NextRequest) {
@@ -58,10 +58,14 @@ export async function POST(request: NextRequest) {
       } });
       if (invitation.clubId) {
         const membership = await tx.membership.findFirst({ where: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId } });
-        if (membership) await tx.membership.update({ where: { id: membership.id }, data: { role: invitation.role, groupId: invitation.groupId, status: "active" } });
+        if (membership) {
+          const keepExistingRole = invitation.role === "guardian" && (membership.role === "admin" || membership.role === "trainer");
+          await tx.membership.update({ where: { id: membership.id }, data: { role: keepExistingRole ? membership.role : invitation.role, groupId: invitation.groupId, status: "active" } });
+        }
         else await tx.membership.create({ data: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId, role: invitation.role, groupId: invitation.groupId } });
         if (!member.activeTeamId && invitation.teamId) await tx.user.update({ where: { id: member.id }, data: { activeTeamId: invitation.teamId } });
       }
+      if (invitation.managedPlayerId) await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: member.id, playerId: invitation.managedPlayerId } }, update: {}, create: { guardianId: member.id, playerId: invitation.managedPlayerId } });
       return member;
     });
   } catch (error) {

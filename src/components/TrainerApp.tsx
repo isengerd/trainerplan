@@ -308,8 +308,9 @@ export function TrainerApp() {
           const response = await fetch(`/api/v1/events/${encodeURIComponent(event.id)}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(event) });
           if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "Termin konnte nicht geändert werden.");
         }
-        if (currentUserId && previousEvent.responses[currentUserId] !== event.responses[currentUserId]) {
-          const response = await fetch(`/api/v1/events/${encodeURIComponent(event.id)}/attendance`, { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: event.responses[currentUserId] ?? null }) });
+        const responseSubjects = currentUserId ? [currentUserId, ...(currentUser?.managedPlayerIds ?? [])] : [];
+        for (const responseUserId of responseSubjects) if (previousEvent.responses[responseUserId] !== event.responses[responseUserId]) {
+          const response = await fetch(`/api/v1/events/${encodeURIComponent(event.id)}/attendance`, { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ value: event.responses[responseUserId] ?? null, ...(responseUserId !== currentUserId ? { playerId: responseUserId } : {}) }) });
           if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "Teilnahme konnte nicht gespeichert werden.");
         }
       }
@@ -651,7 +652,7 @@ export function TrainerApp() {
     : view === "team"
       ? (clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? <TeamPage users={users} currentUser={currentUser} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} onInvite={() => setView("settings")} /> : overview)
       : view === "profile" && profileUser
-        ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={profileUser.id === currentUser.id} canRequestEmailChange={profileUser.id === currentUser.id || currentUser.role === "admin"} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageDevelopment={canManageClub} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
+        ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={!profileUser.managedProfile && profileUser.id === currentUser.id} canRequestEmailChange={!profileUser.managedProfile && (profileUser.id === currentUser.id || currentUser.role === "admin")} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageDevelopment={canManageClub} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
         : view === "settings"
           ? currentUser.role === "admin"
             ? <AdminSettingsPage settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} invitations={invitations} smtp={smtp} push={push} organization={organization} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
@@ -671,7 +672,7 @@ export function TrainerApp() {
           <a className={view === "exercises" ? "active" : ""} onClick={() => setView("exercises")}><Library /> Übungen</a>
           {(clubSettings.teamFeatureEnabled || currentUser.role === "admin") && <a className={view === "team" ? "active" : ""} onClick={() => setView("team")}><Dumbbell /> Mannschaft</a>}
         </nav>
-        <div className="account-card" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /><span><strong>{currentUser.name}</strong><small>{currentUser.role === "admin" ? "Admin" : currentUser.role === "trainer" ? "Trainer" : "Spieler"}</small></span><button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Abmelden"><LogOut /></button></div>
+        <div className="account-card" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /><span><strong>{currentUser.name}</strong><small>{currentUser.role === "admin" ? "Admin" : currentUser.role === "trainer" ? "Trainer" : currentUser.role === "guardian" ? "Elternteil" : "Spieler"}</small></span><button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Abmelden"><LogOut /></button></div>
       </aside>
 
       <section className="workspace">

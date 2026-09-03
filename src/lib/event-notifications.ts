@@ -7,9 +7,9 @@ import { sendEventMail, smtpStatus } from "./smtp";
 export async function notifyEventChange(input: { event: ClubEvent; scope: ClubScope; actor: { id: string; name: string }; action: "created" | "updated" | "deleted"; appUrl: string }) {
   const memberships = await prisma.membership.findMany({
     where: { clubId: input.scope.clubId, status: "active", ...(input.scope.teamId ? { teamId: input.scope.teamId } : {}), userId: { not: input.actor.id } },
-    select: { user: { select: { id: true, name: true, email: true } } },
+    select: { user: { select: { id: true, name: true, email: true, loginEnabled: true } } },
   });
-  const recipients = [...new Map(memberships.map(({ user }) => [user.id, user])).values()];
+  const recipients = [...new Map(memberships.map(({ user }) => [user.id, user])).values()].filter((user) => user.loginEnabled);
   const verb = input.action === "created" ? "Neu" : input.action === "updated" ? "Aktualisiert" : "Abgesagt";
   const push = sendPushToUsers({ userIds: recipients.map((user) => user.id), title: `${verb}: ${input.event.title}`, body: `${input.event.date} · ${input.event.startTime} Uhr · ${input.event.location}`, eventId: input.event.id }).catch(() => ({ sent: 0, configured: false }));
   const email = smtpStatus().configured

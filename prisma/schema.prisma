@@ -11,6 +11,7 @@ enum Role {
   admin
   trainer
   player
+  guardian
 }
 
 enum AttendanceValue {
@@ -43,6 +44,8 @@ model User {
   passingRating           Int                     @default(0)
   internalTeam            String?
   activeTeamId            String?
+  managedProfile          Boolean                 @default(false)
+  loginEnabled            Boolean                 @default(true)
   group                   TeamGroup?              @relation(fields: [groupId], references: [id], onDelete: SetNull)
   invitations             Invitation[]            @relation("InvitationCreator")
   emailChangeRequests     EmailChangeRequest[]
@@ -52,6 +55,9 @@ model User {
   coachedTournamentSquads TournamentSquad[]       @relation("TournamentSquadTrainer")
   tournamentAssignments   TournamentSquadPlayer[]
   pushTokens              DevicePushToken[]
+  childrenManaged         GuardianPlayer[]        @relation("GuardianAccount")
+  guardians               GuardianPlayer[]        @relation("ManagedPlayer")
+  invitationsForPlayer    Invitation[]            @relation("InvitationManagedPlayer")
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
 
@@ -59,34 +65,34 @@ model User {
 }
 
 model Club {
-  id          String       @id @default(cuid())
+  id          String           @id @default(cuid())
   name        String
-  slug        String       @unique
-  licenseType String       @default("single_team")
+  slug        String           @unique
+  licenseType String           @default("single_team")
   memberships Membership[]
   teams       Team[]
   groups      TeamGroup[]
-  invitations Invitation[] @relation("ClubInvitations")
+  invitations Invitation[]     @relation("ClubInvitations")
   events      ClubEvent[]
   exercises   ExerciseRecord[]
   configs     AppConfig[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model Team {
-  id          String       @id @default(cuid())
+  id          String           @id @default(cuid())
   clubId      String
   name        String
-  ageGroup    String       @default("F-Jugend")
-  club        Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  ageGroup    String           @default("F-Jugend")
+  club        Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   memberships Membership[]
-  invitations Invitation[] @relation("TeamInvitations")
+  invitations Invitation[]     @relation("TeamInvitations")
   events      ClubEvent[]
   exercises   ExerciseRecord[]
   configs     AppConfig[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@unique([clubId, name])
   @@index([clubId])
@@ -154,27 +160,41 @@ model TeamGroup {
 }
 
 model Invitation {
-  id          String     @id @default(cuid())
-  tokenHash   String     @unique
-  email       String
-  name        String     @default("")
-  role        Role
-  ageGroup    String     @default("F-Jugend")
-  groupId     String?
-  clubId      String?
-  teamId      String?
-  group       TeamGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  club        Club?      @relation("ClubInvitations", fields: [clubId], references: [id], onDelete: Cascade)
-  team        Team?      @relation("TeamInvitations", fields: [teamId], references: [id], onDelete: SetNull)
-  invitedById String
-  invitedBy   User       @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Cascade)
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdAt   DateTime   @default(now())
+  id              String     @id @default(cuid())
+  tokenHash       String     @unique
+  email           String
+  name            String     @default("")
+  role            Role
+  ageGroup        String     @default("F-Jugend")
+  groupId         String?
+  clubId          String?
+  teamId          String?
+  managedPlayerId String?
+  group           TeamGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  club            Club?      @relation("ClubInvitations", fields: [clubId], references: [id], onDelete: Cascade)
+  team            Team?      @relation("TeamInvitations", fields: [teamId], references: [id], onDelete: SetNull)
+  managedPlayer   User?      @relation("InvitationManagedPlayer", fields: [managedPlayerId], references: [id], onDelete: SetNull)
+  invitedById     String
+  invitedBy       User       @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime   @default(now())
 
   @@index([email])
   @@index([groupId])
   @@index([invitedById])
+  @@index([managedPlayerId])
+}
+
+model GuardianPlayer {
+  guardianId String
+  playerId   String
+  guardian   User     @relation("GuardianAccount", fields: [guardianId], references: [id], onDelete: Cascade)
+  player     User     @relation("ManagedPlayer", fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([guardianId, playerId])
+  @@index([playerId])
 }
 
 model ClubEvent {

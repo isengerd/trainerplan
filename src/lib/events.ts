@@ -16,11 +16,14 @@ export async function getEvents(user: Pick<User, "id" | "role">): Promise<ClubEv
   ]);
   if (!config) throw new ApiInputError("Die Konfiguration konnte nicht geladen werden.");
   const settings = config.settings as unknown as Pick<ClubSettings, "showResponsesToPlayers">;
+  const managedPlayerIds = (user.role === "player" || user.role === "guardian")
+    ? (await prisma.guardianPlayer.findMany({ where: { guardianId: user.id }, select: { playerId: true } })).map((link) => link.playerId)
+    : [];
 
   return events.map((event) => {
     const mapped = eventFromDatabase(event);
-    if (user.role === "player" && settings.showResponsesToPlayers === false) {
-      return { ...mapped, responses: mapped.responses[user.id] ? { [user.id]: mapped.responses[user.id] } : {} };
+    if ((user.role === "player" || user.role === "guardian") && settings.showResponsesToPlayers === false) {
+      return { ...mapped, responses: Object.fromEntries(Object.entries(mapped.responses).filter(([id]) => id === user.id || managedPlayerIds.includes(id))) };
     }
     return mapped;
   });
