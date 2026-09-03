@@ -66,9 +66,9 @@ export async function authenticatedUser(request: NextRequest) {
     return null;
   }
   const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id, status: "active", ...(session.user.activeTeamId ? { teamId: session.user.activeTeamId } : {}) },
+    where: { userId: session.user.id, status: "active", team: { active: true }, ...(session.user.activeTeamId ? { teamId: session.user.activeTeamId } : {}) },
     orderBy: { createdAt: "asc" },
-  }) ?? await prisma.membership.findFirst({ where: { userId: session.user.id, status: "active" }, orderBy: { createdAt: "asc" } });
+  }) ?? await prisma.membership.findFirst({ where: { userId: session.user.id, status: "active", team: { active: true } }, orderBy: { createdAt: "asc" } });
   return membership ? { ...session.user, role: membership.role } : session.user;
 }
 

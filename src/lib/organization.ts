@@ -14,8 +14,13 @@ export async function organizationContext(userId: string): Promise<OrganizationC
   const first = memberships[0];
   if (!first) return null;
   const isClubAdmin = memberships.some((membership) => membership.clubAdmin);
+  const scopedTeamIds = memberships.map((membership) => membership.teamId).filter((teamId): teamId is string => Boolean(teamId && teamId === scope.teamId));
   const availableTeams = await prisma.team.findMany({
-    where: { clubId: scope.clubId, ...(!isClubAdmin ? { id: { in: memberships.flatMap((membership) => membership.teamId ? [membership.teamId] : []) } } : {}) },
+    where: {
+      clubId: scope.clubId,
+      active: true,
+      ...(!isClubAdmin || first.club.licenseType !== "club" ? { id: { in: scopedTeamIds } } : {}),
+    },
     include: { _count: { select: { memberships: { where: { status: "active" } } } } },
     orderBy: { createdAt: "asc" },
   });

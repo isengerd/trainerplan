@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   if (existingUser && await prisma.membership.findFirst({ where: { userId: existingUser.id, clubId: membership.clubId, teamId: membership.teamId, status: "active" } })) return NextResponse.json({ error: "Diese Person gehört bereits zu dieser Mannschaft." }, { status: 409 });
   const groupId = body.groupId ? textValue(body.groupId, "Gruppe", 100, 1) : null;
-  if (groupId && !(await prisma.teamGroup.findUnique({ where: { id: groupId } }))) return NextResponse.json({ error: "Die ausgewählte Gruppe existiert nicht." }, { status: 400 });
+  if (groupId && !(await prisma.teamGroup.findFirst({ where: { id: groupId, clubId: membership.clubId } }))) return NextResponse.json({ error: "Die ausgewählte Gruppe existiert nicht." }, { status: 400 });
   const settings = (await prisma.appConfig.findUniqueOrThrow({ where: { id: "default" } })).settings as unknown as ClubSettings;
 
   await prisma.invitation.deleteMany({ where: { email, clubId: membership.clubId, teamId: membership.teamId, acceptedAt: null } });

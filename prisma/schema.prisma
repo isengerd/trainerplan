@@ -85,6 +85,7 @@ model Team {
   clubId      String
   name        String
   ageGroup    String           @default("F-Jugend")
+  active      Boolean          @default(true)
   club        Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   memberships Membership[]
   invitations Invitation[]     @relation("TeamInvitations")

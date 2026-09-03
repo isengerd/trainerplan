@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   if (!currentUser) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   await ensureApplicationData();
   const activeMembership = await activeClubScope(currentUser);
+  const organization = await organizationContext(currentUser.id);
   const scopedConfig = activeMembership ? await ensureClubConfig(activeMembership) : null;
   const [users, events, exercises, config, groups, ageGroups, invitations, tournamentSquads] = await Promise.all([
     getUsers(currentUser),
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     : users;
   return NextResponse.json({
     currentUser: { ...safeUser(currentUser), managedPlayerIds },
-    organization: await organizationContext(currentUser.id),
+    organization,
     setupRequired: !activeMembership,
     users: visibleUsers.map((member) => {
       if (currentUser.role !== "player" || member.id === currentUser.id) return member;
@@ -57,8 +58,8 @@ export async function GET(request: NextRequest) {
     groups: groups.map(({ id, name, description, color }) => ({ id, name, description, color })),
     ageGroups: ageGroups.map(({ id, name, ageRange, sortOrder }) => ({ id, name, ageRange, sortOrder })),
     invitations: invitations.map(invitationDto),
-    smtp: currentUser.role === "admin" ? smtpStatus() : { configured: false },
-    push: currentUser.role === "admin" ? { ...pushStatus(), devices: await prisma.devicePushToken.count({ where: { userId: currentUser.id } }) } : { configured: false, devices: 0 },
+    smtp: organization?.isClubAdmin ? smtpStatus() : { configured: false },
+    push: organization?.isClubAdmin ? { ...pushStatus(), devices: await prisma.devicePushToken.count({ where: { userId: currentUser.id } }) } : { configured: false, devices: 0 },
     tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, typeof tournamentSquads>>((plans, squad) => {
       if (currentUser.role === "player" && !squad.players.some((assignment) => assignment.playerId === currentUser.id)) return plans;
       if (currentUser.role === "guardian" && !squad.players.some((assignment) => managedPlayerIds.includes(assignment.playerId))) return plans;

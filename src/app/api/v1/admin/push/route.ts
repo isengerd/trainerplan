@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { pushStatus, sendPushToUsers } from "@/lib/push";
+import { requireClubAdmin } from "@/lib/organization";
 
 async function admin(request: NextRequest) {
   const user = await authenticatedUser(request);
-  return user?.role === "admin" ? user : null;
+  return user && await requireClubAdmin(user.id) ? user : null;
 }
 
 export async function GET(request: NextRequest) {

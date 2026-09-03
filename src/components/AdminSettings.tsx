@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CalendarDays, Check, Clipboard, Clock3, Download, Link2, Mail, Moon, Palette, Plus, RefreshCw, Send, Server, Shield, Sun, Trash2, Trophy, UserPlus, Users } from "lucide-react";
+import { Bell, CalendarDays, Check, Clipboard, Clock3, CreditCard, Download, FileText, Link2, Mail, Moon, Palette, Plus, RefreshCw, Send, Server, Shield, Sun, Trash2, Trophy, UserPlus, Users } from "lucide-react";
 import { defaultPosition, roleLabels, type AgeGroupOption, type ClubInvitation, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
 
 type Props = {
@@ -37,6 +37,54 @@ export function UserSettingsPage() {
   return <section className="settings-page module-page">
     <div className="module-hero"><div><span className="eyebrow">DEINE APP</span><h1>Einstellungen</h1><p>Persönliche Funktionen und Exporte verwalten.</p></div></div>
     <div className="settings-layout"><CalendarExportCard /></div>
+  </section>;
+}
+
+export function LicensePage({ organization, ageGroups, onReload }: { organization: OrganizationContext; ageGroups: AgeGroupOption[]; onReload: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
+  const [message, setMessage] = useState("");
+  const [newTeam, setNewTeam] = useState({ name: "", ageGroup: ageGroups[0]?.id ?? "f1" });
+  const activeTeam = organization.teams.find((team) => team.id === organization.activeTeamId) ?? organization.teams[0];
+
+  async function upgrade() {
+    setBusy(true); setMessage("");
+    const response = await fetch("/api/v1/organization/license", { method: "PUT" });
+    const result = await response.json() as { error?: string };
+    setBusy(false);
+    if (!response.ok) return setMessage(result.error || "Tarif konnte nicht geändert werden.");
+    setMessage("Vereinslizenz aktiviert."); onReload();
+  }
+
+  async function downgrade() {
+    if (!activeTeam) return;
+    setBusy(true); setMessage("");
+    const response = await fetch("/api/v1/organization/license", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teamId: activeTeam.id, confirmation }) });
+    const result = await response.json() as { error?: string };
+    setBusy(false);
+    if (!response.ok) return setMessage(result.error || "Tarif konnte nicht geändert werden.");
+    setConfirmation(""); setMessage("Auf Einzelmannschaft umgestellt. Die übrigen Mannschaftsdaten bleiben für ein späteres Upgrade erhalten."); onReload();
+  }
+
+  async function createTeam(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true); setMessage("");
+    const response = await fetch("/api/v1/organization/teams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newTeam) });
+    const result = await response.json() as { error?: string };
+    setBusy(false);
+    if (!response.ok) return setMessage(result.error || "Mannschaft konnte nicht angelegt werden.");
+    setNewTeam((current) => ({ ...current, name: "" })); setMessage("Mannschaft angelegt."); onReload();
+  }
+
+  return <section className="settings-page module-page license-page">
+    <div className="module-hero"><div><span className="eyebrow">KONTO & VERTRAG</span><h1>Lizenz & Abrechnung</h1><p>Tarif, Zahlung und Rechnungen an einem festen Ort verwalten.</p></div></div>
+    <div className="settings-layout">
+      <section className="settings-card settings-wide license-overview"><div className="settings-title"><CreditCard /><span><h2>Aktueller Tarif</h2><p>Der Lizenzinhaber verwaltet den Vertrag unabhängig von den Mannschaftsrollen.</p></span></div><div className="license-status"><span><strong>{organization.licenseType === "club" ? "Vereinslizenz" : "Einzelmannschaft"}</strong><small>{organization.licenseType === "club" ? `${organization.teams.length} aktive Mannschaften` : `${activeTeam?.name ?? "Eine Mannschaft"} · vollständig nutzbar`}</small></span>{organization.licenseType === "single_team" && <button className="primary" disabled={busy} onClick={upgrade}>Auf Vereinslizenz erweitern</button>}</div></section>
+      <section className="settings-card"><div className="settings-title"><CreditCard /><span><h2>Zahlungsmethode</h2><p>Wird mit Einführung der kostenpflichtigen Tarife hier verwaltet.</p></span></div><div className="billing-placeholder">Noch keine Zahlungsmethode hinterlegt</div></section>
+      <section className="settings-card"><div className="settings-title"><FileText /><span><h2>Rechnungen</h2><p>Spätere Rechnungen stehen hier zum Download bereit.</p></span></div><div className="billing-placeholder">Noch keine Rechnungen vorhanden</div></section>
+      {organization.licenseType === "club" && <section className="settings-card settings-wide"><div className="settings-title"><Users /><span><h2>Mannschaften der Lizenz</h2><p>Aktive Mannschaften innerhalb des Vereinszugangs.</p></span></div><div className="organization-team-list">{organization.teams.map((team) => <article key={team.id}><span><strong>{team.name}</strong><small>{ageGroups.find((age) => age.id === team.ageGroup)?.name ?? team.ageGroup} · {team.memberCount} Mitglieder</small></span>{team.id === organization.activeTeamId && <em>Aktiv</em>}</article>)}</div><form className="create-organization-team" onSubmit={createTeam}><label><span>Name der Mannschaft</span><input required maxLength={120} value={newTeam.name} onChange={(event) => setNewTeam({ ...newTeam, name: event.target.value })} placeholder="z. B. E1 Grün" /></label><label><span>Altersklasse</span><select value={newTeam.ageGroup} onChange={(event) => setNewTeam({ ...newTeam, ageGroup: event.target.value })}>{ageGroups.map((age) => <option key={age.id} value={age.id}>{age.name}</option>)}</select></label><button className="primary" disabled={busy}><Plus /> Mannschaft anlegen</button></form></section>}
+      {organization.licenseType === "club" && <section className="settings-card settings-wide license-downgrade"><div className="settings-title"><Shield /><span><h2>Zur Einzelmannschaft wechseln</h2><p>„{activeTeam?.name}“ bleibt aktiv. Andere Mannschaften und deren Daten werden archiviert und bei einem späteren Upgrade wieder verfügbar.</p></span></div><label><span>Zur Bestätigung EINZELMANNSCHAFT eingeben</span><input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label><button disabled={busy || confirmation !== "EINZELMANNSCHAFT"} onClick={downgrade}>Tarif wechseln</button></section>}
+    </div>
+    {message && <div className="toast"><Check /> {message}</div>}
   </section>;
 }
 
@@ -178,14 +226,13 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
     { title: "Kalender exportieren", label: "Kalender" },
     { title: "Farbdesign", label: "Design" },
     { title: "Rollen & Rechte", label: "Mitglieder" },
-    { title: "Lizenz & Mannschaften", label: "Lizenz" },
     { title: "Turniere & Mannschaftsplanung", label: "Turniere" },
-    { title: "Funktionsgruppen", label: "Gruppen" },
+    ...(organization?.isClubAdmin ? [{ title: "Funktionsgruppen", label: "Gruppen" }] : []),
     { title: "Spieler einladen", label: "Einladungen" },
     { title: "Kind & Elternzugang", label: "Kinder" },
-    { title: "SMTP-Server", label: "Kommunikation" },
+    ...(organization?.isClubAdmin ? [{ title: "SMTP-Server", label: "Kommunikation" }] : []),
     { title: "Module & Sichtbarkeit", label: "Module" },
-    { title: "Verein & Standards", label: "Verein" },
+    { title: "Mannschaft & Standards", label: "Mannschaft" },
   ];
 
   function goToSettingsSection(title: string) {
@@ -200,7 +247,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
       {settingsSections.map((section) => <button type="button" key={section.title} onClick={() => goToSettingsSection(section.title)}>{section.label}</button>)}
     </nav>
 
-    <div className="settings-layout admin-settings-layout">
+    <div className={`settings-layout admin-settings-layout ${organization?.isClubAdmin ? "account-owner-settings" : "team-admin-settings"}`}>
       <CalendarExportCard />
       <section className="settings-card settings-wide theme-settings"><div className="settings-title"><Palette /><span><h2>Farbdesign</h2><p>Das Design gilt für alle Bereiche der Web-App und wird für das Team gespeichert.</p></span></div><div className="theme-options"><button className={(form.theme ?? "light") === "dark" ? "active" : ""} onClick={() => chooseTheme("dark")}><span className="theme-preview dark"><i /><i /><i /></span><span><Moon /><strong>Dunkelgrün</strong><small>Ruhiges Design für Abend und Flutlicht</small></span>{(form.theme ?? "light") === "dark" && <Check />}</button><button className={(form.theme ?? "light") === "light" ? "active" : ""} onClick={() => chooseTheme("light")}><span className="theme-preview light"><i /><i /><i /></span><span><Sun /><strong>Hell</strong><small>Weißer Hintergrund und klare Kontraste</small></span>{(form.theme ?? "light") === "light" && <Check />}</button></div></section>
 
@@ -224,7 +271,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
 
       <section className="settings-card"><div className="settings-title"><Shield /><span><h2>Module & Sichtbarkeit</h2></span></div><div className="toggle-list">{toggleRows.map((row) => <label key={row.key}><span><strong>{row.title}</strong><small>{row.description}</small></span><input type="checkbox" checked={Boolean(form[row.key])} onChange={(event) => set(row.key, event.target.checked as never)} /><i /></label>)}</div></section>
       <section className="settings-card"><div className="settings-title"><Clock3 /><span><h2>Rückmeldefristen</h2></span></div><div className="deadline-grid"><label><span>Training</span><div><input type="number" min="0" value={form.trainingDeadlineHours} onChange={(event) => set("trainingDeadlineHours", Number(event.target.value))} /><small>Std.</small></div></label><label><span>Turnier</span><div><input type="number" min="0" value={form.tournamentDeadlineHours} onChange={(event) => set("tournamentDeadlineHours", Number(event.target.value))} /><small>Std.</small></div></label><label><span>Ereignis</span><div><input type="number" min="0" value={form.eventDeadlineHours} onChange={(event) => set("eventDeadlineHours", Number(event.target.value))} /><small>Std.</small></div></label></div><div className="settings-hint"><Bell /><span>Nach Ablauf können nur Trainer und Admins ändern.</span></div></section>
-      <section className="settings-card"><div className="settings-title"><Users /><span><h2>Verein & Standards</h2></span></div><div className="settings-fields"><label><span>Vereinsname</span><input value={form.clubName} onChange={(event) => set("clubName", event.target.value)} /></label><label><span>Mannschaft</span><input value={form.teamName} onChange={(event) => set("teamName", event.target.value)} /></label></div><div className="deadline-grid"><label><span>Training</span><div><input type="number" min="1" value={form.defaultTrainingCapacity} onChange={(event) => set("defaultTrainingCapacity", Number(event.target.value))} /><small>Plätze</small></div></label><label><span>Turnier</span><div><input type="number" min="1" value={form.defaultTournamentCapacity} onChange={(event) => set("defaultTournamentCapacity", Number(event.target.value))} /><small>Plätze</small></div></label></div></section>
+      <section className="settings-card team-standards-card"><div className="settings-title"><Users /><span><h2>Mannschaft & Standards</h2><p>Mannschaftsname und Vorgaben gelten nur für die aktuell ausgewählte Mannschaft.</p></span></div><div className="settings-fields">{organization?.isClubAdmin && <label><span>Vereinsname</span><input value={form.clubName} onChange={(event) => set("clubName", event.target.value)} /></label>}<label><span>Mannschaft</span><input value={form.teamName} onChange={(event) => set("teamName", event.target.value)} /></label></div><div className="deadline-grid"><label><span>Training</span><div><input type="number" min="1" value={form.defaultTrainingCapacity} onChange={(event) => set("defaultTrainingCapacity", Number(event.target.value))} /><small>Plätze</small></div></label><label><span>Turnier</span><div><input type="number" min="1" value={form.defaultTournamentCapacity} onChange={(event) => set("defaultTournamentCapacity", Number(event.target.value))} /><small>Plätze</small></div></label></div></section>
     </div>
     {message && <div className="toast"><Check /> {message}</div>}
   </section>;

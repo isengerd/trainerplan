@@ -12,7 +12,7 @@ export async function PUT(request: NextRequest) {
     const teamId = textValue(body.teamId, "Mannschaft", 120, 1);
     const current = await organizationContext(user.id);
     if (!current) throw new ApiInputError("Kein Verein eingerichtet.", 409);
-    const team = await prisma.team.findFirst({ where: { id: teamId, clubId: current.clubId } });
+    const team = await prisma.team.findFirst({ where: { id: teamId, clubId: current.clubId, active: true } });
     if (!team) throw new ApiInputError("Diese Mannschaft gehört nicht zu deinem Verein.", 404);
     let membership = await prisma.membership.findFirst({ where: { userId: user.id, clubId: current.clubId, teamId, status: "active" } });
     if (!membership) {

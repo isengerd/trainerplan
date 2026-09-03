@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const user = await authenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
-  if (user.role !== "admin") return NextResponse.json({ error: "Nur Admins dürfen Einstellungen ändern." }, { status: 403 });
+  if (user.role !== "admin") return NextResponse.json({ error: "Nur Mannschaftsadmins dürfen Einstellungen ändern." }, { status: 403 });
   try {
     return NextResponse.json({ settings: await saveSettings(await readJson(request, 256_000), user) });
   } catch (error) {

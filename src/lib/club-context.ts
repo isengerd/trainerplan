@@ -6,15 +6,15 @@ export type ClubScope = { clubId: string; teamId: string | null };
 export async function activeClubScope(user: Pick<User, "id">): Promise<ClubScope | null> {
   const account = await prisma.user.findUnique({ where: { id: user.id }, select: { activeTeamId: true } });
   if (account?.activeTeamId) {
-    const selected = await prisma.membership.findFirst({ where: { userId: user.id, teamId: account.activeTeamId, status: "active" }, select: { clubId: true, teamId: true } });
+    const selected = await prisma.membership.findFirst({ where: { userId: user.id, teamId: account.activeTeamId, status: "active", team: { active: true } }, select: { clubId: true, teamId: true } });
     if (selected) return selected;
   }
-  return prisma.membership.findFirst({ where: { userId: user.id, status: "active" }, orderBy: { createdAt: "asc" }, select: { clubId: true, teamId: true } });
+  return prisma.membership.findFirst({ where: { userId: user.id, status: "active", team: { active: true } }, orderBy: { createdAt: "asc" }, select: { clubId: true, teamId: true } });
 }
 
 export async function activeMembership(userId: string) {
   const account = await prisma.user.findUnique({ where: { id: userId }, select: { activeTeamId: true } });
-  return prisma.membership.findFirst({ where: { userId, status: "active", ...(account?.activeTeamId ? { teamId: account.activeTeamId } : {}) }, orderBy: { createdAt: "asc" } });
+  return prisma.membership.findFirst({ where: { userId, status: "active", team: { active: true }, ...(account?.activeTeamId ? { teamId: account.activeTeamId } : {}) }, orderBy: { createdAt: "asc" } });
 }
 
 export function scopedResourceWhere(scope: ClubScope) {

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, Dumbbell, Edit3,
+  AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, CreditCard, Dumbbell, Edit3,
   Home, Library, LogOut, MapPin, Menu, MoreVertical, Plus, Settings, Share2, Shield,
   Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
@@ -12,7 +12,7 @@ import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitati
 import { ageGroupForBirthday } from "@/lib/age-groups";
 import { Pitch } from "./Pitch";
 import { Avatar, CalendarPage, ProfilePage, TeamPage } from "./ClubModules";
-import { AdminSettingsPage, UserSettingsPage } from "./AdminSettings";
+import { AdminSettingsPage, LicensePage, UserSettingsPage } from "./AdminSettings";
 import { ExerciseCreator } from "./ExerciseCreator";
 import { ExerciseLibrary } from "./ExerciseBrowser";
 import { TrainingTemplates, type TrainingTemplate } from "./TrainingTemplates";
@@ -103,7 +103,7 @@ function youtubeEmbed(url?: string) {
 
 export function TrainerApp() {
   const router = useRouter();
-  const [view, setView] = useState<"overview" | "plan" | "exercises" | "calendar" | "tournaments" | "team" | "profile" | "settings">("overview");
+  const [view, setView] = useState<"overview" | "plan" | "exercises" | "calendar" | "tournaments" | "team" | "profile" | "settings" | "license">("overview");
   const [selectedDay, setSelectedDay] = useState(initialPlanKey);
   const [targetPhase, setTargetPhase] = useState<Exercise["category"]>("Einstieg");
   const [plans, setPlans] = useState<Record<string, Exercise[]>>({});
@@ -644,7 +644,7 @@ export function TrainerApp() {
   if (!currentUser) return null;
   if (setupRequired) return <FirstLoginSetup user={currentUser} onComplete={loadBootstrap} />;
 
-  const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : "Profil";
+  const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
     ? <CalendarPage events={events} plannedTrainings={Object.entries(plans).filter(([, exercises]) => exercises.length > 0).map(([date]) => { const day = days.find((item) => item.key === date); return { date, title: planMeta[date]?.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
@@ -653,6 +653,8 @@ export function TrainerApp() {
       ? (clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? <TeamPage users={users} currentUser={currentUser} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} onInvite={() => setView("settings")} /> : overview)
       : view === "profile" && profileUser
         ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={!profileUser.managedProfile && profileUser.id === currentUser.id} canRequestEmailChange={!profileUser.managedProfile && (profileUser.id === currentUser.id || currentUser.role === "admin")} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageDevelopment={canManageClub} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
+        : view === "license" && organization?.isClubAdmin
+          ? <LicensePage organization={organization} ageGroups={ageGroups} onReload={() => void loadBootstrap()} />
         : view === "settings"
           ? currentUser.role === "admin"
             ? <AdminSettingsPage settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} invitations={invitations} smtp={smtp} push={push} organization={organization} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
@@ -687,6 +689,7 @@ export function TrainerApp() {
                 <div className="account-menu-head"><Avatar user={currentUser} size="medium" /><span><strong>{currentUser.name}</strong><small>{currentUser.email}</small></span></div>
                 <button role="menuitem" onClick={() => { setAccountMenuOpen(false); setProfileUserId(currentUser.id); setView("profile"); }}><Users /><span>Mein Profil</span><ChevronRight /></button>
                 <button role="menuitem" onClick={() => { setAccountMenuOpen(false); setView("settings"); }}><Settings /><span>Einstellungen</span><ChevronRight /></button>
+                {organization?.isClubAdmin && <button role="menuitem" onClick={() => { setAccountMenuOpen(false); setView("license"); }}><CreditCard /><span>Lizenz & Abrechnung</span><ChevronRight /></button>}
                 <button role="menuitem" onClick={() => { setAccountMenuOpen(false); void logout(); }}><LogOut /><span>Abmelden</span><ChevronRight /></button>
               </div>}
             </div>
@@ -710,6 +713,7 @@ export function TrainerApp() {
             <button className={view === "exercises" ? "active" : ""} onClick={() => mobileNavigate("exercises")}><Library /><span><strong>Übungen</strong><small>Übungsbibliothek durchsuchen</small></span><ChevronRight /></button>
             {(clubSettings.teamFeatureEnabled || currentUser.role === "admin") && <button className={view === "team" ? "active" : ""} onClick={() => mobileNavigate("team")}><Users /><span><strong>Mannschaft</strong><small>Kader und Rollen verwalten</small></span><ChevronRight /></button>}
             <button className={view === "settings" ? "active" : ""} onClick={() => mobileNavigate("settings")}><Settings /><span><strong>Einstellungen</strong><small>{currentUser.role === "admin" ? "Verein, Rechte und Kalender" : "Kalender und persönliche Funktionen"}</small></span><ChevronRight /></button>
+            {organization?.isClubAdmin && <button className={view === "license" ? "active" : ""} onClick={() => mobileNavigate("license")}><CreditCard /><span><strong>Lizenz & Abrechnung</strong><small>Tarif, Zahlung und Rechnungen</small></span><ChevronRight /></button>}
             <button className={view === "profile" ? "active" : ""} onClick={() => { setProfileUserId(currentUser.id); mobileNavigate("profile"); }}><MoreVertical /><span><strong>Mein Profil</strong><small>Profil und Passwort</small></span><ChevronRight /></button>
           </div>
           <button className="mobile-menu-logout" onClick={() => { setMobileMenuOpen(false); void logout(); }}><LogOut /> Abmelden</button>

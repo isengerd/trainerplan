@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
 import { ApiInputError, emailValue, rateLimit, readJson } from "@/lib/api-security";
 import { sendEmailChangeMail, smtpStatus } from "@/lib/smtp";
+import { activeClubScope } from "@/lib/club-context";
 
 export async function POST(request: NextRequest) {
   const actor = await authenticatedUser(request);
@@ -20,7 +21,12 @@ export async function POST(request: NextRequest) {
   try { newEmail = emailValue(body.newEmail); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige E-Mail-Adresse." }, { status: 400 }); }
   const requestedTargetId = typeof body.targetUserId === "string" ? body.targetUserId : actor.id;
-  if (requestedTargetId !== actor.id && actor.role !== "admin") return NextResponse.json({ error: "Nur Vereinsadmins dürfen E-Mail-Änderungen für andere Mitglieder anstoßen." }, { status: 403 });
+  if (requestedTargetId !== actor.id && actor.role !== "admin") return NextResponse.json({ error: "Nur Mannschaftsadmins dürfen E-Mail-Änderungen für andere Mitglieder anstoßen." }, { status: 403 });
+  if (requestedTargetId !== actor.id) {
+    const scope = await activeClubScope(actor);
+    const belongsToTeam = scope && await prisma.membership.findFirst({ where: { userId: requestedTargetId, clubId: scope.clubId, teamId: scope.teamId, status: "active" }, select: { id: true } });
+    if (!belongsToTeam) return NextResponse.json({ error: "Dieses Mitglied gehört nicht zu deiner Mannschaft." }, { status: 403 });
+  }
   const targetUser = requestedTargetId === actor.id ? actor : await prisma.user.findUnique({ where: { id: requestedTargetId } });
   if (!targetUser) return NextResponse.json({ error: "Das Mitglied wurde nicht gefunden." }, { status: 404 });
   if (newEmail === targetUser.email) return NextResponse.json({ error: "Diese E-Mail-Adresse wird bereits verwendet." }, { status: 400 });
