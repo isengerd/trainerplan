@@ -5,7 +5,8 @@ import { ApiInputError, assertJsonSize, emailValue, enumValue, integerValue, obj
 
 const roles = ["admin", "trainer", "player"] as const satisfies readonly Role[];
 const attendance = ["yes", "no", "maybe"] as const satisfies readonly AttendanceValue[];
-const eventTypes = ["training", "tournament", "event"] as const;
+const eventTypes = ["training", "tournament", "match", "event"] as const;
+const repeatFrequencies = ["none", "daily", "weekly", "biweekly", "monthly", "yearly"] as const;
 const phases = ["Ankommen", "Einstieg", "Hauptteil", "Abschlussspiel"] as const;
 const ageRanges = ["U8", "U9", "U8/U9"] as const;
 const intensities = ["Niedrig", "Mittel", "Hoch"] as const;
@@ -75,6 +76,10 @@ export function validateEvents(value: unknown): ClubEvent[] {
     const responsesInput = objectValue(input.responses, "Teilnahmen sind ungültig.");
     const responses = Object.fromEntries(Object.entries(responsesInput).map(([id, response]) => [textValue(id, "Benutzer-ID", 100, 1), enumValue(response, attendance, "Teilnahme")])) as ClubEvent["responses"];
     const trainerIds = Array.isArray(input.trainerIds) ? [...new Set(input.trainerIds.map((id) => textValue(id, "Trainer-ID", 100, 1)))] : [];
+    const repeatFrequency = input.repeatFrequency === undefined || input.repeatFrequency === null ? "none" : enumValue(input.repeatFrequency, repeatFrequencies, "Wiederholung");
+    const repeatUntil = input.repeatUntil === undefined || input.repeatUntil === null || input.repeatUntil === "" ? undefined : textValue(input.repeatUntil, "Ende der Wiederholung", 10, 10);
+    if (repeatUntil && (!validDate(repeatUntil) || repeatUntil < date)) throw new ApiInputError("Das Ende der Wiederholung muss am oder nach dem ersten Termin liegen.");
+    if (repeatFrequency !== "none" && !repeatUntil) throw new ApiInputError("Bitte gib an, wann die Wiederholung endet.");
     let weather: ClubEvent["weather"];
     if (input.weather !== undefined && input.weather !== null) {
       const candidate = objectValue(input.weather, "Wetter ist ungültig.");
@@ -89,6 +94,10 @@ export function validateEvents(value: unknown): ClubEvent[] {
       title: textValue(input.title, "Titel", 160, 1), date, startTime, endTime, meetingTime,
       location: textValue(input.location, "Ort", 180, 1), address: optionalText(input.address, "Adresse", 300) || undefined,
       description: optionalText(input.description, "Beschreibung", 5_000), trainerNote: optionalText(input.trainerNote, "Trainernotiz", 5_000) || undefined,
+      opponent: optionalText(input.opponent, "Gegner", 160) || undefined,
+      homeAway: input.homeAway === undefined || input.homeAway === null || input.homeAway === "" ? undefined : enumValue(input.homeAway, ["home", "away"] as const, "Spielort"),
+      competition: optionalText(input.competition, "Wettbewerb", 160) || undefined,
+      repeatFrequency, repeatUntil,
       maxParticipants: integerValue(input.maxParticipants, "Teilnehmerzahl", 1, 1_000), responses, trainerIds,
       weather,
     };
@@ -151,6 +160,7 @@ export function validateSettings(value: unknown): ClubSettings {
     theme: enumValue(input.theme, ["dark", "light"] as const, "Farbdesign"),
     teamFeatureEnabled: boolean("teamFeatureEnabled"), attendanceEnabled: boolean("attendanceEnabled"), waitlistEnabled: boolean("waitlistEnabled"),
     showResponsesToPlayers: boolean("showResponsesToPlayers"), automaticReminders: boolean("automaticReminders"), splitTeamsEnabled: boolean("splitTeamsEnabled"),
+    leagueMatchesEnabled: boolean("leagueMatchesEnabled"),
     trainingDeadlineHours: integerValue(input.trainingDeadlineHours, "Trainingsfrist", 0, 720),
     tournamentDeadlineHours: integerValue(input.tournamentDeadlineHours, "Turnierfrist", 0, 720),
     eventDeadlineHours: integerValue(input.eventDeadlineHours, "Ereignisfrist", 0, 720),

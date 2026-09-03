@@ -180,6 +180,9 @@ model ClubEvent {
   description           String                  @db.Text
   trainerNote           String?                 @db.Text
   trainerIds            Json                    @default("[]")
+  opponent              String?
+  homeAway              String?
+  competition           String?
   weather               Json?
   maxParticipants       Int
   responses             AttendanceResponse[]

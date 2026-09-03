@@ -56,7 +56,8 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
 
   function toggleAgeGroup(id: string) {
     if (form.ageGroupIds.includes(id) && form.ageGroupIds.length === 1) return notify("Mindestens eine Altersklasse muss aktiv bleiben.");
-    set("ageGroupIds", form.ageGroupIds.includes(id) ? form.ageGroupIds.filter((item) => item !== id) : [...form.ageGroupIds, id]);
+    const removing = form.ageGroupIds.includes(id);
+    setForm((current) => ({ ...current, ageGroupIds: removing ? current.ageGroupIds.filter((item) => item !== id) : [...current.ageGroupIds, id], ...(!removing && (ageGroups.find((item) => item.id === id)?.sortOrder ?? 0) >= 40 ? { leagueMatchesEnabled: true } : {}) }));
   }
 
   function chooseTheme(theme: ClubSettings["theme"]) {
@@ -131,6 +132,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
 
   const toggleRows: { key: keyof ClubSettings; title: string; description: string }[] = [
     { key: "splitTeamsEnabled", title: "A-/B-Teams & Spielerentwicklung", description: "Interne Spielerbewertungen sowie Team- und Trainerzuordnungen in Trainings aktivieren." },
+    { key: "leagueMatchesEnabled", title: "Ligaspiele", description: "Spieltermine mit Gegner sowie Heim- oder Auswärtsangabe im Kalender aktivieren." },
     { key: "teamFeatureEnabled", title: "Mannschaftsbereich", description: "Mannschaft, Mitgliederliste und Rollen aktivieren." },
     { key: "attendanceEnabled", title: "Zu- und Absagen", description: "Spieler können auf Termine reagieren." },
     { key: "waitlistEnabled", title: "Warteliste", description: "Interessenten bei vollem Termin vormerken." },

@@ -1,6 +1,7 @@
 export type Role = "admin" | "trainer" | "player";
 export type Attendance = "yes" | "no" | "maybe";
-export type EventType = "training" | "tournament" | "event";
+export type EventType = "training" | "tournament" | "match" | "event";
+export type RepeatFrequency = "none" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 export type InternalTeam = "A" | "B";
 
 export type ClubUser = {
@@ -69,6 +70,12 @@ export type ClubEvent = {
   description: string;
   trainerNote?: string;
   trainerIds?: string[];
+  opponent?: string;
+  homeAway?: "home" | "away";
+  competition?: string;
+  /** Only used while creating a series. Persisted occurrences are independent events. */
+  repeatFrequency?: RepeatFrequency;
+  repeatUntil?: string;
   weather?: { condition: "sunny" | "partly-cloudy" | "cloudy"; label: string; temperature: number };
   maxParticipants: number;
   responses: Record<string, Attendance>;
@@ -82,6 +89,7 @@ export type ClubSettings = {
   showResponsesToPlayers: boolean;
   automaticReminders: boolean;
   splitTeamsEnabled: boolean;
+  leagueMatchesEnabled: boolean;
   trainingDeadlineHours: number;
   tournamentDeadlineHours: number;
   eventDeadlineHours: number;
@@ -105,6 +113,7 @@ export const initialSettings: ClubSettings = {
   showResponsesToPlayers: true,
   automaticReminders: true,
   splitTeamsEnabled: true,
+  leagueMatchesEnabled: false,
   trainingDeadlineHours: 4,
   tournamentDeadlineHours: 24,
   eventDeadlineHours: 12,
@@ -127,7 +136,7 @@ export const positionOptions: Record<Role, readonly string[]> = {
   player: ["Allrounder", "Tor", "Abwehr", "Mittelfeld", "Angriff"],
 };
 export const defaultPosition: Record<Role, string> = { admin: "Vereinsadmin", trainer: "Trainer", player: "Allrounder" };
-export const eventLabels: Record<EventType, string> = { training: "Training", tournament: "Turnier", event: "Ereignis" };
+export const eventLabels: Record<EventType, string> = { training: "Training", tournament: "Turnier", match: "Ligaspiel", event: "Ereignis" };
 
 export const initialEvents: ClubEvent[] = [
   { id: "event-1", type: "training", title: "Dribbeln, Tore, Spielen", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "Sportplatz Nord, Musterstraße 12, 10115 Berlin", description: "F‑Jugend-Training mit kleinen Spielformen.", trainerNote: "Bitte zehn Minuten vor dem Treffen umgezogen am Platz sein. Trinkflasche und Schienbeinschoner nicht vergessen.", weather: { condition: "sunny", label: "Sonnig", temperature: 23 }, maxParticipants: 14, responses: { "player-1": "yes", "player-2": "yes", "player-3": "maybe", "player-4": "yes", "player-5": "no", "player-6": "yes" } },

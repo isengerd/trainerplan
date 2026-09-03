@@ -6,7 +6,7 @@ import {
   Info, KeyRound, Lock, Mail, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
   ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
-import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubSettings, type ClubUser, type EventType, type Role } from "@/data/club";
+import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
 
 export function Avatar({ user, size = "medium" }: { user: ClubUser; size?: "small" | "medium" | "large" }) {
   return user.avatar
@@ -55,7 +55,7 @@ export function TeamPage({ users, currentUser, onUsersChange, onProfile, onInvit
   </section>;
 }
 
-const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", trainerIds: [], maxParticipants: 14, responses: {} };
+const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", trainerIds: [], repeatFrequency: "none", maxParticipants: 14, responses: {} };
 
 type PlannedCalendarTraining = { date: string; title: string; startTime: string };
 
@@ -215,6 +215,15 @@ function EventEditor({ event, plannedTraining = false, settings, users, onClose,
   const deadline = form.date && form.startTime ? new Date(new Date(`${form.date}T${form.startTime}:00`).getTime() - deadlineHours * 60 * 60 * 1000) : null;
   const players = users.filter((user) => user.role === "player").length;
   const trainers = users.filter((user) => user.role === "trainer" || user.role === "admin");
+  const canRepeat = !event.id && !plannedTraining;
+  function setRepeatFrequency(value: RepeatFrequency) {
+    setForm((current) => {
+      if (value === "none") return { ...current, repeatFrequency: value, repeatUntil: undefined };
+      const start = new Date(`${current.date}T12:00:00Z`);
+      start.setUTCMonth(start.getUTCMonth() + 3);
+      return { ...current, repeatFrequency: value, repeatUntil: current.repeatUntil ?? start.toISOString().slice(0, 10) };
+    });
+  }
   function toggleTrainer(id: string) {
     const selected = form.trainerIds ?? [];
     if (selected.includes(id) && selected.length === 1 && (event.trainerIds?.length ?? 0) > 0) return setError("Der einzige verantwortliche Trainer kann nicht entfernt werden. Weise zuerst einen weiteren Trainer zu.");
@@ -226,15 +235,20 @@ function EventEditor({ event, plannedTraining = false, settings, users, onClose,
     e.preventDefault();
     if (form.meetingTime > form.startTime) return setError("Die Treffzeit muss vor dem Beginn liegen.");
     if (form.endTime <= form.startTime) return setError("Das Ende muss nach dem Beginn liegen.");
+    if (canRepeat && form.repeatFrequency !== "none" && (!form.repeatUntil || form.repeatUntil < form.date)) return setError("Bitte wähle ein gültiges Enddatum für die Wiederholung.");
     setError(""); onSave(form);
   }
   return <div className="modal-backdrop event-editor-backdrop" onMouseDown={onClose}><form className="event-editor" onSubmit={submit} onMouseDown={(e) => e.stopPropagation()}>
     <div className="editor-head"><div><span className="eyebrow">TERMINPLANUNG</span><h2>{plannedTraining ? "Training bearbeiten" : event.id ? "Termin bearbeiten" : "Neuen Termin erstellen"}</h2><p>{plannedTraining ? "Ergänze oder ändere die Termindetails des geplanten Trainings." : "Alle wichtigen Angaben für Mannschaft und Trainer."}</p></div><button type="button" onClick={onClose} aria-label="Terminplanung schließen"><X /></button></div>
-    <div className="event-type-select">{(["training", "tournament", "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => setForm((current) => ({ ...current, type, maxParticipants: type === "tournament" ? settings.defaultTournamentCapacity : type === "training" ? settings.defaultTrainingCapacity : current.maxParticipants }))} key={type}>{eventLabels[type]}</button>)}</div>
+    <div className="event-type-select">{(["training", "tournament", ...(settings.leagueMatchesEnabled ? ["match" as const] : []), "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => setForm((current) => ({ ...current, type, maxParticipants: type === "tournament" || type === "match" ? settings.defaultTournamentCapacity : type === "training" ? settings.defaultTrainingCapacity : current.maxParticipants }))} key={type}>{eventLabels[type]}</button>)}</div>
 
     <section className="event-editor-section"><header><Info /><span><strong>Informationen</strong><small>Was findet statt?</small></span></header><label><span>Name des Termins</span><input required maxLength={160} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={form.type === "training" ? "z. B. Training – Dribbling & Torschuss" : form.type === "tournament" ? "z. B. Kinderfußball-Festival" : "z. B. Mannschaftsabend"} /></label><label><span>Zusätzliche Informationen <em>optional</em></span><textarea rows={3} maxLength={5000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Ausrüstung, Ablauf oder wichtige Hinweise für das Team …" /></label></section>
 
+    {form.type === "match" && <section className="event-editor-section"><header><Trophy /><span><strong>Ligaspiel</strong><small>Gegner und Wettbewerb</small></span></header><div className="form-row"><label><span>Gegner</span><input required maxLength={160} value={form.opponent ?? ""} onChange={(e) => setForm((current) => ({ ...current, opponent: e.target.value }))} placeholder="z. B. SV Grün-Weiß" /></label><label><span>Heim oder auswärts</span><select value={form.homeAway ?? "home"} onChange={(e) => setForm((current) => ({ ...current, homeAway: e.target.value as "home" | "away" }))}><option value="home">Heimspiel</option><option value="away">Auswärtsspiel</option></select></label></div><label><span>Wettbewerb / Staffel <em>optional</em></span><input maxLength={160} value={form.competition ?? ""} onChange={(e) => setForm((current) => ({ ...current, competition: e.target.value }))} placeholder="z. B. Kreisliga Staffel 2" /></label></section>}
+
     <section className="event-editor-section"><header><Clock3 /><span><strong>Datum und Uhrzeit</strong><small>Treffen, Beginn und Ende</small></span></header><div className="editor-date-row"><label><span>Datum</span><input type="date" required value={form.date} onChange={(e) => set("date", e.target.value)} /></label><label><span>Treffen</span><input type="time" required value={form.meetingTime} onChange={(e) => set("meetingTime", e.target.value)} /></label><label><span>Beginn</span><input type="time" required value={form.startTime} onChange={(e) => set("startTime", e.target.value)} /></label><label><span>Ende</span><input type="time" required value={form.endTime} onChange={(e) => set("endTime", e.target.value)} /></label></div></section>
+
+    {canRepeat && <section className="event-editor-section event-repeat-section"><header><CalendarDays /><span><strong>Wiederholung</strong><small>Wie im Kalender: Rhythmus wählen und Ende festlegen</small></span></header><div className="event-repeat-row"><label><span>Wiederholen</span><select value={form.repeatFrequency ?? "none"} onChange={(e) => setRepeatFrequency(e.target.value as RepeatFrequency)}><option value="none">Nie</option><option value="daily">Täglich</option><option value="weekly">Wöchentlich</option><option value="biweekly">Alle zwei Wochen</option><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></label>{form.repeatFrequency && form.repeatFrequency !== "none" && <label><span>Wiederholung beenden</span><input type="date" required min={form.date} value={form.repeatUntil ?? ""} onChange={(e) => set("repeatUntil", e.target.value)} /></label>}</div>{form.repeatFrequency && form.repeatFrequency !== "none" && <p className="event-repeat-hint">Alle Termine werden bis einschließlich dieses Datums angelegt und können anschließend einzeln bearbeitet werden.</p>}</section>}
 
     <section className="event-editor-section"><header><Navigation /><span><strong>Ort und Anfahrt</strong><small>Damit alle den Treffpunkt finden</small></span></header><div className="form-row"><label><span>Ort / Platz</span><input required maxLength={180} value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="z. B. Sportplatz Nord" /></label><label><span>Vollständige Adresse <em>optional</em></span><input maxLength={300} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} placeholder="Straße, Hausnummer, PLZ, Ort" /></label></div></section>
 
