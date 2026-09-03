@@ -1322,6 +1322,35 @@ html[data-theme="light"] .profile-card input, html[data-theme="light"] .profile-
   .profile-save { width: 100%; }
 }
 .profile-card select { width: 100%; min-height: 38px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 11px; }
+.profile-heading { position: relative; align-items: center; margin-top: -46px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel-strong); box-shadow: 0 16px 40px rgba(8, 32, 18, .12); }
+.profile-heading > div:last-child { padding-bottom: 0; }
+.profile-identity { min-width: 180px; }
+.profile-identity .role-badge { margin-bottom: 2px; }
+.profile-quickfacts { display: grid; grid-template-columns: repeat(4, minmax(78px, 1fr)); gap: 8px; margin-left: auto; }
+.profile-quickfacts article { min-width: 78px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; background: color-mix(in srgb, var(--brand) 7%, var(--panel)); }
+.profile-quickfacts small, .profile-quickfacts strong { display: block; }
+.profile-quickfacts small { margin-bottom: 4px; color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.profile-quickfacts strong { color: var(--text); font-size: 13px; }
+.profile-section-title { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+.profile-section-title > svg { width: 22px; margin-top: 2px; color: var(--brand); }
+.profile-section-title h2 { margin: 3px 0 2px; }
+.profile-section-title p { margin: 0; color: var(--muted); font-size: 9px; }
+.profile-subsection-label { margin: 20px 0 10px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+html[data-theme="light"] .profile-heading { background: #fff; box-shadow: 0 16px 40px rgba(27,61,37,.1); }
+html[data-theme="light"] .profile-quickfacts article { background: #f1f8f3; }
+
+@media (max-width: 900px) {
+  .profile-heading { flex-wrap: wrap; margin: -32px 10px 22px; padding: 14px; }
+  .profile-quickfacts { order: 5; grid-template-columns: repeat(4, 1fr); width: 100%; margin: 4px 0 0; }
+}
+
+@media (max-width: 600px) {
+  .profile-heading { align-items: center; }
+  .profile-identity { min-width: 0; flex: 1; }
+  .profile-quickfacts { grid-template-columns: repeat(2, 1fr); }
+  .profile-quickfacts article { min-width: 0; }
+  .profile-section-title { margin-bottom: 16px; }
+}
 .protected-email > div { display: flex; align-items: center; gap: 8px; }
 .protected-email > div input { min-width: 0; }
 .protected-email > div button { flex: 0 0 auto; min-height: 34px; display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border: 0; border-radius: 7px; background: #183426; color: #70dc88; font-size: 8px; font-weight: 800; }
