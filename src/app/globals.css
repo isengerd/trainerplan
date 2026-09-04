@@ -1598,7 +1598,17 @@ html[data-theme="light"] .month-grid button.selected-day {
   textarea, select { font-size: 16px !important; }
 }
 
-/* Smartphone-Login: kein Marketing-Vorspann, Formular direkt im sichtbaren Bereich. */
+.standalone-login-panel form::before {
+  content: "";
+  display: block;
+  width: min(100%, 330px);
+  aspect-ratio: 3 / 2;
+  margin: 0 auto 12px;
+  background: url("/brand/nextsession-kids-login-hero.png") center / contain no-repeat;
+}
+.standalone-login-panel form > .standalone-close { position: absolute; top: 0; left: 0; z-index: 1; margin: 0; }
+
+/* Smartphone-Login: kompakte Markenbühne und Formular direkt im sichtbaren Bereich. */
 @media (max-width: 760px) {
   .standalone-login {
     height: 100dvh;
@@ -1623,7 +1633,7 @@ html[data-theme="light"] .month-grid button.selected-day {
   .standalone-login-panel form {
     width: min(100%, 420px);
     box-sizing: border-box;
-    padding: 62px 20px 20px;
+    padding: 16px 20px 20px;
     border: 1px solid #e0e8e3;
     border-radius: 20px;
     background: rgba(255,255,255,.97);
@@ -1639,7 +1649,9 @@ html[data-theme="light"] .month-grid button.selected-day {
     margin: 0;
     font-size: 27px;
   }
-  .standalone-login-panel h2 { margin: 12px 0 7px; font-size: 36px; }
+  .standalone-login-panel form::before { width: min(78%, 260px); margin-bottom: 2px; }
+  .standalone-login-panel .standalone-kicker { font-size: 9px; }
+  .standalone-login-panel h2 { margin: 8px 0 7px; font-size: 36px; }
   .standalone-intro { margin: 0 0 18px; font-size: 13px; }
   .standalone-login-panel label { margin-top: 14px; text-align: left; }
   .standalone-login-panel label > span { margin-bottom: 7px; font-size: 13px; }
