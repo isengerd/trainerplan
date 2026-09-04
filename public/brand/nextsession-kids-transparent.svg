@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 230" role="img" aria-labelledby="title description">
+  <title id="title">NextSession Kids!</title>
+  <description id="description">Taktiktafel und Fußball neben dem Schriftzug NextSession Kids!</description>
+  <defs>
+    <linearGradient id="blue" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#2784ff"/><stop offset="1" stop-color="#0755d9"/></linearGradient>
+    <linearGradient id="lime" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#8be317"/><stop offset="1" stop-color="#45ae00"/></linearGradient>
+    <linearGradient id="board" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#203d60"/><stop offset="1" stop-color="#081d3c"/></linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#0c2745" flood-opacity=".18"/></filter>
+  </defs>
+  <g filter="url(#softShadow)">
+    <path d="M20 151C53 121 89 104 129 99C92 118 68 139 55 162C84 172 116 177 152 177C95 184 50 175 20 151Z" fill="url(#blue)"/>
+    <path d="M190 77C222 92 235 116 230 146C222 126 207 113 188 107Z" fill="url(#lime)"/>
+    <g transform="rotate(5 133 99)">
+      <rect x="72" y="28" width="125" height="148" rx="18" fill="url(#board)"/>
+      <rect x="84" y="43" width="101" height="119" rx="10" fill="#fff"/>
+      <path d="M114 74l18 18m0-18l-18 18M132 111l18 18m0-18l-18 18" fill="none" stroke="#0b2446" stroke-linecap="round" stroke-width="8"/>
+      <path d="M111 145C128 135 146 117 158 87m0 0l-17 9m17-9l3 18" fill="none" stroke="url(#lime)" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+      <circle cx="103" cy="148" r="9" fill="none" stroke="#63c900" stroke-width="7"/>
+      <rect x="111" y="16" width="49" height="27" rx="8" fill="#102a4b"/>
+      <circle cx="135.5" cy="15" r="9" fill="none" stroke="#102a4b" stroke-width="7"/>
+    </g>
+    <g transform="translate(154 131)">
+      <circle r="45" fill="#fff" stroke="#0a2243" stroke-width="7"/>
+      <path d="M0-16l16 12l-6 20h-20l-6-20z" fill="#0a2243"/>
+      <path d="M0-16L-5-39M16-4l23-5M10 16l14 20M-10 16l-15 19M-16-4l-23-6" fill="none" stroke="#0a2243" stroke-width="6"/>
+    </g>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-style="italic" font-weight="900">
+    <text x="233" y="116" fill="#0a2345" font-size="70" letter-spacing="-4">Next</text>
+    <text x="374" y="116" fill="url(#blue)" font-size="70" letter-spacing="-4">Session</text>
+    <text x="407" y="188" fill="url(#lime)" font-size="67" letter-spacing="-3">Kids!</text>
+  </g>
+</svg>

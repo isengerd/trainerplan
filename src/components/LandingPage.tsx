@@ -4,7 +4,7 @@ import { ArrowRight, CalendarDays, Check, Menu, Shield, Users, X } from "lucide-
 import { useState } from "react";
 
 function Brand() {
-  return <a className="marketing-logo" href="/" aria-label="NextSession Kids! Startseite"><img src="/brand/nextsession-kids-header.png" alt="NextSession Kids!" /></a>;
+  return <a className="marketing-logo" href="/" aria-label="NextSession Kids! Startseite"><img src="/brand/nextsession-kids-transparent.svg" alt="NextSession Kids!" /></a>;
 }
 
 export function LandingPage() {

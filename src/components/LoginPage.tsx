@@ -50,7 +50,7 @@ export function LoginPage() {
 
   return <main className="standalone-login">
     <section className="standalone-login-showcase">
-      <a className="marketing-logo" href="/" aria-label="NextSession Kids! Startseite"><img src="/brand/nextsession-kids-header.png" alt="NextSession Kids!" /></a>
+      <a className="marketing-logo" href="/" aria-label="NextSession Kids! Startseite"><img src="/brand/nextsession-kids-transparent.svg" alt="NextSession Kids!" /></a>
       <div><span className="marketing-eyebrow">DEIN TEAM. DEIN TRAINING. DEINE PLANUNG.</span><h1>Alles, was dein Team braucht.</h1><p>Ein lebendiger Ort für Trainingsplanung, Termine und Mannschaft.</p><div className="login-showcase-points"><span><Shield /> Rollen und Rechte</span><span><ArrowRight /> Web-App für Trainer und Teams</span></div></div>
       <a className="back-home" href="/"><ArrowLeft /> Zur Startseite</a>
     </section>
