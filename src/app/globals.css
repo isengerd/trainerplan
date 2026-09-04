@@ -288,10 +288,11 @@ html.native-app .login-page > .login-panel > :is(form, div) { width: min(100%, 4
 }
 
 /* Öffentliche Startseite und fokussierte Anmeldung */
-.marketing-page { min-height: 100dvh; overflow: hidden; background: #f8fafb; color: #14243a; }
+.marketing-page { min-height: 100dvh; overflow: hidden; background: #f4faf6; color: #14243a; }
 .auth-loading { display: grid; place-items: center; min-height: 100dvh; background: #f7fafb; color: #6d7c8c; font-size: 14px; }
 .marketing-header { position: relative; z-index: 5; display: flex; align-items: center; gap: 28px; max-width: 1400px; margin: 0 auto; padding: 18px clamp(18px, 4vw, 64px); }
 .marketing-logo { display: inline-flex; align-items: center; gap: 9px; color: #14243a; text-decoration: none; }
+.marketing-logo > img { display: block; width: clamp(160px, 15vw, 205px); height: 54px; object-fit: contain; object-position: left center; mix-blend-mode: multiply; }
 .marketing-logo span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 11px; background: linear-gradient(145deg, #24ca70, #159752); color: #fff; font-size: 14px; font-weight: 950; letter-spacing: -.08em; }
 .marketing-logo strong { display: grid; font-size: 15px; font-weight: 900; line-height: 1; letter-spacing: -.025em; }
 .marketing-logo strong small { margin-top: 3px; color: #20a85e; font-size: 8px; font-style: italic; font-weight: 950; letter-spacing: .18em; text-transform: uppercase; }
@@ -1123,6 +1124,26 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
   .overview-squad-list > button { min-height: 51px; }
 }
 
+.passwordless-switch { display: block; width: fit-content; margin: 16px auto 0; border: 0; background: transparent; color: #21824d; font: inherit; font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.email-link-sent { display: grid; justify-items: center; gap: 8px; margin: 18px 0 8px; padding: 22px; border: 1px solid #b8dfc3; border-radius: 16px; background: #effaf2; color: #244b31; text-align: center; }
+.email-link-sent > svg { width: 36px; height: 36px; padding: 9px; border-radius: 50%; background: #d3f2dc; color: #16954a; }
+.email-link-sent h3, .email-link-sent p { margin: 0; }
+.email-link-sent p { color: #587063; font-size: 13px; line-height: 1.5; }
+.email-link-sent button { margin-top: 4px; border: 0; background: transparent; color: #187c43; font-weight: 800; text-decoration: underline; }
+
+.email-link-page { min-height: 100dvh; display: grid; place-items: center; box-sizing: border-box; padding: 24px; background: radial-gradient(circle at 50% 0, rgba(47,199,112,.16), transparent 34%), #f3f8f5; color: #17271e; }
+.email-link-card { width: min(100%, 480px); box-sizing: border-box; padding: clamp(28px, 6vw, 54px); border: 1px solid #d8e5dc; border-radius: 25px; background: rgba(255,255,255,.97); box-shadow: 0 24px 70px rgba(24,66,39,.13); text-align: center; }
+.email-link-icon { display: grid; place-items: center; width: 62px; height: 62px; margin: 0 auto 22px; border-radius: 19px; background: linear-gradient(145deg, #ddf8e5, #c8efda); color: #15974d; }
+.email-link-icon svg { width: 29px; }.email-link-icon.success { background: #dff7e7; }.email-link-icon.error { background: #fff0ef; color: #cc4c45; }
+.email-link-icon:has(.lucide-loader-circle) svg { animation: spin .9s linear infinite; }
+.email-link-card h1 { margin: 12px 0 10px; font-size: clamp(30px, 6vw, 44px); letter-spacing: -.04em; }
+.email-link-card form > p, .email-link-card > p { margin: 0 0 22px; color: #718078; line-height: 1.5; }
+.email-link-card label { display: block; text-align: left; }.email-link-card label span { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 800; }
+.email-link-card input { width: 100%; min-height: 60px; box-sizing: border-box; padding: 0 16px; border: 2px solid #dce4df; border-radius: 13px; background: #fbfdfc; color: #17271e; font: inherit; outline: none; }
+.email-link-card input:focus { border-color: #25ad5d; box-shadow: 0 0 0 4px rgba(37,173,93,.12); }
+.open-native-app { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; padding: 13px; border: 1px solid #cfe0d5; border-radius: 12px; color: #245c39; font-size: 13px; font-weight: 800; text-decoration: none; }.open-native-app svg { width: 18px; }
+.email-link-back { display: inline-block; margin-top: 20px; color: #69776f; font-size: 12px; font-weight: 700; }
+
 /* Beschriftete und vollständig klickbare Elemente brauchen keinen zusätzlichen Weiter-Pfeil. */
 .app-shell button:not([aria-label]) > svg.lucide-chevron-right,
 .app-shell a > svg.lucide-chevron-right { display: none; }
@@ -1605,8 +1626,14 @@ html[data-theme="light"] .month-grid button.selected-day {
   aspect-ratio: 3 / 2;
   margin: 0 auto 12px;
   background: url("/brand/nextsession-kids-login-hero.png") center / contain no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse 72% 78% at center, #000 58%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 78% at center, #000 58%, transparent 100%);
 }
 .standalone-login-panel form > .standalone-close { position: absolute; top: 0; left: 0; z-index: 1; margin: 0; }
+.standalone-login-panel { background: radial-gradient(circle at 50% 18%, #fff 0 30%, #f4faf6 68%, #edf6f1 100%); }
+.standalone-login-panel form > .standalone-kicker { display: none; }
+.dashboard-content aside > strong { font-size: 0; }
+.dashboard-content aside > strong::after { content: "NX"; font-size: 9px; }
 
 /* Smartphone-Login: kompakte Markenbühne und Formular direkt im sichtbaren Bereich. */
 @media (max-width: 760px) {
@@ -1636,7 +1663,7 @@ html[data-theme="light"] .month-grid button.selected-day {
     padding: 16px 20px 20px;
     border: 1px solid #e0e8e3;
     border-radius: 20px;
-    background: rgba(255,255,255,.97);
+    background: radial-gradient(circle at 50% 8%, #fff 0 28%, #f7fcf9 62%, #eff8f3 100%);
     box-shadow: 0 18px 45px rgba(30,66,45,.11);
     text-align: center;
   }
@@ -1649,8 +1676,7 @@ html[data-theme="light"] .month-grid button.selected-day {
     margin: 0;
     font-size: 27px;
   }
-  .standalone-login-panel form::before { width: min(78%, 260px); margin-bottom: 2px; }
-  .standalone-login-panel .standalone-kicker { font-size: 9px; }
+  .standalone-login-panel form::before { width: min(88%, 290px); margin: -5px auto -4px; }
   .standalone-login-panel h2 { margin: 8px 0 7px; font-size: 36px; }
   .standalone-intro { margin: 0 0 18px; font-size: 13px; }
   .standalone-login-panel label { margin-top: 14px; text-align: left; }

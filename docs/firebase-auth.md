@@ -19,6 +19,8 @@ Im Browser öffentlich und daher kein Geheimnis:
 ```env
 NEXT_PUBLIC_FIREBASE_API_KEY="..."
 NEXT_PUBLIC_AUTH_PROVIDER="firebase"
+PUBLIC_APP_URL="https://deine-domain.example"
+AUTH_RATE_LIMIT_SECRET="..."
 ```
 
 Server- und Client-Schalter müssen immer denselben Wert besitzen. Zuerst in
@@ -27,6 +29,8 @@ Preview testen. Production erst nach der Kontenmigration umschalten.
 ## Reihenfolge
 
 1. In Firebase Authentication den Anbieter **E-Mail/Passwort** aktivieren.
+   Für Passwordless zusätzlich **E-Mail-Link (passwortlose Anmeldung)** aktivieren
+   und die Domain aus `PUBLIC_APP_URL` als autorisierte Domain hinterlegen.
 2. Datenbankmigration `202609040001_firebase_auth` in Preview ausführen.
 3. Firebase-Variablen in Vercel ausschließlich für Preview eintragen.
 4. Bestehende Konten mit `npm run auth:migrate` importieren.
@@ -49,3 +53,8 @@ Kinderprofile mit `loginEnabled=false` werden bewusst nicht zu Firebase
   PostgreSQL-`Membership`-Datensätzen bestimmt.
 - Schreibzugriffe auf die API werden zusätzlich über Origin und Fetch-Metadata
   gegen Cross-Site-Anfragen geschützt.
+- Passwordless-Anfragen antworten unabhängig davon, ob ein Konto existiert,
+  gleichlautend und frühestens nach einer festen Mindestdauer. Versand und
+  Verifizierung werden zusätzlich pro IP beziehungsweise gehashter Adresse
+  begrenzt. Das Firebase-ID-Token bleibt beim E-Mail-Link vollständig auf dem
+  Server und wird direkt gegen das Session-Cookie getauscht.

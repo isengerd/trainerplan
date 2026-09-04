@@ -5,6 +5,7 @@ import { useEffect } from "react";
 export function NativeAppBridge() {
   useEffect(() => {
     let removeBackListener: (() => Promise<void>) | undefined;
+    let removeUrlListener: (() => Promise<void>) | undefined;
     const pushCleanups: Array<() => Promise<void>> = [];
 
     async function savePushToken(token: string, platform: string) {
@@ -43,6 +44,16 @@ export function NativeAppBridge() {
       });
       removeBackListener = () => listener.remove();
 
+      const urlListener = await App.addListener("appUrlOpen", ({ url }) => {
+        try {
+          const incoming = new URL(url);
+          if (incoming.protocol === "de.trainerplan.app:" && incoming.hostname === "login" && incoming.pathname === "/email-link") {
+            window.location.assign(`/login/email-link${incoming.search}`);
+          }
+        } catch { /* Unbekannte oder fehlerhafte Deep Links werden ignoriert. */ }
+      });
+      removeUrlListener = () => urlListener.remove();
+
       const auth = await fetch("/api/v1/auth/me", { credentials: "include" }).catch(() => null);
       if (!auth?.ok) return;
       const { PushNotifications } = await import("@capacitor/push-notifications");
@@ -61,7 +72,7 @@ export function NativeAppBridge() {
     }
 
     void configureNativeShell();
-    return () => { void removeBackListener?.(); pushCleanups.forEach((cleanup) => void cleanup()); };
+    return () => { void removeBackListener?.(); void removeUrlListener?.(); pushCleanups.forEach((cleanup) => void cleanup()); };
   }, []);
 
   return null;

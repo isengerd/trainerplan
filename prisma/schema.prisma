@@ -136,6 +136,15 @@ model EmailChangeRequest {
   @@index([newEmail])
 }
 
+model AuthThrottle {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
 model AgeGroup {
   id        String   @id
   name      String   @unique
