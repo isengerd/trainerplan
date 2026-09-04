@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { organizationContext, requireClubAdmin } from "@/lib/organization";
 import { ApiInputError, apiError, readJson, textValue } from "@/lib/api-security";
 
 export async function PUT(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   const admin = await requireClubAdmin(user.id);
   if (!admin) return NextResponse.json({ error: "Nur Vereinsadmins dürfen den Vereinsmodus aktivieren." }, { status: 403 });
@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   try {
     const admin = await requireClubAdmin(user.id);

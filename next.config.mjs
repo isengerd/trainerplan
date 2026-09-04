@@ -13,7 +13,7 @@ const nextConfig = {
     const contentSecurityPolicy = [
       "default-src 'self'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'", "object-src 'none'",
       "img-src 'self' data: blob:", "font-src 'self' data:", "style-src 'self' 'unsafe-inline'", scriptSource,
-      "connect-src 'self'", "frame-src https://www.youtube-nocookie.com"
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com", "frame-src https://www.youtube-nocookie.com"
     ].join("; ");
 
     const securityHeaders = [

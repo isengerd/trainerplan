@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, canManage } from "@/lib/auth";
+import { canManage, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, objectValue, readJson } from "@/lib/api-security";
 import { getEvents, saveEvents } from "@/lib/events";
 import { eventToDatabase } from "@/lib/server-data";
@@ -45,13 +45,13 @@ function expandOccurrences(event: ClubEvent) {
 }
 
 export async function GET(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   return NextResponse.json({ events: await getEvents(user) });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   if (!canManage(user.role)) return NextResponse.json({ error: "Nur Trainer und Admins dürfen Termine erstellen." }, { status: 403 });
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   if (!canManage(user.role) && user.role !== "player") return NextResponse.json({ error: "Keine Berechtigung." }, { status: 403 });
 

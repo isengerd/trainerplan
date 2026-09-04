@@ -1,4 +1,4 @@
-# Trainerplan für iOS und Android
+# NextSession Kids! für iOS und Android
 
 Die native App verwendet Capacitor und lädt die produktive Next.js-Anwendung über HTTPS. Dadurch bleiben Web-App, API und mobile App auf derselben Origin; die vorhandene HTTP-only-Cookie-Sitzung funktioniert unverändert.
 
@@ -7,7 +7,7 @@ Die native App verwendet Capacitor und lädt die produktive Next.js-Anwendung ü
 - Node.js 22 oder neuer und npm
 - iOS: aktuelles Xcode, bestätigte Xcode-Lizenz und CocoaPods/SPM-Unterstützung
 - Android: Android Studio mit aktuellem Android SDK
-- eine öffentlich erreichbare HTTPS-Installation von Trainerplan
+- eine öffentlich erreichbare HTTPS-Installation von NextSession
 
 ## Erstmalige Einrichtung
 
@@ -45,7 +45,7 @@ Für lokale Android-Emulator-Tests kann `http://10.0.2.2:3000` verwendet werden.
 ## Hinweise
 
 - Bundle-ID: `de.trainerplan.app`
-- App-Name: `Trainerplan`
+- App-Name: `NextSession Kids!`
 - Der native Zurück-Button navigiert zunächst im Verlauf und minimiert die App auf der obersten Ebene.
 - Statusleiste, Splashscreen, Safe Areas und natives Overscroll-Verhalten werden beim Start konfiguriert.
 - Vor einer Store-Einreichung müssen eigene Icons, Splash-Assets, Universal/App Links, Datenschutztexte und Signierung ergänzt werden.

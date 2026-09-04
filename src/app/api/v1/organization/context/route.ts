@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 import { organizationContext, requireClubAdmin } from "@/lib/organization";
 
 export async function PUT(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   try {
     const body = await readJson<{ teamId?: unknown }>(request, 8_192);

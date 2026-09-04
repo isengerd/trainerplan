@@ -7,6 +7,7 @@ import {
   ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
+import { firebaseClientAuthEnabled, firebasePasswordSignIn } from "@/lib/firebase-client";
 
 export function Avatar({ user, size = "medium" }: { user: ClubUser; size?: "small" | "medium" | "large" }) {
   return user.avatar
@@ -30,7 +31,7 @@ export function LoginScreen({ onLogin }: { onLogin: (email: string, password: st
   }
 
   return <main className="login-page">
-    <section className="login-brand"><span className="brand-mark"><Shield /></span><span className="eyebrow">TRAINERPLAN CLUB</span><h1>Ein Team.<br />Ein gemeinsamer Plan.</h1><p>Training, Termine und Zusagen für deine Mannschaft – übersichtlich an einem Ort.</p><div className="login-feature"><CalendarDays /><span><strong>Kalender & Termine</strong><small>Alle wissen, wann und wo es losgeht.</small></span></div><div className="login-feature"><Users /><span><strong>Mannschaft organisieren</strong><small>Rollen, Profile und Teilnahme verwalten.</small></span></div></section>
+    <section className="login-brand"><span className="brand-mark"><Shield /></span><span className="eyebrow">NEXTSESSION KIDS!</span><h1>Ein Team.<br />Ein gemeinsamer Plan.</h1><p>Training, Termine und Zusagen für deine Mannschaft – übersichtlich an einem Ort.</p><div className="login-feature"><CalendarDays /><span><strong>Kalender & Termine</strong><small>Alle wissen, wann und wo es losgeht.</small></span></div><div className="login-feature"><Users /><span><strong>Mannschaft organisieren</strong><small>Rollen, Profile und Teilnahme verwalten.</small></span></div></section>
     <section className="login-panel"><form onSubmit={submit}><span className="eyebrow">WILLKOMMEN ZURÜCK</span><h2>Anmelden</h2><p>Melde dich mit deinem persönlichen Zugang an.</p><label><span>E-Mail-Adresse</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></div></label><label><span>Passwort</span><div><Lock /><input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>{error && <div className="login-error">{error}</div>}<button className="primary login-submit" type="submit" disabled={loading}>{loading ? "Anmeldung läuft …" : <>Anmelden <ChevronRight /></>}</button><div className="login-links"><span>Zugang nur über persönliche Einladung</span></div></form></section>
   </main>;
 }
@@ -313,7 +314,8 @@ export function ProfilePage({ user, editable, canChangePassword, canRequestEmail
   async function requestEmailChange() {
     setEmailBusy(true); setMessage("");
     try {
-      const response = await fetch("/api/v1/auth/email-change", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetUserId: user.id, newEmail, currentPassword: emailPassword }) });
+      const idToken = firebaseClientAuthEnabled() ? (await firebasePasswordSignIn(form.email, emailPassword)).idToken : undefined;
+      const response = await fetch("/api/v1/auth/email-change", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetUserId: user.id, newEmail, currentPassword: firebaseClientAuthEnabled() ? undefined : emailPassword, idToken }) });
       const result = await response.json() as { error?: string; message?: string };
       if (!response.ok) return setMessage(result.error || "Bestätigungs-E-Mail konnte nicht versendet werden.");
       setMessage(result.message || "Bestätigungs-E-Mail wurde versendet."); setNewEmail(""); setEmailPassword(""); setEmailOpen(false);

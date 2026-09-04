@@ -1,10 +1,11 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
+import { createSession, firebaseAuthEnabled, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ApiInputError, clientIp, emailValue, rateLimit, readJson } from "@/lib/api-security";
 
 export async function POST(request: NextRequest) {
+  if (firebaseAuthEnabled()) return NextResponse.json({ error: "Bitte nutze die Firebase-Anmeldung." }, { status: 410 });
   let email: string;
   let password: string;
   try {

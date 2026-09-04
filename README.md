@@ -1,4 +1,4 @@
-# Trainerplan MVP
+# NextSession Kids!
 
 Responsive Fußball-Trainingsplanungsplattform mit einem API-first-Backend. Web-App und eine spätere native iOS-App verwenden dieselbe versionierte HTTP-API.
 
@@ -59,7 +59,7 @@ npm start
 ```bash
 git init
 git add .
-git commit -m "Initial Trainerplan MVP"
+git commit -m "Initial NextSession Kids!"
 ```
 
 Anschließend kann ein Remote-Repository bei GitHub, GitLab oder einer eigenen Git-Instanz hinzugefügt werden.

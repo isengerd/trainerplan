@@ -1,4 +1,4 @@
-# Trainerplan API v1
+# NextSession API v1
 
 Die maschinenlesbare Spezifikation liegt unter [`openapi.yaml`](./openapi.yaml) und kann direkt in Swagger UI, Redoc oder Xcode/OpenAPI Generator verwendet werden.
 

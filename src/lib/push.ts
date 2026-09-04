@@ -1,18 +1,12 @@
-import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getMessaging } from "firebase-admin/messaging";
 import { prisma } from "./db";
+import { firebaseAdminConfigured, firebaseAdminMessaging } from "./firebase-admin";
 
 function firebaseMessaging() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!projectId || !clientEmail || !privateKey) return null;
-  const app = getApps()[0] ?? initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-  return getMessaging(app);
+  return firebaseAdminMessaging();
 }
 
 export function pushStatus() {
-  return { configured: Boolean(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) };
+  return { configured: firebaseAdminConfigured() };
 }
 
 export async function sendPushToUsers(input: { userIds: string[]; title: string; body: string; eventId?: string }) {

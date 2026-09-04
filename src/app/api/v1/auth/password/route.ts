@@ -1,10 +1,11 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, revokeOtherSessions } from "@/lib/auth";
+import { authenticatedUser, firebaseAuthEnabled, revokeOtherSessions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ApiInputError, readJson } from "@/lib/api-security";
 
 export async function PUT(request: NextRequest) {
+  if (firebaseAuthEnabled()) return NextResponse.json({ error: "Das Passwort wird über Firebase Authentication verwaltet." }, { status: 410 });
   const user = await authenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   let currentPassword: string | undefined;

@@ -38,8 +38,8 @@ export async function sendEmailChangeMail(input: { to: string; name: string; lin
   await transport.sendMail({
     from: process.env.SMTP_FROM,
     to: input.to,
-    subject: "Neue E-Mail-Adresse für Trainerplan bestätigen",
-    text: `Hallo ${input.name},\n\n${input.requestedBy ? `${input.requestedBy} hat als Vereinsadmin eine neue E-Mail-Adresse für dein Trainerplan-Konto hinterlegt.` : "du hast eine neue E-Mail-Adresse für dein Trainerplan-Konto hinterlegt."}\n\nBitte bestätige die neue Adresse über diesen Link:\n\n${input.link}\n\nDer Link ist 60 Minuten gültig. Falls du die Änderung nicht erwartest, öffne den Link nicht und informiere deinen Verein.`,
+    subject: "Neue E-Mail-Adresse für NextSession Kids! bestätigen",
+    text: `Hallo ${input.name},\n\n${input.requestedBy ? `${input.requestedBy} hat als Vereinsadmin eine neue E-Mail-Adresse für dein NextSession-Konto hinterlegt.` : "du hast eine neue E-Mail-Adresse für dein NextSession-Konto hinterlegt."}\n\nBitte bestätige die neue Adresse über diesen Link:\n\n${input.link}\n\nDer Link ist 60 Minuten gültig. Falls du die Änderung nicht erwartest, öffne den Link nicht und informiere deinen Verein.`,
   });
 }
 
@@ -52,6 +52,6 @@ export async function sendEventMail(input: { to: string; name: string; actor: st
     from: process.env.SMTP_FROM,
     to: input.to,
     subject: `${subject}: ${input.event.title}`,
-    text: `Hallo ${input.name},\n\n${input.actor} hat den Termin „${input.event.title}“ ${action}.\n\nDatum: ${date}\nTreffen: ${input.event.meetingTime} Uhr\nBeginn: ${input.event.startTime} Uhr\nOrt: ${input.event.location}${input.event.address ? `\nAdresse: ${input.event.address}` : ""}${input.action === "deleted" ? "" : `\n\nTermin in Trainerplan öffnen: ${input.link}\n\nBitte gib deine Zu- oder Absage in Trainerplan ab.`}`,
+    text: `Hallo ${input.name},\n\n${input.actor} hat den Termin „${input.event.title}“ ${action}.\n\nDatum: ${date}\nTreffen: ${input.event.meetingTime} Uhr\nBeginn: ${input.event.startTime} Uhr\nOrt: ${input.event.location}${input.event.address ? `\nAdresse: ${input.event.address}` : ""}${input.action === "deleted" ? "" : `\n\nTermin in NextSession öffnen: ${input.link}\n\nBitte gib deine Zu- oder Absage in NextSession ab.`}`,
   });
 }

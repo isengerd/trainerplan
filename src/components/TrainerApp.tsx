@@ -18,6 +18,7 @@ import { ExerciseLibrary } from "./ExerciseBrowser";
 import { TrainingTemplates, type TrainingTemplate } from "./TrainingTemplates";
 import { TournamentPlanningPage } from "./TournamentPlanning";
 import { FirstLoginSetup } from "./FirstLoginSetup";
+import { firebaseChangePassword, firebaseClientAuthEnabled } from "@/lib/firebase-client";
 
 function localToday() {
   const parts = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date());
@@ -363,11 +364,18 @@ export function TrainerApp() {
 
   async function changePassword(currentPassword: string, newPassword: string, confirmation: string) {
     try {
+      if (newPassword !== confirmation) return "Die beiden neuen Passwörter stimmen nicht überein.";
+      if (firebaseClientAuthEnabled()) {
+        const account = users.find((entry) => entry.id === currentUserId);
+        if (!account?.email) return "Das Konto besitzt keine gültige E-Mail-Adresse.";
+        await firebaseChangePassword(account.email, currentPassword, newPassword);
+        return null;
+      }
       const response = await fetch("/api/v1/auth/password", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentPassword, newPassword, confirmation }) });
       const result = await response.json() as { error?: string };
       return response.ok ? null : result.error ?? "Passwort konnte nicht geändert werden.";
-    } catch {
-      return "Der Server ist gerade nicht erreichbar.";
+    } catch (error) {
+      return error instanceof Error ? error.message : "Das Passwort konnte nicht geändert werden.";
     }
   }
 
@@ -640,7 +648,7 @@ export function TrainerApp() {
 
   // Der Login bleibt auch während der kurzen Sitzungsprüfung bedienbar. So hängt die
   // App bei einem veralteten Browser-Bundle oder einer langsamen API nie im Splashscreen.
-  if (!authReady) return <div className="auth-loading">Trainerplan wird geladen …</div>;
+  if (!authReady) return <div className="auth-loading">NextSession wird geladen …</div>;
   if (!currentUser) return null;
   if (setupRequired) return <FirstLoginSetup user={currentUser} onComplete={loadBootstrap} />;
 
@@ -664,7 +672,7 @@ export function TrainerApp() {
   return (
     <main className="app-shell">
       <aside className="main-nav">
-        <div className="brand"><span className="brand-mark"><Shield /></span><span><strong>TRAINER</strong>PLAN</span></div>
+        <div className="brand"><span className="brand-mark"><Shield /></span><span><strong>NEXT</strong>SESSION<small>KIDS!</small></span></div>
         <span className="nav-label">MENÜ</span>
         <nav>
           <a className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><Home /> Übersicht</a>

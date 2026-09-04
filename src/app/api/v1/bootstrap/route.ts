@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, safeUser } from "@/lib/auth";
+import { safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureApplicationData, eventFromDatabase } from "@/lib/server-data";
 import { invitationDto } from "@/lib/invitations";
@@ -12,7 +12,7 @@ import { organizationContext } from "@/lib/organization";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const currentUser = await authenticatedUser(request);
+  const currentUser = await sensitiveAuthenticatedUser(request);
   if (!currentUser) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   await ensureApplicationData();
   const activeMembership = await activeClubScope(currentUser);

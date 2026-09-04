@@ -2,11 +2,12 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, createSession, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
+import { firebaseAuthEnabled, safeUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { invitationTokenHash } from "@/lib/invitations";
 import { ApiInputError, clientIp, rateLimit, readJson } from "@/lib/api-security";
 import { defaultPosition } from "@/data/club";
+import { firebaseAdminAuth } from "@/lib/firebase-admin";
 
 async function invitationForToken(token: string) {
   if (!token) return null;
@@ -24,22 +25,25 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const attempt = rateLimit(`invite-accept:${clientIp(request)}`, 12, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Versuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
-  let body: { token?: string; name?: string; password?: string } | null = null;
+  let body: { token?: string; name?: string; idToken?: string } | null = null;
   try { body = await readJson(request, 16_384); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
   const invitation = await invitationForToken(body?.token || "");
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
   const name = body?.name?.trim() || invitation.name;
   if (name.length < 2) return NextResponse.json({ error: "Bitte den Namen angeben." }, { status: 400 });
-  if (!body?.password || body.password.length < 12 || body.password.length > 256) return NextResponse.json({ error: "Das Passwort benötigt 12 bis 256 Zeichen." }, { status: 400 });
-  const currentUser = await authenticatedUser(request);
+  if (!firebaseAuthEnabled()) return NextResponse.json({ error: "Diese Einladung benötigt Firebase Authentication." }, { status: 503 });
+  if (!body?.idToken || body.idToken.length < 100 || body.idToken.length > 10_000) return NextResponse.json({ error: "Das Firebase-Token ist ungültig." }, { status: 400 });
+  const auth = firebaseAdminAuth();
+  if (!auth) return NextResponse.json({ error: "Firebase Authentication ist serverseitig nicht konfiguriert." }, { status: 503 });
+  let decoded;
+  try { decoded = await auth.verifyIdToken(body.idToken, true); }
+  catch { return NextResponse.json({ error: "Die Firebase-Anmeldung ist ungültig oder wurde widerrufen." }, { status: 401 }); }
+  const verifiedEmail = decoded.email?.trim().toLowerCase();
+  if (!verifiedEmail || verifiedEmail !== invitation.email.toLowerCase()) return NextResponse.json({ error: "Die Einladung gehört zu einer anderen E-Mail-Adresse." }, { status: 403 });
   const existingUser = await prisma.user.findUnique({ where: { email: invitation.email } });
-  if (existingUser && (!currentUser || currentUser.id !== existingUser.id)) {
-    if (!body?.password || !(await bcrypt.compare(body.password, existingUser.passwordHash))) return NextResponse.json({ error: "Bitte nutze das Passwort des bestehenden Zugangs, um die Einladung anzunehmen." }, { status: 401 });
-  }
-  if (currentUser && existingUser && currentUser.id !== existingUser.id) return NextResponse.json({ error: "Die Einladung gehört zu einer anderen E-Mail-Adresse." }, { status: 403 });
-
-  const passwordHash = await bcrypt.hash(body.password, 12);
+  if (existingUser?.firebaseUid && existingUser.firebaseUid !== decoded.uid) return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits mit einem anderen Zugang verbunden." }, { status: 409 });
+  const passwordHash = await bcrypt.hash(randomUUID(), 12);
   let user;
   try {
     user = await prisma.$transaction(async (tx) => {
@@ -47,6 +51,7 @@ export async function POST(request: NextRequest) {
       if (claimed.count !== 1) throw new ApiInputError("Diese Einladung wurde bereits verwendet.", 409);
       const member = existingUser ?? await tx.user.create({ data: {
           id: `user-${randomUUID()}`,
+          firebaseUid: decoded.uid,
           name: name.slice(0, 100),
           email: invitation.email,
           passwordHash,
@@ -56,6 +61,10 @@ export async function POST(request: NextRequest) {
           activeTeamId: invitation.teamId,
           position: defaultPosition[invitation.role],
       } });
+      if (existingUser && !existingUser.firebaseUid) {
+        const bound = await tx.user.updateMany({ where: { id: existingUser.id, firebaseUid: null }, data: { firebaseUid: decoded.uid } });
+        if (bound.count !== 1) throw new ApiInputError("Der Zugang wurde gleichzeitig anderweitig verbunden.", 409);
+      }
       if (invitation.clubId) {
         const membership = await tx.membership.findFirst({ where: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId } });
         if (membership) {
@@ -74,8 +83,5 @@ export async function POST(request: NextRequest) {
     }
     throw error;
   }
-  const session = await createSession(user.id);
-  const response = NextResponse.json({ user: safeUser(user) });
-  response.cookies.set(SESSION_COOKIE, session.token, { httpOnly: true, sameSite: "lax", secure: requestUsesHttps(request), path: "/", expires: session.expiresAt });
-  return response;
+  return NextResponse.json({ user: safeUser(user) });
 }

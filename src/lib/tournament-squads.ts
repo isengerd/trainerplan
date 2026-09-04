@@ -2,6 +2,8 @@ import type { ClubSettings, TournamentSquad } from "@/data/club";
 import { prisma } from "./db";
 import { ApiInputError, objectValue, optionalText, textValue } from "./api-security";
 import { duplicateTournamentPlayers } from "./tournament-planning";
+import type { ClubScope } from "./club-context";
+import { ensureClubConfig, scopedResourceWhere } from "./club-context";
 
 function parseSquads(value: unknown, eventId: string): TournamentSquad[] {
   if (!Array.isArray(value) || value.length > 50) throw new ApiInputError("Ungültige Mannschaftsdaten.");
@@ -21,13 +23,14 @@ function parseSquads(value: unknown, eventId: string): TournamentSquad[] {
   return squads;
 }
 
-export async function saveTournamentSquads(eventId: string, value: unknown) {
+export async function saveTournamentSquads(eventId: string, value: unknown, scope: ClubScope) {
   const squads = parseSquads(value, eventId);
   const [event, config] = await Promise.all([
-    prisma.clubEvent.findUnique({ where: { id: eventId }, select: { type: true } }),
-    prisma.appConfig.findUniqueOrThrow({ where: { id: "default" }, select: { settings: true } }),
+    prisma.clubEvent.findFirst({ where: { id: eventId, ...scopedResourceWhere(scope) }, select: { type: true } }),
+    ensureClubConfig(scope),
   ]);
   if (!event || event.type !== "tournament") throw new ApiInputError("Das ausgewählte Turnier existiert nicht.", 404);
+  if (!config) throw new ApiInputError("Die Mannschaftskonfiguration fehlt.", 404);
   const settings = config.settings as unknown as Partial<ClubSettings>;
   const maxTeamSize = settings.tournamentMaxTeamSize ?? 6;
   if (maxTeamSize > 0 && squads.some((squad) => squad.playerIds.length > maxTeamSize)) throw new ApiInputError(`Eine Mannschaft darf höchstens ${maxTeamSize} Spieler enthalten.`);
@@ -35,8 +38,8 @@ export async function saveTournamentSquads(eventId: string, value: unknown) {
   const trainerIds = [...new Set(squads.map((squad) => squad.trainerId).filter((id): id is string => Boolean(id)))];
   const playerIds = [...new Set(squads.flatMap((squad) => squad.playerIds))];
   const [validTrainers, validPlayers, existingSquads] = await Promise.all([
-    trainerIds.length ? prisma.user.findMany({ where: { id: { in: trainerIds }, role: { in: ["admin", "trainer"] } }, select: { id: true } }) : [],
-    playerIds.length ? prisma.user.findMany({ where: { id: { in: playerIds }, role: "player" }, select: { id: true } }) : [],
+    trainerIds.length ? prisma.membership.findMany({ where: { userId: { in: trainerIds }, clubId: scope.clubId, teamId: scope.teamId, status: "active", role: { in: ["admin", "trainer"] } }, select: { userId: true } }) : [],
+    playerIds.length ? prisma.membership.findMany({ where: { userId: { in: playerIds }, clubId: scope.clubId, teamId: scope.teamId, status: "active", role: "player" }, select: { userId: true } }) : [],
     prisma.tournamentSquad.findMany({ where: { id: { in: squads.map((squad) => squad.id) } }, select: { id: true, eventId: true } }),
   ]);
   if (validTrainers.length !== trainerIds.length) throw new ApiInputError("Ein ausgewählter Trainer ist ungültig.");

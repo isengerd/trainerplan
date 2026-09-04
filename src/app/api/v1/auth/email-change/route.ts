@@ -1,19 +1,20 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { firebaseAuthEnabled, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
 import { ApiInputError, emailValue, rateLimit, readJson } from "@/lib/api-security";
 import { sendEmailChangeMail, smtpStatus } from "@/lib/smtp";
 import { activeClubScope } from "@/lib/club-context";
+import { firebaseAdminAuth } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
-  const actor = await authenticatedUser(request);
+  const actor = await sensitiveAuthenticatedUser(request);
   if (!actor) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   const attempt = rateLimit(`email-change:${actor.id}`, actor.role === "admin" ? 20 : 5, 60 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Änderungsversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
 
-  let body: { targetUserId?: unknown; newEmail?: unknown; currentPassword?: unknown };
+  let body: { targetUserId?: unknown; newEmail?: unknown; currentPassword?: unknown; idToken?: unknown };
   try { body = await readJson(request, 16_384); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
 
@@ -30,7 +31,14 @@ export async function POST(request: NextRequest) {
   const targetUser = requestedTargetId === actor.id ? actor : await prisma.user.findUnique({ where: { id: requestedTargetId } });
   if (!targetUser) return NextResponse.json({ error: "Das Mitglied wurde nicht gefunden." }, { status: 404 });
   if (newEmail === targetUser.email) return NextResponse.json({ error: "Diese E-Mail-Adresse wird bereits verwendet." }, { status: 400 });
-  if (typeof body.currentPassword !== "string" || body.currentPassword.length > 256 || !(await bcrypt.compare(body.currentPassword, actor.passwordHash))) return NextResponse.json({ error: requestedTargetId === actor.id ? "Das aktuelle Passwort ist nicht korrekt." : "Das Admin-Passwort ist nicht korrekt." }, { status: 400 });
+  if (firebaseAuthEnabled()) {
+    if (typeof body.idToken !== "string" || body.idToken.length < 100 || body.idToken.length > 10_000) return NextResponse.json({ error: "Bitte bestätige die Änderung durch eine erneute Anmeldung." }, { status: 401 });
+    const auth = firebaseAdminAuth();
+    try {
+      const decoded = auth && await auth.verifyIdToken(body.idToken, true);
+      if (!decoded || decoded.uid !== actor.firebaseUid || Date.now() / 1000 - decoded.auth_time > 5 * 60) throw new Error("Reauthentication required");
+    } catch { return NextResponse.json({ error: "Die erneute Anmeldung ist ungültig oder zu alt." }, { status: 401 }); }
+  } else if (typeof body.currentPassword !== "string" || body.currentPassword.length > 256 || !(await bcrypt.compare(body.currentPassword, actor.passwordHash))) return NextResponse.json({ error: requestedTargetId === actor.id ? "Das aktuelle Passwort ist nicht korrekt." : "Das Admin-Passwort ist nicht korrekt." }, { status: 400 });
   if (await prisma.user.findUnique({ where: { email: newEmail } })) return NextResponse.json({ error: "Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet." }, { status: 409 });
   if (!smtpStatus().configured) return NextResponse.json({ error: "E-Mail-Versand ist noch nicht eingerichtet. Die Adresse wurde nicht geändert." }, { status: 503 });
 

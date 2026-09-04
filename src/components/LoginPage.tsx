@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Shield } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Shield } from "lucide-react";
 import { useState } from "react";
+import { createServerSession, firebaseClientAuthEnabled, firebasePasswordSignIn } from "@/lib/firebase-client";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,11 +13,28 @@ export function LoginPage() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setLoading(true); setError("");
-    const response = await fetch("/api/v1/auth/login", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-    const result = await response.json() as { error?: string };
-    if (!response.ok) { setError(result.error || "Anmeldung fehlgeschlagen."); setLoading(false); return; }
-    window.location.assign("/app");
+    try {
+      if (firebaseClientAuthEnabled()) {
+        const credential = await firebasePasswordSignIn(email, password);
+        await createServerSession(credential.idToken);
+      } else {
+        const response = await fetch("/api/v1/auth/login", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+        const result = await response.json() as { error?: string };
+        if (!response.ok) throw new Error(result.error || "Anmeldung fehlgeschlagen.");
+      }
+      window.location.assign("/app");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Anmeldung fehlgeschlagen.");
+      setLoading(false);
+    }
   }
 
-  return <main className="standalone-login"><section className="standalone-login-showcase"><a className="marketing-logo" href="/" aria-label="Zur Startseite"><span>TP</span><strong>TRAINERPLAN</strong></a><div><span className="marketing-eyebrow">DEIN TEAM. DEIN TRAINING. DEINE PLANUNG.</span><h1>Alles, was dein Team braucht.</h1><p>Ein ruhiger Ort für Trainingsplanung, Termine und Mannschaft.</p><div className="login-showcase-points"><span><Shield /> Rollen und Rechte</span><span><ArrowRight /> Web-App für Trainer und Teams</span></div></div><a className="back-home" href="/"><ArrowLeft /> Zur Startseite</a></section><section className="standalone-login-panel"><form onSubmit={submit}><a className="standalone-close" href="/" aria-label="Login schließen">×</a><span className="standalone-kicker">TRAINERPLAN CLUB</span><h2>Einloggen</h2><p className="standalone-intro">Melde dich mit deinem persönlichen Zugang an.</p><label><span>E-Mail</span><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><label><span>Passwort</span><div className="standalone-password"><input required type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>{error && <div className="standalone-error">{error}</div>}<button className="standalone-submit" type="submit" disabled={loading}>{loading ? "Anmeldung läuft …" : <>Einloggen <ArrowRight /></>}</button><a className="standalone-help" href="mailto:support@trainerplan.local">Probleme beim Einloggen?</a><p className="standalone-invite">Neue Zugänge werden ausschließlich über persönliche Einladungen eines Admins erstellt.</p></form></section></main>;
+  return <main className="standalone-login">
+    <section className="standalone-login-showcase">
+      <a className="marketing-logo" href="/" aria-label="NextSession Kids! Startseite"><span>NS</span><strong>NextSession<small>Kids!</small></strong></a>
+      <div><span className="marketing-eyebrow">DEIN TEAM. DEIN TRAINING. DEINE PLANUNG.</span><h1>Alles, was dein Team braucht.</h1><p>Ein ruhiger Ort für Trainingsplanung, Termine und Mannschaft.</p><div className="login-showcase-points"><span><Shield /> Rollen und Rechte</span><span><ArrowRight /> Web-App für Trainer und Teams</span></div></div>
+      <a className="back-home" href="/"><ArrowLeft /> Zur Startseite</a>
+    </section>
+    <section className="standalone-login-panel"><form onSubmit={submit}><a className="standalone-close" href="/" aria-label="Login schließen">×</a><span className="standalone-kicker">NEXTSESSION KIDS!</span><h2>Einloggen</h2><p className="standalone-intro">Melde dich mit deinem persönlichen Zugang an.</p><label><span>E-Mail</span><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><label><span>Passwort</span><div className="standalone-password"><input required type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>{error && <div className="standalone-error">{error}</div>}<button className="standalone-submit" type="submit" disabled={loading}>{loading ? "Anmeldung läuft …" : <>Einloggen <ArrowRight /></>}</button><a className="standalone-help" href="mailto:support@nextsession.app">Probleme beim Einloggen?</a><p className="standalone-invite">Neue Zugänge werden ausschließlich über persönliche Einladungen eines Admins erstellt.</p></form></section>
+  </main>;
 }

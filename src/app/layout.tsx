@@ -3,8 +3,12 @@ import { NativeAppBridge } from "@/components/NativeAppBridge";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Trainerplan MVP",
-  description: "Responsive Fußball-Trainingsplanung für Desktop und Mobilgeräte"
+  title: {
+    default: "NextSession Kids!",
+    template: "%s | NextSession Kids!",
+  },
+  applicationName: "NextSession Kids!",
+  description: "Training, Termine und Mannschaftsorganisation für den Kinderfußball",
 };
 
 export const viewport: Viewport = {

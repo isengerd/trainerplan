@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Trainerplan API
+  title: NextSession API
   version: 1.0.0
   description: |
-    Versionierte HTTP-API für die Trainerplan-Web-App und native Clients.
+    Versionierte HTTP-API für die NextSession-Web-App und native Clients.
     Browser verwenden eine HTTP-only-Cookie-Session; native Clients verwenden
     das beim Login ausgegebene Bearer-Token.
 servers:

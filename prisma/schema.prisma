@@ -27,6 +27,7 @@ enum MembershipStatus {
 
 model User {
   id                      String                  @id
+  firebaseUid             String?                 @unique
   name                    String
   email                   String                  @unique
   passwordHash            String

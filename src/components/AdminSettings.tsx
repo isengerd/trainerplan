@@ -29,7 +29,7 @@ const roleDescriptions: Record<Role, string[]> = {
 export function CalendarExportCard() {
   return <section className="settings-card settings-wide calendar-export-card">
     <div className="settings-title"><CalendarDays /><span><h2>Kalender exportieren</h2><p>Lade alle Termine als iCalendar-Datei für Apple Kalender, Google Kalender oder Outlook herunter.</p></span></div>
-    <div className="calendar-export-content"><span><strong>Trainerplan-Kalender (.ics)</strong><small>Der Export enthält den aktuellen Stand. Für spätere Änderungen lädst du die Datei erneut herunter.</small></span><a className="primary" href="/api/v1/calendar.ics" download><Download /> Kalender herunterladen</a></div>
+    <div className="calendar-export-content"><span><strong>NextSession-Kalender (.ics)</strong><small>Der Export enthält den aktuellen Stand. Für spätere Änderungen lädst du die Datei erneut herunter.</small></span><a className="primary" href="/api/v1/calendar.ics" download><Download /> Kalender herunterladen</a></div>
   </section>;
 }
 

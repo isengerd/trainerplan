@@ -5,7 +5,7 @@ const serverUrl = process.env.CAPACITOR_SERVER_URL?.trim() || process.env.PUBLIC
 
 const config: CapacitorConfig = {
   appId: "de.trainerplan.app",
-  appName: "Trainerplan",
+  appName: "NextSession Kids!",
   appendUserAgent: "TrainerplanNative/1.0",
   webDir: ".capacitor-web",
   ...(serverUrl ? {

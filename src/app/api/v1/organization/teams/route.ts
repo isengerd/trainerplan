@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 import { isFirstTeamAgeGroup } from "@/lib/age-groups";
@@ -7,7 +7,7 @@ import { organizationContext, requireClubAdmin } from "@/lib/organization";
 import { Prisma } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   try {
     const admin = await requireClubAdmin(user.id);

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Trainerplan</string>
-    <string name="title_activity_main">Trainerplan</string>
+    <string name="app_name">NextSession Kids!</string>
+    <string name="title_activity_main">NextSession Kids!</string>
     <string name="package_name">de.trainerplan.app</string>
     <string name="custom_url_scheme">de.trainerplan.app</string>
 </resources>

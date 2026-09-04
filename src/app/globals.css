@@ -293,7 +293,8 @@ html.native-app .login-page > .login-panel > :is(form, div) { width: min(100%, 4
 .marketing-header { position: relative; z-index: 5; display: flex; align-items: center; gap: 28px; max-width: 1400px; margin: 0 auto; padding: 18px clamp(18px, 4vw, 64px); }
 .marketing-logo { display: inline-flex; align-items: center; gap: 9px; color: #14243a; text-decoration: none; }
 .marketing-logo span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 11px; background: linear-gradient(145deg, #24ca70, #159752); color: #fff; font-size: 14px; font-weight: 950; letter-spacing: -.08em; }
-.marketing-logo strong { font-size: 14px; font-weight: 950; letter-spacing: .13em; }
+.marketing-logo strong { display: grid; font-size: 15px; font-weight: 900; line-height: 1; letter-spacing: -.025em; }
+.marketing-logo strong small { margin-top: 3px; color: #20a85e; font-size: 8px; font-style: italic; font-weight: 950; letter-spacing: .18em; text-transform: uppercase; }
 .marketing-header nav { display: flex; align-items: center; gap: 26px; margin-left: auto; }
 .marketing-header nav a, .marketing-login { color: #536174; font-size: 13px; font-weight: 750; text-decoration: none; }
 .marketing-header nav a:hover, .marketing-login:hover { color: #14243a; }
@@ -545,6 +546,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--brand); out
 .main-nav { position: sticky; top: 0; height: 100vh; border-right: 1px solid var(--line); padding: 25px 16px 18px; display: flex; flex-direction: column; background: rgba(6, 17, 14, .94); }
 .brand { display: flex; align-items: center; gap: 10px; color: white; font-size: 15px; letter-spacing: -.02em; }
 .brand > span:last-child { font-weight: 350; }
+.brand > span:last-child small { display: block; margin-top: 2px; color: #61e885; font-size: 7px; font-style: italic; font-weight: 900; letter-spacing: .16em; }
 .brand-mark { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 10px; background: linear-gradient(140deg, #61e885, #23934a); box-shadow: 0 6px 24px rgba(60, 220, 103, .18); }
 .brand-mark svg { width: 21px; fill: rgba(0, 0, 0, .13); color: white; }
 .nav-label { margin: 46px 10px 10px; color: #4f6a61; font-size: 9px; font-weight: 800; letter-spacing: .15em; }

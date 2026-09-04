@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, canManage } from "@/lib/auth";
+import { canManage, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { apiError, objectValue, readJson } from "@/lib/api-security";
 import { getEvents } from "@/lib/events";
 import { prisma } from "@/lib/db";
@@ -12,7 +12,7 @@ import { applicationUrl } from "@/lib/invitations";
 type Context = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, context: Context) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   if (!canManage(user.role)) return NextResponse.json({ error: "Nur Trainer und Admins dürfen Termine ändern." }, { status: 403 });
 
@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest, context: Context) {
 }
 
 export async function DELETE(request: NextRequest, context: Context) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   if (!canManage(user.role)) return NextResponse.json({ error: "Nur Trainer und Admins dürfen Termine löschen." }, { status: 403 });
 

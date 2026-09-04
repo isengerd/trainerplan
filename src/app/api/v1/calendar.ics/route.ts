@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Trainerplan//Mannschaftskalender//DE",
+    "PRODID:-//NextSession Kids!//Mannschaftskalender//DE",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Trainerplan",
+    "X-WR-CALNAME:NextSession Kids!",
     "X-WR-TIMEZONE:Europe/Berlin",
     ...events.flatMap((event) => [
       "BEGIN:VEVENT",
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       `DTEND;TZID=Europe/Berlin:${localDateTime(event.date, event.endTime)}`,
       `SUMMARY:${escapeIcs(event.title)}`,
       `LOCATION:${escapeIcs([event.location, event.address].filter(Boolean).join(", "))}`,
-      `DESCRIPTION:${escapeIcs(event.description || "Termin aus Trainerplan")}`,
+      `DESCRIPTION:${escapeIcs(event.description || "Termin aus NextSession")}`,
       "END:VEVENT",
     ]),
     "END:VCALENDAR",
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(lines.map(foldLine).join("\r\n"), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="trainerplan-kalender.ics"',
+      "Content-Disposition": 'attachment; filename="nextsession-kalender.ics"',
       "Cache-Control": "private, no-store",
     },
   });
