@@ -1,6 +1,6 @@
-type Player = { x: number; y: number; toX: number; toY: number; team: "yellow" | "blue"; delay?: number };
+type Player = { x: number; y: number; toX: number; toY: number; team: "yellow" | "blue" | "red" | "keeper"; delay?: number };
 type Route = { x1: number; y1: number; x2: number; y2: number; kind?: "run" | "ball" };
-type Scene = { title: string; players: Player[]; routes: Route[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean };
+type Scene = { title: string; players: Player[]; routes: Route[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean; zones?: { labels: [string, string] } };
 
 const scenes: Scene[] = [
   {
@@ -187,6 +187,23 @@ const scenes: Scene[] = [
     players: [{ x: 24, y: 50, toX: 32, toY: 50, team: "yellow" }], routes: [{ x1: 27, y1: 50, x2: 76, y2: 34, kind: "ball" }], ball: { x: 28, y: 50, toX: 74, toY: 35 },
     cones: [{ x: 76, y: 25 }, { x: 76, y: 38 }, { x: 76, y: 51 }, { x: 76, y: 64 }, { x: 76, y: 77 }, { x: 18, y: 42 }, { x: 18, y: 58 }],
   },
+  {
+    title: "2 gegen 2 + TW: freie Räume statt Rudel",
+    players: [
+      { x: 28, y: 30, toX: 34, toY: 40, team: "blue" }, { x: 30, y: 68, toX: 39, toY: 61, team: "red", delay: -.35 },
+      { x: 70, y: 31, toX: 62, toY: 40, team: "red", delay: -.7 }, { x: 72, y: 68, toX: 63, toY: 59, team: "blue", delay: -1.05 },
+      { x: 50, y: 9, toX: 50, toY: 12, team: "keeper", delay: -.2 }, { x: 50, y: 91, toX: 50, toY: 88, team: "keeper", delay: -.85 },
+    ],
+    routes: [
+      { x1: 50, y1: 12, x2: 28, y2: 30, kind: "ball" },
+      { x1: 28, y1: 30, x2: 72, y2: 68, kind: "ball" },
+      { x1: 72, y1: 68, x2: 50, y2: 88, kind: "ball" },
+    ],
+    ball: { x: 29, y: 31, toX: 70, toY: 66 },
+    goals: [{ x: 50, y: 6 }, { x: 50, y: 94 }],
+    cones: [{ x: 50, y: 18 }, { x: 50, y: 30 }, { x: 50, y: 42 }, { x: 50, y: 58 }, { x: 50, y: 70 }, { x: 50, y: 82 }],
+    zones: { labels: ["ZONE A", "ZONE B"] },
+  },
 ];
 
 type PitchProps = { variant?: number; animated?: boolean; label?: string; caption?: string };
@@ -201,6 +218,7 @@ export function Pitch({ variant = 0, animated = false, label, caption }: PitchPr
         {scene.routes.map((route, index) => <line key={index} className={route.kind === "ball" ? "ball-route" : "run-route"} x1={route.x1} y1={route.y1} x2={route.x2} y2={route.y2} markerEnd={`url(#route-arrow-${variant})`} />)}
       </svg>
       {scene.goals?.map((goal, index) => <span key={`goal-${index}`} className={`scene-goal ${goal.vertical ? "vertical" : ""}`} style={{ left: `${goal.x}%`, top: `${goal.y}%` }} />)}
+      {scene.zones && <><span className="scene-zone-label zone-a">{scene.zones.labels[0]}</span><span className="scene-zone-label zone-b">{scene.zones.labels[1]}</span></>}
       {scene.river && <span className="scene-river"><i>KROKODIL-ZONE</i></span>}
       {scene.bridges?.map((bridge, index) => <span key={`bridge-${index}`} className="scene-bridge" style={{ left: `${bridge.x}%`, top: `${bridge.y}%`, transform: `translate(-50%, -50%) rotate(${bridge.rotate ?? 0}deg)` }}><i /><b /></span>)}
       {scene.poleGates?.map((gate, index) => <span key={`pole-gate-${index}`} className={`scene-pole-gate ${gate.active ? "active" : ""}`} style={{ left: `${gate.x}%`, top: `${gate.y}%`, transform: `translate(-50%, -50%) rotate(${gate.rotate ?? 0}deg)`, "--gate-color": gate.color ?? "#ffcf57" } as React.CSSProperties}><i /><b /></span>)}
