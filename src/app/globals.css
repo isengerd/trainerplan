@@ -380,15 +380,14 @@ html.native-app .login-page > .login-panel > :is(form, div) { width: min(100%, 4
   .settings-page > .module-hero { display: none; }
   .settings-page > .settings-subnav { display: none; }
   .desktop-settings-nav {
-    position: sticky;
-    top: 88px;
-    z-index: 25;
+    position: relative;
+    z-index: 1;
     display: flex;
     width: auto;
     box-sizing: border-box;
     align-items: stretch;
     gap: 24px;
-    margin: -28px -32px 24px;
+    margin: 0 -32px 24px;
     padding: 0 32px;
     overflow-x: auto;
     border: 0;
@@ -951,6 +950,7 @@ html[data-theme="light"] :where(h1,h2,h3,h4,strong,.brand,.unified-card-title,.e
 html[data-theme="light"] .eyebrow { color: #63806d; }
 html[data-theme="light"] .ghost, html[data-theme="light"] .top-actions button:not(.primary), html[data-theme="light"] .plan-template-tools > button { border-color: #d9e4dc; background: #f3f7f4; color: #3f5547; }
 html[data-theme="light"] .date-strip-row, html[data-theme="light"] .week-strip { border-color: #dce5df; background: #fff; } html[data-theme="light"] .week-strip button { border-color: #e1e8e3; color: #52645a; } html[data-theme="light"] .week-strip .selected { background: #daf2e0; color: #173b22; } html[data-theme="light"] .week-strip .today:not(.selected) { background: #edf7ef; }
+html[data-theme="light"] .today-button { border-color: #8dcea0; background: linear-gradient(145deg, #e9f8ed, #d9f1df); color: #18733a; box-shadow: 0 4px 12px rgba(28,119,58,.08); }
 html[data-theme="light"] .plan-only-layout .plan-panel { background: #fff; box-shadow: 0 18px 55px rgba(27,61,37,.08); }
 html[data-theme="light"] .phase-block { background: #f4f8f5; } html[data-theme="light"] .phase-block > header { background: #e5f3e8; } html[data-theme="light"] .phase-block > header button { background: #cdebd5; color: #245f35; } html[data-theme="light"] .phase-dropzone { border-color: #a9cdb2; background: #fbfdfb; color: #496553; } html[data-theme="light"] .phase-dropzone:hover { background: #edf8ef; color: #173b22; }
 html[data-theme="light"] .exercise { border-color: #e5ebe7; } html[data-theme="light"] .phase-select { border-color: #d3dfd6; background: #f0f6f1; color: #385043; } html[data-theme="light"] .remove-button { background: #f9eceb; color: #c45750; }
@@ -1905,7 +1905,7 @@ html[data-theme="light"] .month-grid button.selected-day {
 .add-squad-card { min-height: 270px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border: 1px dashed #3c6248; color: #70df8a; }.add-squad-card > svg { width: 28px; }.add-squad-card strong { font-size: 11px; }.add-squad-card small { color: var(--muted); font-size: 8px; }
 .tournament-empty { min-height: 330px; display: grid; place-items: center; align-content: center; padding: 30px; border: 1px dashed var(--line); border-radius: 15px; background: var(--panel); text-align: center; }.tournament-empty > svg { width: 38px; color: var(--brand); }.tournament-empty h2 { margin: 13px 0 6px; }.tournament-empty p { max-width: 430px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }.tournament-empty button { min-height: 44px; margin-top: 16px; padding: 10px 15px; border-radius: 9px; }
 
-.squad-editor-backdrop { align-items: center; justify-content: center; padding: 18px; }.squad-editor, .tournament-create { width: min(760px, 100%); max-height: min(92vh, 900px); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: 0 32px 100px rgba(0,0,0,.48); }.squad-editor > header, .tournament-create > header { display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid var(--line); }.squad-editor > header h2, .tournament-create > header h2 { margin: 4px 0 0; font-size: 21px; }.squad-editor > header button, .tournament-create > header button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--panel-strong); }.squad-editor > header svg, .tournament-create > header svg { width: 18px; }
+.squad-editor-backdrop { z-index: 200; align-items: center; justify-content: center; padding: 18px; }.squad-editor, .tournament-create { width: min(760px, 100%); max-height: min(92vh, 900px); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: 0 32px 100px rgba(0,0,0,.48); }.squad-editor > header, .tournament-create > header { display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid var(--line); }.squad-editor > header h2, .tournament-create > header h2 { margin: 4px 0 0; font-size: 21px; }.squad-editor > header button, .tournament-create > header button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--panel-strong); }.squad-editor > header svg, .tournament-create > header svg { width: 18px; }
 .squad-editor-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 20px 5px; }.squad-editor-fields label, .tournament-create > label, .tournament-create .form-row label { display: grid; gap: 6px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: #0c1914; }.squad-editor-fields label > span, .tournament-create label > span { color: var(--muted); font-size: 8px; font-weight: 700; }.squad-editor-fields input, .squad-editor-fields select, .tournament-create input { width: 100%; min-height: 28px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 11px; }
 .player-picker { min-height: 0; display: flex; flex: 1; flex-direction: column; margin: 10px 20px 0; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; }.player-picker-title { display: flex; align-items: center; gap: 10px; padding: 10px; background: #0d1b16; }.player-picker-title > div { flex: 1; }.player-picker-title strong, .player-picker-title small { display: block; }.player-picker-title strong { font-size: 10px; }.player-picker-title small { margin-top: 2px; color: var(--muted); font-size: 8px; }.player-picker-title label { min-height: 40px; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 8px; background: #14251d; }.player-picker-title label svg { width: 15px; color: var(--muted); }.player-picker-title input { width: 190px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 9px; }
 .age-filter-row { display: flex; gap: 5px; overflow-x: auto; padding: 8px 10px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }.age-filter-row button { min-height: 36px; flex: 0 0 auto; padding: 7px 10px; border: 0; border-radius: 99px; background: #17271f; color: var(--muted); font-size: 8px; }.age-filter-row button.active { background: #245f36; color: #83e99a; }

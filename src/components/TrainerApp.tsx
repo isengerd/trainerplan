@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, CreditCard, Dumbbell, Edit3,
-  Home, Library, LogOut, MapPin, Menu, MoreVertical, Plus, Settings, Share2, Shield,
+  Home, Library, LogOut, MapPin, Menu, MoreVertical, Plus, Settings, Shield,
   Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
@@ -690,7 +690,7 @@ export function TrainerApp() {
           <div><span className="eyebrow">{organization?.clubName ?? clubSettings.clubName} · {organization?.teams.find((team) => team.id === organization.activeTeamId)?.name ?? clubSettings.teamName}</span><h1>{viewTitle}</h1><p>{view === "plan" ? `${days[0].full} – ${days[days.length - 1].full}` : view === "calendar" ? "Termine und Verfügbarkeiten" : view === "settings" ? "Mannschaft und Zugänge verwalten" : view === "license" ? "Tarif und Vertragsdaten verwalten" : "Dein Team auf einen Blick"}</p></div>
           <div className="top-actions">
             {(organization?.teams.length ?? 0) > 1 && <label className="team-switcher"><span>Mannschaft</span><select value={organization?.activeTeamId ?? ""} onChange={(event) => void switchTeam(event.target.value)}>{organization?.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
-            {view === "plan" && canManageClub && <><button className="ghost"><Share2 /> <span>Teilen</span></button><button className={`auto-save-status ${planSaveState}`} onClick={planSaveState === "error" ? retryPlanSave : undefined} disabled={planSaveState !== "error"}><Check /><span>{planSaveState === "saving" ? "Wird gespeichert …" : planSaveState === "error" ? "Erneut versuchen" : "Automatisch gespeichert"}</span></button></>}
+            {view === "plan" && canManageClub && planSaveState === "error" && <button className="auto-save-status error" onClick={retryPlanSave}><Check /><span>Speichern fehlgeschlagen – erneut versuchen</span></button>}
             <div className="account-menu-wrap">
               <button className="avatar top-avatar" onClick={() => setAccountMenuOpen((open) => !open)} aria-label="Benutzermenü öffnen" aria-expanded={accountMenuOpen}><Avatar user={currentUser} size="small" /></button>
               {accountMenuOpen && <div className="account-menu" role="menu" onMouseDown={(event) => event.stopPropagation()}>
@@ -749,7 +749,7 @@ export function TrainerApp() {
             {canManageClub && <div className="plan-template-tools">
               <button onClick={() => { setTemplateMode("browse"); setTemplateOpen(true); }}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>
               <button onClick={() => { setTemplateMode("save"); setTemplateOpen(true); }}><BookmarkPlus /> <span><strong>Als Vorlage sichern</strong><small>Komplett oder einzelne Phase</small></span></button>
-              <div className={`mobile-plan-save auto-save-info ${planSaveState}`}><Check /> <span><strong>{planSaveState === "saving" ? "Wird gespeichert …" : planSaveState === "error" ? "Speichern fehlgeschlagen" : "Automatisch gespeichert"}</strong><small>{planSaveState === "error" ? "Antippen zum Wiederholen" : "Jede Änderung bleibt dauerhaft erhalten"}</small></span>{planSaveState === "error" && <button onClick={retryPlanSave}>Erneut</button>}</div>
+              {planSaveState === "error" && <div className="mobile-plan-save auto-save-info error"><Check /> <span><strong>Speichern fehlgeschlagen</strong><small>Bitte erneut versuchen.</small></span><button onClick={retryPlanSave}>Erneut</button></div>}
             </div>}
             <div className="plan-heading">
               <div><span className="eyebrow">{currentDay.time} UHR · DAUER {total} MIN</span><h2>{currentPlanMeta.name}</h2><p>{currentDay.full} · Sportplatz Nord</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
