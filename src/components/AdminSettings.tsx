@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CalendarDays, Check, Clipboard, Clock3, CreditCard, Download, FileText, Link2, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, Users } from "lucide-react";
-import { defaultPosition, roleLabels, type AgeGroupOption, type ClubInvitation, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
+import { Bell, CalendarDays, Check, Clock3, CreditCard, Download, FileText, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, Users } from "lucide-react";
+import { defaultPosition, roleLabels, type AgeGroupOption, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
 
 type Props = {
   settings: ClubSettings;
@@ -10,7 +10,6 @@ type Props = {
   users: ClubUser[];
   groups: TeamGroup[];
   ageGroups: AgeGroupOption[];
-  invitations: ClubInvitation[];
   smtp: SmtpStatus;
   push: PushStatus;
   organization: OrganizationContext | null;
@@ -88,11 +87,10 @@ export function LicensePage({ organization, ageGroups, onReload }: { organizatio
   </section>;
 }
 
-export function AdminSettingsPage({ settings, currentUser, users, groups, ageGroups, invitations, smtp, push, organization, onSave, onUsersChange, onReload }: Props) {
+export function AdminSettingsPage({ settings, currentUser, users, groups, ageGroups, smtp, push, organization, onSave, onUsersChange, onReload }: Props) {
   const [form, setForm] = useState(settings);
   const [groupForm, setGroupForm] = useState(groups);
   const [newTeam, setNewTeam] = useState({ name: "", ageGroup: ageGroups[0]?.id ?? "f1" });
-  const [inviteLink, setInviteLink] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [desktopSection, setDesktopSection] = useState<"general" | "members" | "calendar" | "groups" | "communication">("general");
@@ -128,31 +126,6 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
 
   function updateMembership(userId: string, patch: Partial<Pick<ClubUser, "role" | "groupId" | "ageGroup">>) {
     onUsersChange(users.map((user) => user.id === userId ? { ...user, ...patch, ...(patch.role ? { position: defaultPosition[patch.role] } : {}) } : user));
-  }
-
-  async function copyLink(link: string) {
-    try {
-      if (navigator.clipboard) await navigator.clipboard.writeText(link);
-      else {
-        const textarea = document.createElement("textarea"); textarea.value = link; document.body.appendChild(textarea); textarea.select(); document.execCommand("copy"); textarea.remove();
-      }
-      notify("Einladungslink kopiert.");
-    } catch { notify("Link markieren und manuell kopieren."); }
-  }
-
-  async function removeInvitation(id: string) {
-    const response = await fetch(`/api/v1/invitations/${id}`, { method: "DELETE" });
-    if (!response.ok) return notify("Einladung konnte nicht gelöscht werden.");
-    notify("Einladung zurückgezogen."); onReload();
-  }
-
-  async function renewInvitation(item: ClubInvitation) {
-    setBusy(true);
-    const response = await fetch(`/api/v1/invitations/${item.id}`, { method: "POST" });
-    const result = await response.json() as { error?: string; link?: string };
-    setBusy(false);
-    if (!response.ok || !result.link) return notify(result.error || "Link konnte nicht erneuert werden.");
-    setInviteLink(result.link); notify("Neuer Einladungslink erstellt."); onReload();
   }
 
   async function testSmtp() {
@@ -203,8 +176,6 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
     { title: "Rollen & Rechte", label: "Mitglieder" },
     { title: "Turniere & Mannschaftsplanung", label: "Turniere" },
     ...(organization?.isClubAdmin ? [{ title: "Funktionsgruppen", label: "Gruppen" }] : []),
-    { title: "Spieler einladen", label: "Einladungen" },
-    { title: "Kind & Elternzugang", label: "Kinder" },
     ...(organization?.isClubAdmin ? [{ title: "SMTP-Server", label: "Kommunikation" }] : []),
     { title: "Module & Sichtbarkeit", label: "Module" },
     { title: "Mannschaft & Standards", label: "Mannschaft" },
@@ -216,12 +187,12 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
   }
 
   return <section className="settings-page module-page">
-    <div className="module-hero"><div><span className="eyebrow">ADMINISTRATION</span><h1>Einstellungen</h1><p>Mannschaft, Mitglieder, Rechte und Einladungen zentral verwalten.</p></div><button className="primary" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> Speichern</button></div>
+    <div className="module-hero"><div><span className="eyebrow">ADMINISTRATION</span><h1>Einstellungen</h1><p>Mannschaft, Mitglieder, Rechte und Standards zentral verwalten.</p></div><button className="primary" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> Speichern</button></div>
 
     <nav className="desktop-settings-nav" aria-label="Einstellungsbereiche">
       <span>MANNSCHAFT</span>
       <button className={desktopSection === "general" ? "active" : ""} onClick={() => setDesktopSection("general")}><Settings /> <span><strong>Allgemein</strong><small>Darstellung und Standards</small></span></button>
-      <button className={desktopSection === "members" ? "active" : ""} onClick={() => setDesktopSection("members")}><Users /> <span><strong>Mitglieder</strong><small>Rollen und Einladungen</small></span></button>
+      <button className={desktopSection === "members" ? "active" : ""} onClick={() => setDesktopSection("members")}><Users /> <span><strong>Mitglieder</strong><small>Rollen und Profile</small></span></button>
       <button className={desktopSection === "calendar" ? "active" : ""} onClick={() => setDesktopSection("calendar")}><CalendarDays /> <span><strong>Termine</strong><small>Kalender und Turniere</small></span></button>
       {organization?.isClubAdmin && <><span>VEREIN</span><button className={desktopSection === "groups" ? "active" : ""} onClick={() => setDesktopSection("groups")}><Users /> <span><strong>Gruppen</strong><small>Vereinsweite Gruppen</small></span></button><button className={desktopSection === "communication" ? "active" : ""} onClick={() => setDesktopSection("communication")}><Mail /> <span><strong>Kommunikation</strong><small>E-Mail und Push</small></span></button></>}
       <button className="desktop-settings-save" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> <span><strong>Speichern</strong><small>Änderungen übernehmen</small></span></button>
@@ -246,8 +217,6 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
       <section className="settings-card"><div className="settings-title"><Server /><span><h2>SMTP-Server</h2><p>Zugangsdaten werden sicher über Umgebungsvariablen bereitgestellt.</p></span></div><div className={`smtp-status ${smtp.configured ? "ready" : "missing"}`}><i /><span><strong>{smtp.configured ? "SMTP konfiguriert" : "SMTP noch nicht konfiguriert"}</strong><small>{smtp.configured ? `${smtp.host}:${smtp.port} · ${smtp.from}` : "SMTP_HOST und SMTP_FROM in der Umgebung setzen."}</small></span></div><button className="smtp-test" disabled={!smtp.configured || busy} onClick={testSmtp}><RefreshCw /> Verbindung testen</button></section>
 
       <section className="settings-card"><div className="settings-title"><Bell /><span><h2>Push-Benachrichtigungen</h2><p>Firebase-Verbindung und dein aktuelles Gerät testen.</p></span></div><div className={`smtp-status ${push.configured && push.devices > 0 ? "ready" : "missing"}`}><i /><span><strong>{!push.configured ? "Firebase noch nicht konfiguriert" : push.devices > 0 ? "Push ist bereit" : "Noch kein Gerät registriert"}</strong><small>{push.configured ? `${push.devices} Gerät${push.devices === 1 ? "" : "e"} mit deinem Konto verbunden` : "Firebase-Variablen in Vercel prüfen."}</small></span></div><button className="smtp-test" disabled={!push.configured || push.devices < 1 || busy} onClick={testPush}><Bell /> Test-Push senden</button></section>
-
-      <section className="settings-card settings-wide"><div className="settings-title"><Mail /><span><h2>Offene Einladungen</h2><p>Neue Personen lädst du direkt auf der Mannschaftsseite ein. Hier verwaltest du nur noch offene Links.</p></span></div>{inviteLink && <div className="generated-link"><Link2 /><span><strong>Neuer Einladungslink</strong><input readOnly value={inviteLink} onFocus={(event) => event.currentTarget.select()} /></span><button onClick={() => copyLink(inviteLink)}><Link2 /> Link kopieren</button></div>}<div className="invitation-list">{invitations.filter((item) => !item.acceptedAt).map((item) => <article key={item.id}><span className={`role-badge ${item.role}`}>{roleLabels[item.role]}</span><span><strong>{item.name || item.email}</strong><small>{item.name ? item.email : groups.find((group) => group.id === item.groupId)?.name || "Ohne Gruppe"} · bis {new Date(item.expiresAt).toLocaleDateString("de-DE")}</small></span><span className="invitation-actions"><button title="Neuen Link erzeugen" disabled={busy} onClick={() => renewInvitation(item)}><RefreshCw /></button><button title="Einladung zurückziehen" onClick={() => removeInvitation(item.id)}><Trash2 /></button></span></article>)}{!invitations.some((item) => !item.acceptedAt) && <p className="empty-invitations">Keine offenen Einladungen.</p>}</div></section>
 
       <section className="settings-card"><div className="settings-title"><Shield /><span><h2>Module & Sichtbarkeit</h2></span></div><div className="toggle-list">{toggleRows.map((row) => <label key={row.key}><span><strong>{row.title}</strong><small>{row.description}</small></span><input type="checkbox" checked={Boolean(form[row.key])} onChange={(event) => set(row.key, event.target.checked as never)} /><i /></label>)}</div></section>
       <section className="settings-card"><div className="settings-title"><Clock3 /><span><h2>Rückmeldefristen</h2></span></div><div className="deadline-grid"><label><span>Training</span><div><input type="number" min="0" value={form.trainingDeadlineHours} onChange={(event) => set("trainingDeadlineHours", Number(event.target.value))} /><small>Std.</small></div></label><label><span>Turnier</span><div><input type="number" min="0" value={form.tournamentDeadlineHours} onChange={(event) => set("tournamentDeadlineHours", Number(event.target.value))} /><small>Std.</small></div></label><label><span>Ereignis</span><div><input type="number" min="0" value={form.eventDeadlineHours} onChange={(event) => set("eventDeadlineHours", Number(event.target.value))} /><small>Std.</small></div></label></div><div className="settings-hint"><Bell /><span>Nach Ablauf können nur Trainer und Admins ändern.</span></div></section>

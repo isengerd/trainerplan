@@ -665,7 +665,7 @@ export function TrainerApp() {
           ? <LicensePage organization={organization} ageGroups={ageGroups} onReload={() => void loadBootstrap()} />
         : view === "settings"
           ? currentUser.role === "admin"
-            ? <AdminSettingsPage settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} invitations={invitations} smtp={smtp} push={push} organization={organization} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
+            ? <AdminSettingsPage settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} smtp={smtp} push={push} organization={organization} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
             : <UserSettingsPage />
           : null;
 
