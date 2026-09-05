@@ -658,7 +658,7 @@ export function TrainerApp() {
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} onPlansChange={updateTournamentPlan} onCreateTournament={createTournament} />
     : view === "team"
-      ? (clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? <TeamPage users={users} currentUser={currentUser} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} onInvite={() => setView("settings")} /> : overview)
+      ? (clubSettings.teamFeatureEnabled || currentUser.role === "admin" ? <TeamPage users={users} currentUser={currentUser} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} smtpConfigured={smtp.configured} onInvited={() => void loadBootstrap()} /> : overview)
       : view === "profile" && profileUser
         ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={!profileUser.managedProfile && profileUser.id === currentUser.id} canRequestEmailChange={!profileUser.managedProfile && (profileUser.id === currentUser.id || currentUser.role === "admin")} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageDevelopment={canManageClub} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
         : view === "license" && organization?.isClubAdmin
