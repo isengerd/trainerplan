@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, emailValue, readJson, textValue } from "@/lib/api-security";
 import { activeClubScope, ensureClubConfig } from "@/lib/club-context";
 import { prisma } from "@/lib/db";
@@ -11,7 +11,7 @@ import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 import type { ClubSettings } from "@/data/club";
 
 export async function POST(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user || user.role !== "admin") return NextResponse.json({ error: "Nur Admins dürfen Kinderprofile anlegen." }, { status: user ? 403 : 401 });
   try {
     const body = await readJson<{ name?: unknown; birthday?: unknown; guardianName?: unknown; guardianEmail?: unknown; sendEmail?: boolean }>(request, 32_000);

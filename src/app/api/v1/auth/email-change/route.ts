@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { firebaseAuthEnabled, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
-import { ApiInputError, emailValue, rateLimit, readJson } from "@/lib/api-security";
+import { ApiInputError, emailValue, readJson } from "@/lib/api-security";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { sendEmailChangeMail, smtpStatus } from "@/lib/smtp";
 import { activeClubScope } from "@/lib/club-context";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
@@ -11,7 +12,7 @@ import { firebaseAdminAuth } from "@/lib/firebase-admin";
 export async function POST(request: NextRequest) {
   const actor = await sensitiveAuthenticatedUser(request);
   if (!actor) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
-  const attempt = rateLimit(`email-change:${actor.id}`, actor.role === "admin" ? 20 : 5, 60 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("email-change", actor.id), actor.role === "admin" ? 20 : 5, 60 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Änderungsversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
 
   let body: { targetUserId?: unknown; newEmail?: unknown; currentPassword?: unknown; idToken?: unknown };

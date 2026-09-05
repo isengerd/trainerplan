@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, firebaseAuthEnabled, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { ApiInputError, clientIp, emailValue, rateLimit, readJson } from "@/lib/api-security";
+import { ApiInputError, clientIp, emailValue, readJson } from "@/lib/api-security";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 
 export async function POST(request: NextRequest) {
   if (firebaseAuthEnabled()) return NextResponse.json({ error: "Bitte nutze die Firebase-Anmeldung." }, { status: 410 });
@@ -18,8 +19,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: error instanceof ApiInputError ? error.status : 400 });
   }
   const ip = clientIp(request);
-  const attempt = rateLimit(`login:${ip}:${email}`, 8, 15 * 60_000);
-  const ipAttempt = rateLimit(`login-ip:${ip}`, 40, 15 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("login-address", `${ip}:${email}`), 8, 15 * 60_000);
+  const ipAttempt = await persistentRateLimit(anonymousThrottleKey("login-ip", ip), 40, 15 * 60_000);
   if (!attempt.allowed || !ipAttempt.allowed) {
     const retryAfter = Math.max(attempt.retryAfter, ipAttempt.retryAfter);
     return NextResponse.json({ error: "Zu viele Anmeldeversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(retryAfter) } });

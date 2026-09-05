@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { objectValue, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   try {
     const body = objectValue(await readJson(request, 8_192), "Ungültige Push-Daten.");
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   const body = objectValue(await readJson(request, 8_192), "Ungültige Push-Daten.");
   const token = textValue(body.token, "Push-Token", 4_096, 16);

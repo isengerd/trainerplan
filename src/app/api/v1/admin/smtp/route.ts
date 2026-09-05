@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { smtpStatus, smtpTransport } from "@/lib/smtp";
 import { requireClubAdmin } from "@/lib/organization";
 
 async function admin(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   return Boolean(user && await requireClubAdmin(user.id));
 }
 

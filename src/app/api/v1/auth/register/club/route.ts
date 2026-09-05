@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { defaultPosition } from "@/data/club";
 import { createSession, firebaseAuthEnabled, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
-import { ApiInputError, clientIp, emailValue, rateLimit, readJson, textValue } from "@/lib/api-security";
+import { ApiInputError, clientIp, emailValue, readJson, textValue } from "@/lib/api-security";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { prisma } from "@/lib/db";
 import { uniqueClubSlug } from "@/lib/registration";
 import { publicRegistrationEnabled } from "@/lib/registration-access";
@@ -14,7 +15,7 @@ type RegistrationBody = { name?: unknown; email?: unknown; password?: unknown; c
 export async function POST(request: NextRequest) {
   if (firebaseAuthEnabled()) return NextResponse.json({ error: "Dieser Registrierungsweg wurde durch die sichere Firebase-Erstregistrierung ersetzt." }, { status: 410 });
   if (!publicRegistrationEnabled()) return NextResponse.json({ error: "Die öffentliche Registrierung ist derzeit geschlossen. Bitte nutze einen persönlichen Einladungslink." }, { status: 403 });
-  const attempt = rateLimit(`register-club:${clientIp(request)}`, 5, 60 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("register-club", clientIp(request)), 5, 60 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Registrierungsversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
 
   try {

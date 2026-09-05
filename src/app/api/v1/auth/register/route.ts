@@ -3,14 +3,15 @@ import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { defaultPosition } from "@/data/club";
 import { firebaseAuthEnabled, safeUser } from "@/lib/auth";
-import { ApiInputError, clientIp, rateLimit, readJson } from "@/lib/api-security";
+import { ApiInputError, clientIp, readJson } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { publicRegistrationEnabled } from "@/lib/registration-access";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
   if (!publicRegistrationEnabled()) return NextResponse.json({ error: "Die öffentliche Registrierung ist derzeit geschlossen. Bitte nutze einen persönlichen Einladungslink." }, { status: 403 });
-  const attempt = rateLimit(`register:${clientIp(request)}`, 5, 60 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("register", clientIp(request)), 5, 60 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Registrierungsversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   try {
     if (!firebaseAuthEnabled()) return NextResponse.json({ error: "Diese Registrierung benötigt Firebase Authentication." }, { status: 503 });

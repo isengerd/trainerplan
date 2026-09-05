@@ -1,13 +1,13 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, safeUser } from "@/lib/auth";
+import { safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 import { uniqueClubSlug } from "@/lib/registration";
 import { isFirstTeamAgeGroup } from "@/lib/age-groups";
 
 export async function POST(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   if (await prisma.membership.findFirst({ where: { userId: user.id, status: "active" }, select: { id: true } })) return NextResponse.json({ error: "Dein Verein ist bereits eingerichtet." }, { status: 409 });
   try {

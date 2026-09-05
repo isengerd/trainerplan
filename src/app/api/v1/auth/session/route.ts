@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createFirebaseSession, firebaseAuthEnabled, safeUser, SESSION_COOKIE, sessionCookieSettings } from "@/lib/auth";
-import { ApiInputError, clientIp, rateLimit, readJson } from "@/lib/api-security";
+import { ApiInputError, clientIp, readJson } from "@/lib/api-security";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 
 export async function POST(request: NextRequest) {
   if (!firebaseAuthEnabled()) return NextResponse.json({ error: "Firebase Authentication ist nicht aktiviert." }, { status: 503 });
-  const attempt = rateLimit(`firebase-session:${clientIp(request)}`, 30, 15 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("firebase-session", clientIp(request)), 30, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Anmeldeversuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   try {
     const body = await readJson<{ idToken?: unknown }>(request, 16_384);

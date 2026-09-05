@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, readJson } from "@/lib/api-security";
 import { getEvents } from "@/lib/events";
 import { prisma } from "@/lib/db";
@@ -11,7 +11,7 @@ type Context = { params: Promise<{ id: string }> };
 type AttendanceBody = { value?: "yes" | "no" | "maybe" | null; playerId?: string };
 
 export async function PUT(request: NextRequest, context: Context) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
 
   try {

@@ -2,12 +2,13 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { invitationTokenHash } from "@/lib/invitations";
-import { ApiInputError, clientIp, rateLimit, readJson } from "@/lib/api-security";
+import { ApiInputError, clientIp, readJson } from "@/lib/api-security";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { firebaseAuthEnabled } from "@/lib/auth";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
-  const attempt = rateLimit(`email-confirm:${clientIp(request)}`, 20, 15 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("email-confirm", clientIp(request)), 20, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Versuche. Bitte später erneut versuchen." }, { status: 429 });
   let body: { token?: unknown };
   try { body = await readJson(request, 8_192); }

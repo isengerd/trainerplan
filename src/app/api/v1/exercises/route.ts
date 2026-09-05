@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser, canManage } from "@/lib/auth";
+import { canManage, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { apiError, readJson } from "@/lib/api-security";
 import { getExercises, saveExercise } from "@/lib/exercises";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   return NextResponse.json({ exercises: await getExercises(user) });
 }
 
 export async function POST(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
   if (!canManage(user.role)) return NextResponse.json({ error: "Nur Trainer und Admins dürfen Übungen verwalten." }, { status: 403 });
   try {

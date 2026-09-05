@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { firebaseAuthEnabled, safeUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { invitationTokenHash } from "@/lib/invitations";
-import { ApiInputError, clientIp, rateLimit, readJson } from "@/lib/api-security";
+import { ApiInputError, clientIp, readJson } from "@/lib/api-security";
+import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { defaultPosition } from "@/data/club";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
 
@@ -15,7 +16,7 @@ async function invitationForToken(token: string) {
 }
 
 export async function GET(request: NextRequest) {
-  const attempt = rateLimit(`invite-check:${clientIp(request)}`, 60, 15 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("invite-check", clientIp(request)), 60, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   const invitation = await invitationForToken(request.nextUrl.searchParams.get("token") || "");
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const attempt = rateLimit(`invite-accept:${clientIp(request)}`, 12, 15 * 60_000);
+  const attempt = await persistentRateLimit(anonymousThrottleKey("invite-accept", clientIp(request)), 12, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Versuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   let body: { token?: string; name?: string; idToken?: string } | null = null;
   try { body = await readJson(request, 16_384); }

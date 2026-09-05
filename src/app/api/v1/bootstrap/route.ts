@@ -8,6 +8,7 @@ import { smtpStatus } from "@/lib/smtp";
 import { pushStatus } from "@/lib/push";
 import { activeClubScope, ensureClubConfig, scopedResourceWhere } from "@/lib/club-context";
 import { organizationContext } from "@/lib/organization";
+import { tenantScopedResult } from "@/lib/auth-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,11 @@ export async function GET(request: NextRequest) {
     prisma.teamGroup.findMany({ where: activeMembership ? { clubId: activeMembership.clubId } : { clubId: null }, orderBy: { name: "asc" } }),
     prisma.ageGroup.findMany({ orderBy: { sortOrder: "asc" } }),
     currentUser.role === "admin"
-      ? prisma.invitation.findMany({ where: activeMembership?.clubId ? { clubId: activeMembership.clubId, ...(activeMembership.teamId ? { teamId: activeMembership.teamId } : {}) } : undefined, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } })
+      ? tenantScopedResult(Boolean(activeMembership), () => prisma.invitation.findMany({ where: { clubId: activeMembership!.clubId, ...(activeMembership!.teamId ? { teamId: activeMembership!.teamId } : {}) }, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } }))
       : Promise.resolve([]),
-    prisma.tournamentSquad.findMany({ where: activeMembership ? { event: { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } } : undefined, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } }),
+    activeMembership
+      ? prisma.tournamentSquad.findMany({ where: { event: { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } }, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } })
+      : Promise.resolve([]),
   ]);
   if (!config) return NextResponse.json({ error: "Die Konfiguration konnte nicht geladen werden." }, { status: 500 });
   const settings = config.settings as { teamFeatureEnabled?: boolean; showResponsesToPlayers?: boolean };
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
     invitations: invitations.map(invitationDto),
     smtp: organization?.isClubAdmin ? smtpStatus() : { configured: false },
     push: organization?.isClubAdmin ? { ...pushStatus(), devices: await prisma.devicePushToken.count({ where: { userId: currentUser.id } }) } : { configured: false, devices: 0 },
-    tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, typeof tournamentSquads>>((plans, squad) => {
+    tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, Array<(typeof tournamentSquads)[number]>>>((plans, squad) => {
       if (currentUser.role === "player" && !squad.players.some((assignment) => assignment.playerId === currentUser.id)) return plans;
       if (currentUser.role === "guardian" && !squad.players.some((assignment) => managedPlayerIds.includes(assignment.playerId))) return plans;
       (plans[squad.eventId] ??= []).push(squad);

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { pushStatus, sendPushToUsers } from "@/lib/push";
 import { requireClubAdmin } from "@/lib/organization";
 
 async function admin(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   return user && await requireClubAdmin(user.id) ? user : null;
 }
 

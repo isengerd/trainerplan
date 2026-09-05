@@ -4,6 +4,7 @@ import type { Role, User } from "@prisma/client";
 import { prisma } from "./db";
 import { ageGroupForBirthday } from "./age-groups";
 import { firebaseAdminAuth } from "./firebase-admin";
+import { firebaseIdentityMatches, isRecentFirebaseSignIn } from "./auth-policy";
 
 export const SESSION_COOKIE = "trainerplan_session";
 const SESSION_DAYS = 30;
@@ -70,16 +71,16 @@ export async function createFirebaseSession(idToken: string) {
   const auth = firebaseAdminAuth();
   if (!auth) throw new Error("Firebase Authentication ist serverseitig nicht konfiguriert.");
   const decoded = await auth.verifyIdToken(idToken, true);
+  if (!isRecentFirebaseSignIn(decoded.auth_time)) {
+    throw new Error("Bitte melde dich erneut an, bevor eine Sitzung erstellt wird.");
+  }
   const email = decoded.email?.trim().toLowerCase();
   if (!email) throw new Error("Das Firebase-Konto besitzt keine E-Mail-Adresse.");
-  let user = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid } });
-  if (!user) {
-    const emailUser = await prisma.user.findUnique({ where: { email } });
-    if (!emailUser || !emailUser.loginEnabled) throw new Error("Für dieses Konto ist noch kein NextSession-Zugang eingerichtet.");
-    if (emailUser.firebaseUid && emailUser.firebaseUid !== decoded.uid) throw new Error("Diese E-Mail-Adresse ist bereits mit einem anderen Zugang verbunden.");
-    const claimed = await prisma.user.updateMany({ where: { id: emailUser.id, firebaseUid: null }, data: { firebaseUid: decoded.uid } });
-    user = claimed.count === 1 ? await prisma.user.findUnique({ where: { id: emailUser.id } }) : await prisma.user.findUnique({ where: { firebaseUid: decoded.uid } });
-  }
+  const user = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid } });
+  // A normal login must never claim an existing Prisma account by email. New
+  // bindings are created only by registration, a valid invitation or migration.
+  if (!user) throw new Error("Für dieses Firebase-Konto ist noch kein NextSession-Zugang eingerichtet.");
+  if (!firebaseIdentityMatches(user, { uid: decoded.uid, email })) throw new Error("Das Firebase-Konto stimmt nicht mit NextSession überein.");
   if (!user?.loginEnabled) throw new Error("Dieser Zugang wurde gesperrt.");
   const expiresIn = FIREBASE_SESSION_DAYS * 24 * 60 * 60 * 1000;
   const cookie = await auth.createSessionCookie(idToken, { expiresIn });

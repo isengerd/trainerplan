@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticatedUser } from "@/lib/auth";
+import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ApiInputError, objectValue, optionalText, readJson, textValue } from "@/lib/api-security";
 import { activeClubScope } from "@/lib/club-context";
@@ -8,7 +8,7 @@ import { requireClubAdmin } from "@/lib/organization";
 type GroupInput = { id?: string; name?: string; description?: string; color?: string };
 
 export async function PUT(request: NextRequest) {
-  const user = await authenticatedUser(request);
+  const user = await sensitiveAuthenticatedUser(request);
   if (!user || !(await requireClubAdmin(user.id))) return NextResponse.json({ error: "Nur der Lizenzinhaber darf vereinsweite Funktionsgruppen verwalten." }, { status: user ? 403 : 401 });
   let body: { groups?: GroupInput[] } | null;
   try { body = await readJson(request, 256_000); }
