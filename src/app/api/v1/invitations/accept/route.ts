@@ -31,8 +31,7 @@ export async function POST(request: NextRequest) {
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
   const invitation = await invitationForToken(body?.token || "");
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date()) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
-  const name = body?.name?.trim() || invitation.name;
-  if (name.length < 2) return NextResponse.json({ error: "Bitte den Namen angeben." }, { status: 400 });
+  const name = body?.name?.trim() || invitation.name.trim() || invitation.email.split("@")[0]?.slice(0, 100) || "Mitglied";
   if (!firebaseAuthEnabled()) return NextResponse.json({ error: "Diese Einladung benötigt Firebase Authentication." }, { status: 503 });
   if (!body?.idToken || body.idToken.length < 100 || body.idToken.length > 10_000) return NextResponse.json({ error: "Das Firebase-Token ist ungültig." }, { status: 400 });
   const auth = firebaseAdminAuth();

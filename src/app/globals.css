@@ -1754,11 +1754,58 @@ html[data-theme="light"] .month-grid button.selected-day {
 }
 .login-panel .invitation-summary { background: #e7f4ea; color: #294936; }
 
+/* Einladungsannahme: kompakter Konto-Dialog mit klarer Passwortbestätigung */
+.invitation-panel { display: grid; place-items: center; }
+.invitation-accept-form { max-width: 500px; }
+.invitation-accept-form .back-to-login { margin-bottom: 26px; color: #258a4a; font-size: 13px; font-weight: 750; }
+.invitation-accept-form .back-to-login svg { width: 17px; height: 17px; }
+.invitation-accept-form h2 { margin: 9px 0 7px; font-size: clamp(30px, 3vw, 42px); letter-spacing: -.045em; }
+.invitation-accept-form .invitation-intro { margin: 0 0 22px; font-size: 14px; line-height: 1.5; }
+.invitation-loading { margin-top: 24px; padding: 18px; border-radius: 13px; background: #eff6f1; color: #63776a; text-align: center; }
+.invitation-accept-form .invitation-summary { display: grid; grid-template-columns: 46px 1fr; gap: 13px; margin: 0 0 12px; padding: 15px; border: 1px solid #cfe5d4; border-radius: 14px; }
+.invitation-accept-form .invitation-summary > svg { width: 25px; height: 25px; align-self: center; justify-self: center; color: #29b957; }
+.invitation-accept-form .invitation-summary span { min-width: 0; }
+.invitation-accept-form .invitation-summary small,
+.invitation-accept-form .invitation-summary strong,
+.invitation-accept-form .invitation-summary em { display: block; }
+.invitation-accept-form .invitation-summary small { color: #72877a; font-size: 11px; }
+.invitation-accept-form .invitation-summary strong { overflow: hidden; margin-top: 3px; color: #213c2b; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.invitation-accept-form .invitation-summary em { margin-top: 4px; color: #338653; font-size: 11px; font-style: normal; font-weight: 750; }
+.invitation-account { min-width: 0; display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: center; margin-bottom: 20px; padding: 11px 14px; border-radius: 12px; background: #f3f7f4; }
+.invitation-account > svg { width: 20px; color: #648071; }
+.invitation-account span { min-width: 0; }
+.invitation-account small,
+.invitation-account strong { display: block; }
+.invitation-account small { color: #71847a; font-size: 10px; font-weight: 750; }
+.invitation-account strong { overflow: hidden; margin-top: 2px; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.invitation-password-fields { display: grid; gap: 14px; }
+.invitation-accept-form .invitation-password-fields label { margin: 0; }
+.invitation-accept-form .invitation-password-fields label > span { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 750; }
+.invitation-accept-form .invitation-password-fields label > div { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 13px; border-radius: 12px; }
+.invitation-accept-form .invitation-password-fields label > div.has-error { border-color: #d56c66; box-shadow: 0 0 0 3px rgba(213,108,102,.1); }
+.invitation-accept-form .invitation-password-fields input { height: 50px; font-size: 16px; }
+.invitation-accept-form .invitation-password-fields button { flex: 0 0 40px; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 9px; background: transparent; color: #647b6d; }
+.invitation-accept-form .invitation-password-fields button:hover { background: #e5efe8; color: #258a4a; }
+.invitation-accept-form .invitation-password-fields button svg { width: 19px; height: 19px; }
+.invitation-password-status { margin: 7px 0 0 !important; color: #6e8176 !important; font-size: 11px !important; }
+.invitation-password-status.invalid { color: #b64d47 !important; }
+.invitation-accept-form .login-error { margin-top: 14px; }
+.invitation-submit { width: 100%; min-height: 52px; margin-top: 20px; border-radius: 12px; font-size: 15px; }
+.invitation-submit svg { width: 19px; }
+.invitation-submit:disabled { cursor: not-allowed; opacity: .48; }
+.invitation-existing-note { margin: 13px 0 0 !important; color: #71847a !important; font-size: 11px !important; text-align: center; }
+
 @media (max-width: 760px) {
   .login-page { min-height: 100dvh; }
   .login-brand { padding-bottom: 18px; }
   .login-panel { background: transparent; }
   .login-panel form { box-shadow: 0 16px 42px rgba(42, 82, 54, .12); }
+  .invitation-page .invitation-brand { display: none; }
+  .invitation-page .invitation-panel { min-height: 100dvh; padding: calc(16px + env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)); }
+  .invitation-page .invitation-accept-form { padding: 22px 18px; }
+  .invitation-accept-form .back-to-login { margin-bottom: 22px; }
+  .invitation-accept-form h2 { font-size: 30px; }
+  .invitation-accept-form .invitation-intro { margin-bottom: 18px; font-size: 13px; }
 }
 
 /* Fußball-Mannschaftsplanung für Turniere */
