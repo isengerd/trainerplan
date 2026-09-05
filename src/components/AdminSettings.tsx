@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CalendarDays, Check, Clipboard, Clock3, CreditCard, Download, FileText, Link2, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, UserPlus, Users } from "lucide-react";
+import { Bell, CalendarDays, Check, Clipboard, Clock3, CreditCard, Download, FileText, Link2, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, Users } from "lucide-react";
 import { defaultPosition, roleLabels, type AgeGroupOption, type ClubInvitation, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
 
 type Props = {
@@ -92,7 +92,6 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
   const [form, setForm] = useState(settings);
   const [groupForm, setGroupForm] = useState(groups);
   const [newTeam, setNewTeam] = useState({ name: "", ageGroup: ageGroups[0]?.id ?? "f1" });
-  const [child, setChild] = useState({ name: "", birthday: "", guardianName: "", guardianEmail: "", sendEmail: smtp.configured });
   const [inviteLink, setInviteLink] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,7 +148,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
 
   async function renewInvitation(item: ClubInvitation) {
     setBusy(true);
-    const response = await fetch("/api/v1/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: item.email, name: item.name, role: item.role, groupId: null, sendEmail: false }) });
+    const response = await fetch(`/api/v1/invitations/${item.id}`, { method: "POST" });
     const result = await response.json() as { error?: string; link?: string };
     setBusy(false);
     if (!response.ok || !result.link) return notify(result.error || "Link konnte nicht erneuert werden.");
@@ -186,16 +185,6 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
     setBusy(false);
     if (!response.ok) return notify(result.error || "Mannschaft konnte nicht angelegt werden.");
     setNewTeam((current) => ({ ...current, name: "" })); notify("Mannschaft angelegt."); onReload();
-  }
-
-  async function createChild(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setInviteLink("");
-    const response = await fetch("/api/v1/players", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(child) });
-    const result = await response.json() as { error?: string; link?: string; emailSent?: boolean; emailError?: string };
-    setBusy(false);
-    if (!response.ok) return notify(result.error || "Kinderprofil konnte nicht angelegt werden.");
-    setInviteLink(result.link || ""); setChild((current) => ({ ...current, name: "", birthday: "", guardianName: "", guardianEmail: "" }));
-    notify(result.emailSent ? "Kinderprofil erstellt und Elternzugang eingeladen." : result.emailError || "Kinderprofil erstellt."); onReload();
   }
 
   const toggleRows: { key: keyof ClubSettings; title: string; description: string }[] = [
@@ -253,8 +242,6 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
       <section className="settings-card settings-wide tournament-settings"><div className="settings-title"><Trophy /><span><h2>Turniere & Mannschaftsplanung</h2><p>Regeln für die Zusammenstellung der Fußballmannschaften.</p></span></div><div className="tournament-settings-grid"><label><span>Mindestens F-Jugend</span><div><input type="number" min="0" max="99" value={form.tournamentMinFYouth} onChange={(event) => set("tournamentMinFYouth", Number(event.target.value))} /><small>Spieler pro Team</small></div></label><label><span>Maximale Teamgröße</span><div><input type="number" min="0" max="99" value={form.tournamentMaxTeamSize} onChange={(event) => set("tournamentMaxTeamSize", Number(event.target.value))} /><small>0 = unbegrenzt</small></div></label><label className="squad-name-setting"><span>Standard-Teamname</span><input value={form.tournamentDefaultSquadName} maxLength={80} onChange={(event) => set("tournamentDefaultSquadName", event.target.value)} placeholder="Mannschaft {n}" /></label></div><div className="tournament-setting-toggles"><label><span><strong>Trainer pro Mannschaft</strong><small>Fehlende Trainer als Warnung anzeigen.</small></span><input type="checkbox" checked={form.tournamentTrainerRequired} onChange={(event) => set("tournamentTrainerRequired", event.target.checked)} /><i /></label><label><span><strong>Benachrichtigungen vorbereiten</strong><small>Teamzuweisungen für spätere Benachrichtigungen markieren.</small></span><input type="checkbox" checked={form.tournamentNotifications} onChange={(event) => set("tournamentNotifications", event.target.checked)} /><i /></label></div><div className="age-group-settings"><span>Verfügbare Altersklassen für Mannschaften</span><p>Diese Auswahl beschreibt mögliche Mannschaften. Die Altersklasse eines Spielers wird daraus nicht automatisch festgelegt.</p><div>{ageGroups.map((ageGroup) => { const active = form.ageGroupIds.includes(ageGroup.id); return <button type="button" className={active ? "active" : ""} aria-pressed={active} key={ageGroup.id} onClick={() => toggleAgeGroup(ageGroup.id)}><span><strong>{ageGroup.name}</strong><small>{ageGroup.ageRange}</small></span>{active ? <Check /> : <Plus />}</button>; })}</div></div></section>
 
       <section className="settings-card"><div className="settings-title"><Users /><span><h2>Funktionsgruppen</h2><p>Optionale Zusatzgruppen, etwa Trainerteam, Torwarttraining oder Fördergruppe. Mannschaften werden hier nicht angelegt.</p></span></div><div className="group-editor">{groupForm.map((group, index) => <div key={group.id}><input type="color" value={group.color} onChange={(event) => setGroupForm((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, color: event.target.value } : item))} /><span><input value={group.name} onChange={(event) => setGroupForm((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} placeholder="z. B. Torwarttraining" /><input value={group.description} onChange={(event) => setGroupForm((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, description: event.target.value } : item))} placeholder="Kurze Beschreibung" /></span><button aria-label="Funktionsgruppe entfernen" onClick={() => setGroupForm((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 /></button></div>)}</div><div className="settings-inline-actions"><button onClick={() => setGroupForm((current) => [...current, { id: `group-${Date.now()}`, name: "Neue Funktionsgruppe", description: "", color: "#45d875" }])}><Plus /> Gruppe</button><button className="primary" disabled={busy} onClick={saveGroups}><Check /> Gruppen speichern</button></div></section>
-
-      <section className="settings-card child-access-card"><div className="settings-title"><Users /><span><h2>Kind & Elternzugang</h2><p>Das Kind erhält ein Spielerprofil ohne eigenes Passwort. Ein Elternkonto verwaltet Anwesenheiten.</p></span></div><form className="child-access-form" onSubmit={createChild}><div className="invite-fields"><label><span>Name des Kindes</span><input required maxLength={100} value={child.name} onChange={(event) => setChild({ ...child, name: event.target.value })} /></label><label><span>Geburtsdatum</span><input required type="date" value={child.birthday} onChange={(event) => setChild({ ...child, birthday: event.target.value })} /></label><label><span>Name des Elternteils <small>optional</small></span><input maxLength={100} value={child.guardianName} onChange={(event) => setChild({ ...child, guardianName: event.target.value })} /></label><label><span>E-Mail des Elternteils <small>optional</small></span><input type="email" value={child.guardianEmail} onChange={(event) => setChild({ ...child, guardianEmail: event.target.value })} /></label></div>{child.guardianEmail && <label className="send-mail-toggle"><input type="checkbox" checked={child.sendEmail} onChange={(event) => setChild({ ...child, sendEmail: event.target.checked })} /><span><Mail /><strong>Elternzugang per E-Mail einladen</strong><small>Existiert bereits ein Konto, wird das Kind direkt damit verknüpft.</small></span></label>}<button className="primary invite-submit" disabled={busy}><UserPlus /> {busy ? "Wird angelegt …" : "Kinderprofil anlegen"}</button></form></section>
 
       <section className="settings-card"><div className="settings-title"><Server /><span><h2>SMTP-Server</h2><p>Zugangsdaten werden sicher über Umgebungsvariablen bereitgestellt.</p></span></div><div className={`smtp-status ${smtp.configured ? "ready" : "missing"}`}><i /><span><strong>{smtp.configured ? "SMTP konfiguriert" : "SMTP noch nicht konfiguriert"}</strong><small>{smtp.configured ? `${smtp.host}:${smtp.port} · ${smtp.from}` : "SMTP_HOST und SMTP_FROM in der Umgebung setzen."}</small></span></div><button className="smtp-test" disabled={!smtp.configured || busy} onClick={testSmtp}><RefreshCw /> Verbindung testen</button></section>
 

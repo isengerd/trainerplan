@@ -14,13 +14,18 @@ export async function POST(request: NextRequest) {
   let body: { email?: unknown; name?: unknown; role?: Role; groupId?: unknown; sendEmail?: boolean };
   try { body = await readJson(request, 32_000); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
-  let email: string;
-  try { email = emailValue(body.email); }
+  let email = "";
+  try { if (body.email) email = emailValue(body.email); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige E-Mail-Adresse." }, { status: 400 }); }
+  let name: string;
+  try { name = textValue(body.name, "Vor- und Nachname", 100, 2); }
+  catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Bitte gib einen Namen ein." }, { status: 400 }); }
+  if (body.sendEmail && !email) return NextResponse.json({ error: "Für den E-Mail-Versand wird eine E-Mail-Adresse benötigt." }, { status: 400 });
   if (!body?.role || !Object.values(Role).includes(body.role)) return NextResponse.json({ error: "Ungültige Rolle." }, { status: 400 });
+  if (body.role === "admin" && !email) return NextResponse.json({ error: "Admin-Einladungen benötigen aus Sicherheitsgründen eine feste E-Mail-Adresse." }, { status: 400 });
   const membership = await activeClubScope(user);
   if (!membership) return NextResponse.json({ error: "Kein aktiver Vereinsbereich gefunden." }, { status: 409 });
-  const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  const existingUser = email ? await prisma.user.findUnique({ where: { email }, select: { id: true } }) : null;
   if (existingUser && await prisma.membership.findFirst({ where: { userId: existingUser.id, clubId: membership.clubId, teamId: membership.teamId, status: "active" } })) return NextResponse.json({ error: "Diese Person gehört bereits zu dieser Mannschaft." }, { status: 409 });
   const groupId = body.groupId ? textValue(body.groupId, "Gruppe", 100, 1) : null;
   if (groupId && !(await prisma.teamGroup.findFirst({ where: { id: groupId, clubId: membership.clubId } }))) return NextResponse.json({ error: "Die ausgewählte Gruppe existiert nicht." }, { status: 400 });
@@ -28,10 +33,10 @@ export async function POST(request: NextRequest) {
   if (!config) return NextResponse.json({ error: "Die Mannschaftskonfiguration fehlt." }, { status: 404 });
   const settings = config.settings as unknown as ClubSettings;
 
-  await prisma.invitation.deleteMany({ where: { email, clubId: membership.clubId, teamId: membership.teamId, acceptedAt: null } });
+  if (email) await prisma.invitation.deleteMany({ where: { email, clubId: membership.clubId, teamId: membership.teamId, acceptedAt: null } });
   const { token, tokenHash } = createInvitationToken();
   const invitation = await prisma.invitation.create({
-    data: { email, name: typeof body.name === "string" ? body.name.trim().slice(0, 100) : "", role: body.role, ageGroup: "", groupId, clubId: membership?.clubId, teamId: membership?.teamId, invitedById: user.id, tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) },
+    data: { email, name, role: body.role, ageGroup: "", groupId, clubId: membership?.clubId, teamId: membership?.teamId, invitedById: user.id, tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) },
     include: { invitedBy: { select: { name: true } } },
   });
   let baseUrl: string;

@@ -10,6 +10,7 @@ type InvitationInfo = { email: string; name: string; role: "admin" | "trainer" |
 export function InvitationAccept({ token }: { token: string }) {
   const router = useRouter();
   const [info, setInfo] = useState<InvitationInfo | null>(null);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +22,7 @@ export function InvitationAccept({ token }: { token: string }) {
       .then(async (response) => {
         const result = await response.json() as InvitationInfo & { error?: string };
         if (!response.ok) throw new Error(result.error || "Einladung konnte nicht geladen werden.");
-        setInfo(result);
+        setInfo(result); setEmail(result.email || "");
       })
       .catch((reason) => setError(reason instanceof Error ? reason.message : "Einladung konnte nicht geladen werden."))
       .finally(() => setLoading(false));
@@ -34,8 +35,8 @@ export function InvitationAccept({ token }: { token: string }) {
     setLoading(true);
     try {
       if (!info) throw new Error("Die Einladung konnte nicht geladen werden.");
-      const credential = firebaseClientAuthEnabled() ? await firebasePasswordSignInOrCreate(info.email, password) : null;
-      const response = await fetch("/api/v1/invitations/accept", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(credential ? { token, idToken: credential.idToken } : { token, password }) });
+      const credential = firebaseClientAuthEnabled() ? await firebasePasswordSignInOrCreate(email, password) : null;
+      const response = await fetch("/api/v1/invitations/accept", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(credential ? { token, email, idToken: credential.idToken } : { token, email, password }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error || "Einladung konnte nicht angenommen werden.");
       if (credential) await createServerSession(credential.idToken);
@@ -56,14 +57,14 @@ export function InvitationAccept({ token }: { token: string }) {
       <span className="eyebrow">PERSÖNLICHE EINLADUNG</span><h2>Zugang einrichten</h2><p className="invitation-intro">Lege ein Passwort fest, um deine Einladung anzunehmen.</p>
       {loading && !info ? <div className="invitation-loading">Einladung wird geprüft …</div> : info ? <>
         <div className="invitation-summary"><ShieldCheck /><span><small>{info.club || "NextSession Kids!"}</small><strong>{info.managedPlayer ? `Elternzugang für ${info.managedPlayer}` : info.team || info.group || "Deine Mannschaft"}</strong><em>Rolle: {role}</em></span></div>
-        <div className="invitation-account"><Mail /><span><small>Dein Zugang</small><strong>{info.email}</strong></span></div>
+        {info.email ? <div className="invitation-account"><Mail /><span><small>Dein Zugang</small><strong>{info.email}</strong></span></div> : <label className="invitation-open-email"><span>E-Mail-Adresse für deinen Zugang</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" autoFocus /></div></label>}
         <div className="invitation-password-fields">
-          <label><span>Passwort</span><div><LockKeyhole /><input required minLength={12} maxLength={256} type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mindestens 12 Zeichen" autoFocus /><button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Passwörter verbergen" : "Passwörter anzeigen"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
+          <label><span>Passwort</span><div><LockKeyhole /><input required minLength={12} maxLength={256} type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mindestens 12 Zeichen" autoFocus={Boolean(info.email)} /><button type="button" onClick={() => setShowPassword((show) => !show)} aria-label={showPassword ? "Passwörter verbergen" : "Passwörter anzeigen"}>{showPassword ? <EyeOff /> : <Eye />}</button></div></label>
           <label><span>Passwort wiederholen</span><div className={passwordConfirmation && !passwordsMatch ? "has-error" : ""}><LockKeyhole /><input required minLength={12} maxLength={256} type={showPassword ? "text" : "password"} autoComplete="new-password" value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Passwort erneut eingeben" /></div></label>
         </div>
         <p className={`invitation-password-status ${passwordConfirmation && !passwordsMatch ? "invalid" : ""}`}>{passwordConfirmation && !passwordsMatch ? "Die Passwörter stimmen noch nicht überein." : "Verwende mindestens 12 Zeichen."}</p>
         {error && <div className="login-error" role="alert">{error}</div>}
-        <button className="primary login-submit invitation-submit" type="submit" disabled={loading || password.length < 12 || !passwordsMatch}>{loading ? "Einladung wird angenommen …" : <><Check /> Einladung annehmen</>}</button>
+        <button className="primary login-submit invitation-submit" type="submit" disabled={loading || !email || password.length < 12 || !passwordsMatch}>{loading ? "Einladung wird angenommen …" : <><Check /> Einladung annehmen</>}</button>
         <p className="invitation-existing-note">Du hast bereits einen Zugang? Gib dein bestehendes Passwort zweimal ein.</p>
       </> : error ? <div className="login-error" role="alert">{error}</div> : null}
     </form></section>

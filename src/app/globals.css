@@ -1135,6 +1135,7 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
 .team-invite-dialog > header button:hover { background: #e4efe7; color: #1f7f43; }
 .team-invite-dialog > header svg { width: 19px; }
 .team-invite-dialog > form { padding: 20px 22px 22px; }
+.team-invite-dialog > form { max-height: calc(90dvh - 82px); overflow-y: auto; }
 .team-invite-dialog > form > p:first-child { margin: 0 0 18px; color: #65796d; font-size: 13px; line-height: 1.5; }
 .team-invite-email { display: grid; gap: 7px; }
 .team-invite-email > span, .team-invite-dialog legend { color: #51675a; font-size: 11px; font-weight: 800; }
@@ -1142,10 +1143,16 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
 .team-invite-email > div:focus-within { border-color: #3fba62; background: #fff; box-shadow: 0 0 0 3px rgba(43,185,88,.11); }
 .team-invite-email svg { width: 18px; color: #668071; }
 .team-invite-email input { flex: 1; min-width: 0; height: 48px; border: 0; outline: 0; background: transparent; color: #193126; font-size: 15px; }
+.team-invite-email + .team-invite-email, .team-invite-dialog fieldset + .team-invite-email { margin-top: 14px; }
+.team-invite-email > span small { color: #829187; font-size: 10px; font-weight: 600; }
 .team-invite-dialog fieldset { margin: 18px 0 0; padding: 0; border: 0; }
 .team-invite-dialog fieldset > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 8px; }
 .team-invite-dialog fieldset button { min-height: 42px; border: 1px solid #d7e2da; border-radius: 10px; background: #f3f7f4; color: #61766a; font-size: 12px; font-weight: 750; }
 .team-invite-dialog fieldset button.active { border-color: #52be6f; background: #e3f5e8; color: #18743a; box-shadow: inset 0 0 0 1px rgba(46,174,80,.08); }
+.team-invite-dialog .team-player-kind > div { grid-template-columns: repeat(2, 1fr); }
+.team-invite-dialog .team-player-kind button { display: block; padding: 8px; text-align: left; }
+.team-invite-dialog .team-player-kind strong, .team-invite-dialog .team-player-kind small { display: block; }
+.team-invite-dialog .team-player-kind small { margin-top: 2px; color: #7b8d82; font-size: 9px; font-weight: 550; }
 .team-invite-delivery { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: center; margin-top: 17px; padding: 12px; border-radius: 11px; background: #f1f7f3; cursor: pointer; }
 .team-invite-delivery input { width: 17px; height: 17px; accent-color: #29a950; }
 .team-invite-delivery strong, .team-invite-delivery small { display: block; }
@@ -1164,6 +1171,19 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
 .team-invite-success input { min-width: 0; border: 0; outline: 0; padding: 0 8px; background: transparent; color: #617469; font-size: 11px; }
 .team-invite-success > div button { min-height: 39px; display: flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; padding: 7px 10px; background: #d9eee0; color: #1c7c3f; font-size: 11px; font-weight: 800; }.team-invite-success > div svg { width: 14px; }
 .team-invite-success > button { width: 100%; min-height: 46px; margin-top: 14px; border-radius: 10px; }
+.team-pending-invites { margin-top: 22px; padding-top: 17px; border-top: 1px solid #e0e8e2; }
+.team-pending-invites > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.team-pending-invites > header strong, .team-pending-invites > header small { display: block; }
+.team-pending-invites > header strong { font-size: 12px; }.team-pending-invites > header small { margin-top: 2px; color: #788a7f; font-size: 9px; }
+.team-pending-invites article { min-height: 51px; display: grid; grid-template-columns: minmax(0,1fr) 36px 36px; gap: 6px; align-items: center; border-top: 1px solid #e7ede9; }
+.team-pending-invites article > span { min-width: 0; }.team-pending-invites article strong, .team-pending-invites article small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-pending-invites article strong { font-size: 11px; }.team-pending-invites article small { margin-top: 2px; color: #77897e; font-size: 9px; }
+.team-pending-invites article button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: #edf5ef; color: #278148; }
+.team-pending-invites article button.danger { background: #faeeee; color: #bd554f; }.team-pending-invites article button svg { width: 15px; }
+.invitation-open-email { display: grid; gap: 7px; margin-bottom: 20px; }
+.invitation-open-email > span { font-size: 13px !important; font-weight: 750; }
+.invitation-open-email > div { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 13px; border-radius: 12px; }
+.invitation-open-email input { height: 50px; font-size: 16px; }
 
 @media (max-width: 760px) {
   .team-invite-backdrop { align-items: end; padding: 0; }

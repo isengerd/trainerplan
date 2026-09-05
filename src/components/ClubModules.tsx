@@ -6,7 +6,7 @@ import {
   Info, KeyRound, Lock, Mail, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
   ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
-import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
+import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
 import { firebaseClientAuthEnabled, firebasePasswordSignIn } from "@/lib/firebase-client";
 
 export function Avatar({ user, size = "medium" }: { user: ClubUser; size?: "small" | "medium" | "large" }) {
@@ -36,7 +36,7 @@ export function LoginScreen({ onLogin }: { onLogin: (email: string, password: st
   </main>;
 }
 
-export function TeamPage({ users, currentUser, onUsersChange, onProfile, smtpConfigured, onInvited }: { users: ClubUser[]; currentUser: ClubUser; onUsersChange: (users: ClubUser[]) => void; onProfile: (user: ClubUser) => void; smtpConfigured: boolean; onInvited: () => void }) {
+export function TeamPage({ users, invitations, currentUser, onUsersChange, onProfile, smtpConfigured, onInvited }: { users: ClubUser[]; invitations: ClubInvitation[]; currentUser: ClubUser; onUsersChange: (users: ClubUser[]) => void; onProfile: (user: ClubUser) => void; smtpConfigured: boolean; onInvited: () => void }) {
   const [query, setQuery] = useState("");
   const [role, setRole] = useState<"all" | Role>("all");
   const [numberSort, setNumberSort] = useState<{ key: "ballNumber" | "number"; direction: "asc" | "desc" } | null>(null);
@@ -72,18 +72,23 @@ export function TeamPage({ users, currentUser, onUsersChange, onProfile, smtpCon
     <div className="team-list-head"><span>MITGLIED</span><span>POSITION</span><span>ROLLE & RECHTE</span><button type="button" className={numberSort?.key === "ballNumber" ? "active" : ""} onClick={() => toggleNumberSort("ballNumber")} aria-label="Nach Ballnummer sortieren">BALL{numberSort?.key === "ballNumber" ? numberSort.direction === "asc" ? " 1–9" : " 9–1" : ""}</button><button type="button" className={numberSort?.key === "number" ? "active" : ""} onClick={() => toggleNumberSort("number")} aria-label="Nach Trikotnummer sortieren">TRIKOT{numberSort?.key === "number" ? numberSort.direction === "asc" ? " 1–9" : " 9–1" : ""}</button></div>
     <div className="team-list">{visible.map((user) => <article key={user.id} onClick={() => onProfile(user)}><Avatar user={user} /><span className="member-name"><strong>{user.name}</strong><small>{user.managedProfile ? "Kinderprofil · verwaltet" : user.number != null ? `Trikot #${user.number}` : user.position}</small></span><span className="member-position">{user.position}</span>{currentUser.role === "admin" ? <select value={user.role} disabled={user.id === currentUser.id || user.managedProfile} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : user.managedProfile ? "Kinderprofile bleiben Spieler." : "Rolle ändern"} onClick={(event) => event.stopPropagation()} onChange={(event) => setUserRole(user.id, event.target.value as Role)}><option value="player">Spieler</option><option value="guardian">Elternteil</option><option value="trainer">Trainer</option><option value="admin">Admin</option></select> : <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>}<span className="member-equipment">{user.ballNumber ?? "–"}</span><span className="member-equipment">{user.number ?? "–"}</span></article>)}</div>
     <div className="rights-info"><Shield /><span><strong>Rollen und Rechte</strong><small>Admins verwalten Rollen und Zugänge. Trainer verwalten Termine, Trainings und Teilnahmen. Spieler sehen Termine und melden ihre Teilnahme.</small></span></div>
-    {inviteOpen && <TeamInviteDialog smtpConfigured={smtpConfigured} onClose={() => setInviteOpen(false)} onInvited={onInvited} />}
+    {inviteOpen && <TeamInviteDialog users={users} invitations={invitations} smtpConfigured={smtpConfigured} onClose={() => setInviteOpen(false)} onInvited={onInvited} />}
   </section>;
 }
 
-function TeamInviteDialog({ smtpConfigured, onClose, onInvited }: { smtpConfigured: boolean; onClose: () => void; onInvited: () => void }) {
+function TeamInviteDialog({ users, invitations, smtpConfigured, onClose, onInvited }: { users: ClubUser[]; invitations: ClubInvitation[]; smtpConfigured: boolean; onClose: () => void; onInvited: () => void }) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"player" | "trainer" | "admin">("player");
+  const [playerKind, setPlayerKind] = useState<"account" | "child">("child");
+  const [birthday, setBirthday] = useState("");
   const [sendEmail, setSendEmail] = useState(smtpConfigured);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
+  const [created, setCreated] = useState(false);
   const [copied, setCopied] = useState(false);
+  const pending = invitations.filter((item) => !item.acceptedAt);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -94,10 +99,12 @@ function TeamInviteDialog({ smtpConfigured, onClose, onInvited }: { smtpConfigur
   async function invite(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError("");
     try {
-      const response = await fetch("/api/v1/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, role, sendEmail, groupId: null }) });
+      const childProfile = role === "player" && playerKind === "child";
+      const response = await fetch(childProfile ? "/api/v1/players" : "/api/v1/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(childProfile ? { name, birthday, guardianEmail: email, sendEmail: Boolean(email && sendEmail) } : { name, email, role, sendEmail: Boolean(email && sendEmail), groupId: null }) });
       const result = await response.json() as { error?: string; emailSent?: boolean; emailError?: string; link?: string };
       if (!response.ok) throw new Error(result.error || "Einladung konnte nicht erstellt werden.");
       setLink(result.link || "");
+      setCreated(true);
       onInvited();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Einladung konnte nicht erstellt werden.");
@@ -110,17 +117,38 @@ function TeamInviteDialog({ smtpConfigured, onClose, onInvited }: { smtpConfigur
     setCopied(true); window.setTimeout(() => setCopied(false), 1800);
   }
 
+  async function copyPending(id: string) {
+    setError("");
+    try {
+      const response = await fetch(`/api/v1/invitations/${id}`, { method: "POST" });
+      const result = await response.json() as { link?: string; error?: string };
+      if (!response.ok || !result.link) throw new Error(result.error || "Link konnte nicht erstellt werden.");
+      await navigator.clipboard.writeText(result.link);
+      setCopied(true); window.setTimeout(() => setCopied(false), 1800); onInvited();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : "Link konnte nicht kopiert werden."); }
+  }
+
+  async function removePending(id: string) {
+    const response = await fetch(`/api/v1/invitations/${id}`, { method: "DELETE" });
+    if (!response.ok) return setError("Einladung konnte nicht zurückgezogen werden.");
+    onInvited();
+  }
+
   return <div className="team-invite-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="team-invite-dialog" role="dialog" aria-modal="true" aria-labelledby="team-invite-title">
       <header><span><small>MANNSCHAFT</small><h2 id="team-invite-title">Person einladen</h2></span><button type="button" onClick={onClose} aria-label="Einladung schließen"><X /></button></header>
-      {!link ? <form onSubmit={invite}>
-        <p>Die Person erhält einen persönlichen Zugang zu dieser Mannschaft.</p>
-        <label className="team-invite-email"><span>E-Mail-Adresse</span><div><Mail /><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" autoFocus /></div></label>
+      {!created ? <form onSubmit={invite}>
+        <p>Lege die Person an. Kontaktdaten kannst du auch später ergänzen.</p>
+        <label className="team-invite-email"><span>Vor- und Nachname</span><div><Users /><input required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} placeholder="Name der Person" autoFocus /></div></label>
         <fieldset><legend>Rolle</legend><div>{(["player", "trainer", "admin"] as const).map((item) => <button type="button" className={role === item ? "active" : ""} aria-pressed={role === item} onClick={() => setRole(item)} key={item}>{roleLabels[item]}</button>)}</div></fieldset>
-        {smtpConfigured ? <label className="team-invite-delivery"><input type="checkbox" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /><span><strong>Per E-Mail senden</strong><small>Der Link wird zusätzlich zum Kopieren angezeigt.</small></span></label> : <p className="team-invite-mail-note">Der Einladungslink kann anschließend kopiert und selbst verschickt werden.</p>}
+        {role === "player" && <fieldset className="team-player-kind"><legend>Spielerzugang</legend><div><button type="button" className={playerKind === "child" ? "active" : ""} onClick={() => setPlayerKind("child")}><strong>Kinderprofil</strong><small>Sofort im Kader</small></button><button type="button" className={playerKind === "account" ? "active" : ""} onClick={() => setPlayerKind("account")}><strong>Eigener Zugang</strong><small>Nur per Einladung</small></button></div></fieldset>}
+        {role === "player" && playerKind === "child" && <label className="team-invite-email"><span>Geburtsdatum</span><div><CalendarDays /><input required type="date" value={birthday} onChange={(event) => setBirthday(event.target.value)} /></div></label>}
+        <label className="team-invite-email"><span>{role === "player" && playerKind === "child" ? "E-Mail eines Elternteils" : "E-Mail-Adresse"} {role !== "admin" && <small>optional</small>}</span><div><Mail /><input required={role === "admin"} type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={role === "admin" ? "Für Admins erforderlich" : "Kann später ergänzt werden"} /></div></label>
+        {smtpConfigured && email ? <label className="team-invite-delivery"><input type="checkbox" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /><span><strong>Einladung direkt senden</strong><small>Der Link bleibt auch unten verfügbar.</small></span></label> : <p className="team-invite-mail-note">Ohne E-Mail bleibt ein persönlicher Link unter „Ausstehend“ bereit.</p>}
         {error && <div className="login-error" role="alert">{error}</div>}
-        <footer><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" disabled={busy || !email}>{busy ? "Wird erstellt …" : <><Mail /> Einladung erstellen</>}</button></footer>
-      </form> : <div className="team-invite-success"><span><Check /></span><h3>Einladung ist bereit</h3><p>{sendEmail && smtpConfigured ? `Die Einladung wurde an ${email} gesendet.` : "Kopiere den persönlichen Link und sende ihn an die eingeladene Person."}</p><div><input readOnly value={link} onFocus={(event) => event.currentTarget.select()} /><button type="button" onClick={copyInvitation}>{copied ? <Check /> : <Copy />}{copied ? "Kopiert" : "Link kopieren"}</button></div><button className="primary" type="button" onClick={onClose}>Fertig</button></div>}
+        <footer><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" disabled={busy || name.trim().length < 2 || (role === "admin" && !email) || (role === "player" && playerKind === "child" && !birthday)}>{busy ? "Wird angelegt …" : <><Plus /> Person anlegen</>}</button></footer>
+        <div className="team-pending-invites"><header><span><strong>Ausstehende Einladungen</strong><small>{pending.length ? `${pending.length} noch nicht angenommen` : "Keine offenen Links"}</small></span></header>{pending.map((item) => { const player = item.managedPlayerId ? users.find((entry) => entry.id === item.managedPlayerId) : null; return <article key={item.id}><span><strong>{player?.name || item.name || item.email || "Einladung"}</strong><small>{item.managedPlayerId ? "Elternzugang" : roleLabels[item.role]}{item.email ? ` · ${item.email}` : " · E-Mail offen"}</small></span><button type="button" onClick={() => void copyPending(item.id)} title="Neuen Link erzeugen und kopieren"><Copy /></button>{!item.managedPlayerId && <button type="button" className="danger" onClick={() => void removePending(item.id)} title="Einladung zurückziehen"><Trash2 /></button>}</article>; })}</div>
+      </form> : <div className="team-invite-success"><span><Check /></span><h3>{role === "player" && playerKind === "child" ? "Spieler ist angelegt" : "Einladung ist bereit"}</h3><p>{sendEmail && email && smtpConfigured ? `Die Einladung wurde an ${email} gesendet.` : link ? "Der persönliche Link kann jetzt oder später weitergegeben werden." : "Der vorhandene Elternzugang wurde direkt mit dem Spieler verbunden."}</p>{link && <div><input readOnly value={link} onFocus={(event) => event.currentTarget.select()} /><button type="button" onClick={copyInvitation}>{copied ? <Check /> : <Copy />}{copied ? "Kopiert" : "Link kopieren"}</button></div>}<button className="primary" type="button" onClick={onClose}>Fertig</button></div>}
     </section>
   </div>;
 }

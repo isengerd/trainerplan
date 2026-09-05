@@ -69,6 +69,7 @@ export type ClubInvitation = {
   groupId?: string | null;
   clubId?: string | null;
   teamId?: string | null;
+  managedPlayerId?: string | null;
   invitedBy: string;
   expiresAt: string;
   acceptedAt?: string | null;

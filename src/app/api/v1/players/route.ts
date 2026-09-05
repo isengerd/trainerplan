@@ -23,10 +23,10 @@ export async function POST(request: NextRequest) {
     const guardianName = typeof body.guardianName === "string" ? body.guardianName.trim().slice(0, 100) : "";
     const scope = await activeClubScope(user);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
-    const baseUrl = guardianEmail ? applicationUrl(request) : null;
-    const tokenData = guardianEmail ? createInvitationToken() : null;
     const existingGuardian = guardianEmail ? await prisma.user.findUnique({ where: { email: guardianEmail } }) : null;
     if (existingGuardian?.managedProfile) throw new ApiInputError("Diese Adresse gehört zu einem Spielerprofil.");
+    const tokenData = existingGuardian ? null : createInvitationToken();
+    const baseUrl = tokenData ? applicationUrl(request) : null;
     const playerId = `player-${randomUUID()}`;
     const result = await prisma.$transaction(async (tx) => {
       const player = await tx.user.create({ data: { id: playerId, name, email: `${playerId}@profiles.invalid`, passwordHash: await bcrypt.hash(randomUUID(), 12), role: "player", position: "Allrounder", birthday: parsedBirthday, ageGroup: ageGroupForBirthday(parsedBirthday) ?? "", activeTeamId: scope.teamId, managedProfile: true, loginEnabled: false } });
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
         await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: existingGuardian.id, playerId: player.id } }, update: {}, create: { guardianId: existingGuardian.id, playerId: player.id } });
         const membership = await tx.membership.findFirst({ where: { userId: existingGuardian.id, clubId: scope.clubId, teamId: scope.teamId } });
         if (!membership) await tx.membership.create({ data: { userId: existingGuardian.id, clubId: scope.clubId, teamId: scope.teamId, role: "guardian" } });
-      } else if (guardianEmail && tokenData) {
-        await tx.invitation.deleteMany({ where: { email: guardianEmail, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null } });
-        await tx.invitation.create({ data: { email: guardianEmail, name: guardianName, role: "guardian", ageGroup: "", clubId: scope.clubId, teamId: scope.teamId, managedPlayerId: player.id, invitedById: user.id, tokenHash: tokenData.tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) } });
+      } else if (tokenData) {
+        if (guardianEmail) await tx.invitation.deleteMany({ where: { email: guardianEmail, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null } });
+        await tx.invitation.create({ data: { email: guardianEmail ?? "", name: guardianName, role: "guardian", ageGroup: "", clubId: scope.clubId, teamId: scope.teamId, managedPlayerId: player.id, invitedById: user.id, tokenHash: tokenData.tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) } });
       }
       return player;
     });
