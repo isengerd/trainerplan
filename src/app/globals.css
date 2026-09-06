@@ -1703,6 +1703,12 @@ html[data-theme="light"] .month-grid button.selected-day {
   .team-list select { min-width: 0; max-width: 96px; }
   .event-popup, .event-editor, .exercise-creator, .detail-sheet, .template-sheet,
   .filter-drawer, .exercise-picker, .mobile-menu-sheet { max-width: 100dvw; }
+  .picker-backdrop, .exercise-detail-backdrop { align-items: stretch; padding: 0; background: var(--bg-app); backdrop-filter: none; }
+  .exercise-picker, .exercise-detail-backdrop .detail-sheet { width: 100dvw; max-width: 100dvw; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .exercise-picker { padding-top: env(safe-area-inset-top); animation: mobile-page-in .2s ease-out; }
+  .exercise-detail-backdrop .detail-sheet { animation: mobile-page-in .2s ease-out; }
+  .exercise-detail-backdrop .detail-top { height: calc(55px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+  @keyframes mobile-page-in { from { transform: translateX(24px); opacity: .75; } }
   input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]),
   textarea, select { font-size: 16px !important; }
 }

@@ -166,6 +166,40 @@ export function TrainerApp() {
   const latestPlanSnapshot = useRef("");
   const autoSaveChain = useRef<Promise<void>>(Promise.resolve());
 
+  function usesMobileExerciseNavigation() {
+    return typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches;
+  }
+
+  function updateExerciseDialogHistory(dialog: "library" | "detail", replace = false) {
+    if (!usesMobileExerciseNavigation()) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("dialog", dialog === "library" ? "uebungen" : "uebung");
+    const state = { ...window.history.state, nextSessionExerciseDialog: dialog };
+    if (replace) window.history.replaceState(state, "", url);
+    else window.history.pushState(state, "", url);
+  }
+
+  function openExerciseLibrary(phase: Exercise["category"]) {
+    setTargetPhase(phase);
+    updateExerciseDialogHistory("library", Boolean(window.history.state?.nextSessionExerciseDialog));
+    setLibraryOpen(true);
+  }
+
+  function openExerciseDetail(exercise: Exercise) {
+    updateExerciseDialogHistory("detail", Boolean(window.history.state?.nextSessionExerciseDialog));
+    setLibraryOpen(false);
+    setDetail(exercise);
+  }
+
+  function closeExerciseDialog() {
+    if (usesMobileExerciseNavigation() && window.history.state?.nextSessionExerciseDialog) {
+      window.history.back();
+      return;
+    }
+    setLibraryOpen(false);
+    setDetail(null);
+  }
+
   function setView(nextView: AppView) {
     if (nextView === view) return;
     const url = new URL(window.location.href);
@@ -182,6 +216,10 @@ export function TrainerApp() {
       setViewState(viewFromLocation());
       setAccountMenuOpen(false);
       setMobileMenuOpen(false);
+      if (!window.history.state?.nextSessionExerciseDialog) {
+        setLibraryOpen(false);
+        setDetail(null);
+      }
     };
     syncViewFromHistory();
     window.addEventListener("popstate", syncViewFromHistory);
@@ -531,7 +569,7 @@ export function TrainerApp() {
 
   function mobileBack() {
     if (mobileMenuOpen) return setMobileMenuOpen(false);
-    if (libraryOpen) return setLibraryOpen(false);
+    if (libraryOpen || detail) return closeExerciseDialog();
     if (view === "profile" && profileUserId && profileUserId !== currentUserId) return setView("team");
     if (view !== "overview") setView("overview");
   }
@@ -624,7 +662,7 @@ export function TrainerApp() {
       mode="manage"
       exercises={exerciseLibrary}
       canManage={Boolean(canManageClub)}
-      onDetail={setDetail}
+      onDetail={openExerciseDetail}
       onEdit={(item) => { setEditingExercise(item); setCreatorOpen(true); }}
       onDelete={deleteLibraryExercise}
       onAdd={(item) => addExercise(item, item.category)}
@@ -809,18 +847,18 @@ export function TrainerApp() {
                 const phaseExercises = plan.filter((item) => item.category === phase);
                 const phaseDuration = phaseExercises.reduce((sum, item) => sum + item.duration, 0);
                 return <section className="phase-block" key={phase}>
-                  <header><div><span>{phase}</span><small>{phaseExercises.length} Übungen · {phaseDuration} Min</small></div>{canManageClub && <button onClick={() => { setTargetPhase(phase); setLibraryOpen(true); }}><Plus /> Übung</button>}</header>
+                  <header><div><span>{phase}</span><small>{phaseExercises.length} Übungen · {phaseDuration} Min</small></div>{canManageClub && <button onClick={() => openExerciseLibrary(phase)}><Plus /> Übung</button>}</header>
                   <div className="timeline">
                     {phaseExercises.map((item) => {
                       const index = plan.findIndex((planned) => planned.id === item.id);
                       return <article className="exercise" key={item.id} style={{ "--accent": item.accent } as React.CSSProperties}>
                         <div className="stage"><i /><span>{String(index + 1).padStart(2, "0")}</span><select className="phase-select" value={item.category} onChange={(event) => changeExercisePhase(item.id, event.target.value as Exercise["category"])}>{phases.map((option) => <option key={option}>{option}</option>)}</select></div>
-                        <button className="exercise-preview" onClick={() => setDetail(item)} aria-label={`${item.title} öffnen`}><Pitch variant={item.variant} caption={item.title} /></button>
-                        <button className="exercise-copy" onClick={() => setDetail(item)}>{exerciseAssignmentLabel(item) && <span className="mobile-stage with-assignment">{exerciseAssignmentLabel(item)}</span>}<h3>{item.title}</h3><p>{item.description}</p><small><Users /> {item.players}<Clock3 /> {item.duration} Min <CircleGauge /> {item.intensity}</small></button>
+                        <button className="exercise-preview" onClick={() => openExerciseDetail(item)} aria-label={`${item.title} öffnen`}><Pitch variant={item.variant} caption={item.title} /></button>
+                        <button className="exercise-copy" onClick={() => openExerciseDetail(item)}>{exerciseAssignmentLabel(item) && <span className="mobile-stage with-assignment">{exerciseAssignmentLabel(item)}</span>}<h3>{item.title}</h3><p>{item.description}</p><small><Users /> {item.players}<Clock3 /> {item.duration} Min <CircleGauge /> {item.intensity}</small></button>
                         {canManageClub && <div className="exercise-row-actions">{clubSettings.splitTeamsEnabled && <button className="exercise-assignment-button" onClick={() => setAssignmentExerciseId(item.id)} aria-label={`Team und Trainer für ${item.title} festlegen`} title="Team und Trainer"><Users /></button>}<button className="remove-button" onClick={() => removeExercise(item.id)} aria-label={`${item.title} entfernen`}><Trash2 /></button></div>}
                       </article>;
                     })}
-                    {!phaseExercises.length && canManageClub && <button className="phase-dropzone" onClick={() => { setTargetPhase(phase); setLibraryOpen(true); }}><Plus /> Übung für {phase === "Abschlussspiel" ? "Abschluss" : phase} hinzufügen</button>}
+                    {!phaseExercises.length && canManageClub && <button className="phase-dropzone" onClick={() => openExerciseLibrary(phase)}><Plus /> Übung für {phase === "Abschlussspiel" ? "Abschluss" : phase} hinzufügen</button>}
                     {!phaseExercises.length && !canManageClub && <p className="phase-empty-readonly">Noch keine Übung eingeplant.</p>}
                   </div>
                 </section>;
@@ -844,14 +882,14 @@ export function TrainerApp() {
         </nav>
       </section>
 
-      {libraryOpen && <div className="picker-backdrop" onMouseDown={() => setLibraryOpen(false)}><aside className="exercise-picker" role="dialog" aria-modal="true" aria-label="Übungsbibliothek" onMouseDown={(event) => event.stopPropagation()}><ExerciseLibrary mode="pick" exercises={exerciseLibrary} initialPhase={targetPhase} canManage={Boolean(canManageClub)} onClose={() => setLibraryOpen(false)} onDetail={(item) => { setLibraryOpen(false); setDetail(item); }} onEdit={(item) => { setLibraryOpen(false); setEditingExercise(item); setCreatorOpen(true); }} onDelete={deleteLibraryExercise} onAdd={(item) => addExercise(item, targetPhase)} onCreate={() => { setLibraryOpen(false); setEditingExercise(null); setCreatorOpen(true); }} /></aside></div>}
+      {libraryOpen && <div className="picker-backdrop" onMouseDown={closeExerciseDialog}><aside className="exercise-picker" role="dialog" aria-modal="true" aria-label="Übungsbibliothek" onMouseDown={(event) => event.stopPropagation()}><ExerciseLibrary mode="pick" exercises={exerciseLibrary} initialPhase={targetPhase} canManage={Boolean(canManageClub)} onClose={closeExerciseDialog} onDetail={openExerciseDetail} onEdit={(item) => { setEditingExercise(item); setCreatorOpen(true); closeExerciseDialog(); }} onDelete={deleteLibraryExercise} onAdd={(item) => { addExercise(item, targetPhase); closeExerciseDialog(); }} onCreate={() => { setEditingExercise(null); setCreatorOpen(true); closeExerciseDialog(); }} /></aside></div>}
       {creatorOpen && <ExerciseCreator phase={targetPhase} exercise={editingExercise} onClose={() => { setCreatorOpen(false); setEditingExercise(null); }} onSave={saveExercise} />}
       {templateOpen && <TrainingTemplates mode={templateMode} plan={plan} templates={[...featuredTemplates, ...trainingTemplates]} onModeChange={setTemplateMode} onApply={applyTrainingTemplate} onSave={saveTrainingTemplate} onDelete={deleteTrainingTemplate} onToggleDefault={toggleDefaultPhase} onClose={() => setTemplateOpen(false)} />}
 
       {detail && (
-        <div className="modal-backdrop" onMouseDown={() => setDetail(null)}>
+        <div className="modal-backdrop exercise-detail-backdrop" onMouseDown={closeExerciseDialog}>
           <section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="exercise-title" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="detail-top"><div className="detail-badges"><span className="category-pill" style={{ "--accent": detail.accent } as React.CSSProperties}>{detail.category}</span><span className="age-detail-badge">{detail.ageGroup} · {detail.ageRange}</span></div><button className="icon-button" onClick={() => setDetail(null)} aria-label="Details schließen"><X /></button></div>
+            <div className="detail-top"><div className="detail-badges"><span className="category-pill" style={{ "--accent": detail.accent } as React.CSSProperties}>{detail.category}</span><span className="age-detail-badge">{detail.ageGroup} · {detail.ageRange}</span></div><button className="icon-button" onClick={closeExerciseDialog} aria-label="Details schließen"><X /></button></div>
             <div className="detail-hero">
               <Pitch variant={detail.variant} caption={detail.title} label={`Aufbauskizze für ${detail.title}`} />
             </div>
@@ -865,7 +903,7 @@ export function TrainerApp() {
               <section className="trainer-cheatsheet"><article className="trainer-tip-cell"><span><Sparkles /> Trainer-Tipps</span><ul>{detail.coaching.slice(3).map((point) => <li key={point}>{point}</li>)}<li>Kurze Erklärung, viele Wiederholungen</li><li>Erfolge konkret und positiv benennen</li></ul></article><article><Clock3 /><span><small>Dauer</small><strong>{detail.duration} Min.</strong></span></article><article><Users /><span><small>Spielerzahl</small><strong>{detail.players}</strong></span></article><article><Boxes /><span><small>Material</small><strong>{detail.materials.map((material) => `${material.count} ${materialCatalog[material.id].name}`).join(" · ") || "Ohne Material"}</strong></span></article></section>
               {detail.variations?.length ? <div className="detail-section detail-variations"><h3>Varianten</h3><ul>{detail.variations.map((variation) => <li key={variation}><Sparkles />{variation}</li>)}</ul></div> : null}
             </div>
-            <div className="detail-actions"><button className="secondary" onClick={() => setDetail(null)}>Schließen</button>{canManageClub && <button className="secondary" onClick={() => { setEditingExercise(detail); setCreatorOpen(true); setDetail(null); }}><Edit3 /> Bearbeiten</button>}{canManageClub && <button className="primary" onClick={() => { addExercise(detail); setDetail(null); }}><Plus /> Zum Training</button>}</div>
+            <div className="detail-actions"><button className="secondary" onClick={closeExerciseDialog}>Schließen</button>{canManageClub && <button className="secondary" onClick={() => { setEditingExercise(detail); setCreatorOpen(true); closeExerciseDialog(); }}><Edit3 /> Bearbeiten</button>}{canManageClub && <button className="primary" onClick={() => { addExercise(detail); closeExerciseDialog(); }}><Plus /> Zum Training</button>}</div>
           </section>
         </div>
       )}
