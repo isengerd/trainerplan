@@ -2,6 +2,7 @@ import type { Role } from "@prisma/client";
 import type { OrganizationContext } from "@/data/club";
 import { prisma } from "./db";
 import { activeClubScope } from "./club-context";
+import { effectiveLicenseType, hasMultipleTeams } from "./license";
 
 export async function organizationContext(userId: string): Promise<OrganizationContext | null> {
   const scope = await activeClubScope({ id: userId });
@@ -19,7 +20,7 @@ export async function organizationContext(userId: string): Promise<OrganizationC
     where: {
       clubId: scope.clubId,
       active: true,
-      ...(!isClubAdmin || first.club.licenseType !== "club" ? { id: { in: scopedTeamIds } } : {}),
+      ...(!isClubAdmin || !hasMultipleTeams(first.club.licenseType, first.club.licenseExpiresAt) ? { id: { in: scopedTeamIds } } : {}),
     },
     include: { _count: { select: { memberships: { where: { status: "active" } } } } },
     orderBy: { createdAt: "asc" },
@@ -28,7 +29,8 @@ export async function organizationContext(userId: string): Promise<OrganizationC
   return {
     clubId: scope.clubId,
     clubName: first.club.name,
-    licenseType: first.club.licenseType === "club" ? "club" : "single_team",
+    licenseType: effectiveLicenseType(first.club.licenseType, first.club.licenseExpiresAt),
+    licenseExpiresAt: first.club.licenseExpiresAt?.toISOString() ?? null,
     activeTeamId: scope.teamId,
     isClubAdmin,
     teams: availableTeams.map((team) => ({

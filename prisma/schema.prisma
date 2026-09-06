@@ -69,7 +69,8 @@ model Club {
   id          String           @id @default(cuid())
   name        String
   slug        String           @unique
-  licenseType String           @default("single_team")
+  licenseType      String           @default("single_team_free")
+  licenseExpiresAt DateTime?
   memberships Membership[]
   teams       Team[]
   groups      TeamGroup[]

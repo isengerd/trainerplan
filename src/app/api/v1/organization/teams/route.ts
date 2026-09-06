@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { isFirstTeamAgeGroup } from "@/lib/age-groups";
 import { organizationContext, requireClubAdmin } from "@/lib/organization";
 import { Prisma } from "@prisma/client";
+import { hasMultipleTeams } from "@/lib/license";
 
 export async function POST(request: NextRequest) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const admin = await requireClubAdmin(user.id);
     if (!admin) throw new ApiInputError("Nur Vereinsadmins dürfen Mannschaften anlegen.", 403);
     const club = await prisma.club.findUniqueOrThrow({ where: { id: admin.scope.clubId } });
-    if (club.licenseType !== "club") throw new ApiInputError("Weitere Mannschaften benötigen den Vereinsmodus.", 403);
+    if (!hasMultipleTeams(club.licenseType, club.licenseExpiresAt)) throw new ApiInputError("Weitere Mannschaften benötigen die Vereinslizenz.", 403);
     const body = await readJson<{ name?: unknown; ageGroup?: unknown }>(request, 8_192);
     const name = textValue(body.name, "Mannschaftsname", 120, 2);
     const ageGroup = textValue(body.ageGroup, "Altersklasse", 2, 2).toLowerCase();

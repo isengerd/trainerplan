@@ -3,7 +3,7 @@ export type Attendance = "yes" | "no" | "maybe";
 export type EventType = "training" | "tournament" | "match" | "event";
 export type RepeatFrequency = "none" | "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 export type InternalTeam = "A" | "B";
-export type LicenseType = "single_team" | "club";
+export type LicenseType = "single_team_free" | "single_team_pro" | "club";
 
 export type OrganizationTeam = {
   id: string;
@@ -17,6 +17,7 @@ export type OrganizationContext = {
   clubId: string;
   clubName: string;
   licenseType: LicenseType;
+  licenseExpiresAt: string | null;
   activeTeamId: string | null;
   isClubAdmin: boolean;
   teams: OrganizationTeam[];

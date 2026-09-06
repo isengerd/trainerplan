@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
       : Promise.resolve([]),
   ]);
   if (!config) return NextResponse.json({ error: "Die Konfiguration konnte nicht geladen werden." }, { status: 500 });
-  const settings = config.settings as { teamFeatureEnabled?: boolean; showResponsesToPlayers?: boolean };
+  const settings = config.settings as { showResponsesToPlayers?: boolean };
   const managedPlayerIds = (await prisma.guardianPlayer.findMany({ where: { guardianId: currentUser.id }, select: { playerId: true } })).map((link) => link.playerId);
-  const visibleUsers = currentUser.role === "player" && settings.teamFeatureEnabled === false
+  const visibleUsers = currentUser.role === "player" && organization?.licenseType === "single_team_free"
     ? users.filter((member) => member.id === currentUser.id)
     : users;
   return NextResponse.json({

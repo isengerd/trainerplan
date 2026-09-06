@@ -3,6 +3,7 @@ import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { activeClubScope } from "@/lib/club-context";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
+import { hasAccessManagement } from "@/lib/license";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -10,6 +11,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const { id } = await context.params;
   const scope = await activeClubScope(user);
   if (!scope) return NextResponse.json({ error: "Keine aktive Mannschaft." }, { status: 409 });
+  const club = await prisma.club.findUnique({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
+  if (!club || !hasAccessManagement(club.licenseType, club.licenseExpiresAt)) return NextResponse.json({ error: "Einladungen benötigen EM Pro oder die Vereinslizenz." }, { status: 403 });
   const invitation = await prisma.invitation.findFirst({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null } });
   if (!invitation) return NextResponse.json({ error: "Die Einladung wurde nicht gefunden." }, { status: 404 });
   const { token, tokenHash } = createInvitationToken();

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       let club;
       for (let suffix = 0; suffix < 100; suffix += 1) {
-        try { club = await tx.club.create({ data: { name: clubName, slug: uniqueClubSlug(clubName, suffix) } }); break; }
+        try { club = await tx.club.create({ data: { name: clubName, slug: uniqueClubSlug(clubName, suffix), licenseType: "single_team_free" } }); break; }
         catch (error) { if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error; }
       }
       if (!club) throw new ApiInputError("Der Verein konnte nicht angelegt werden.", 409);

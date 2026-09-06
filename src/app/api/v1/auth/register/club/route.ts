@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       let club;
       for (let suffix = 0; suffix < 100; suffix += 1) {
         try {
-          club = await tx.club.create({ data: { name: clubName, slug: uniqueClubSlug(clubName, suffix) } });
+          club = await tx.club.create({ data: { name: clubName, slug: uniqueClubSlug(clubName, suffix), licenseType: "single_team_free" } });
           break;
         } catch (error) {
           if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;

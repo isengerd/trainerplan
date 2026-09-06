@@ -9,6 +9,7 @@ import { ageGroupForBirthday } from "@/lib/age-groups";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
 import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 import type { ClubSettings } from "@/data/club";
+import { hasAccessManagement } from "@/lib/license";
 
 export async function POST(request: NextRequest) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -23,15 +24,17 @@ export async function POST(request: NextRequest) {
     const guardianName = typeof body.guardianName === "string" ? body.guardianName.trim().slice(0, 100) : "";
     const scope = await activeClubScope(user);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
+    const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
+    const accessEnabled = hasAccessManagement(club.licenseType, club.licenseExpiresAt);
     const existingGuardian = guardianEmail ? await prisma.user.findUnique({ where: { email: guardianEmail } }) : null;
     if (existingGuardian?.managedProfile) throw new ApiInputError("Diese Adresse gehört zu einem Spielerprofil.");
-    const tokenData = existingGuardian ? null : createInvitationToken();
+    const tokenData = accessEnabled && !existingGuardian ? createInvitationToken() : null;
     const baseUrl = tokenData ? applicationUrl(request) : null;
     const playerId = `player-${randomUUID()}`;
     const result = await prisma.$transaction(async (tx) => {
       const player = await tx.user.create({ data: { id: playerId, name, email: `${playerId}@profiles.invalid`, passwordHash: await bcrypt.hash(randomUUID(), 12), role: "player", position: "Allrounder", birthday: parsedBirthday, ageGroup: ageGroupForBirthday(parsedBirthday) ?? "", activeTeamId: scope.teamId, managedProfile: true, loginEnabled: false } });
       await tx.membership.create({ data: { userId: player.id, clubId: scope.clubId, teamId: scope.teamId, role: "player" } });
-      if (existingGuardian) {
+      if (accessEnabled && existingGuardian) {
         await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: existingGuardian.id, playerId: player.id } }, update: {}, create: { guardianId: existingGuardian.id, playerId: player.id } });
         const membership = await tx.membership.findFirst({ where: { userId: existingGuardian.id, clubId: scope.clubId, teamId: scope.teamId } });
         if (!membership) await tx.membership.create({ data: { userId: existingGuardian.id, clubId: scope.clubId, teamId: scope.teamId, role: "guardian" } });

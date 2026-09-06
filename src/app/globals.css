@@ -2138,3 +2138,41 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
   .overview-event-squads { align-items: stretch; gap: 5px; padding-inline: 2px; }
   .overview-event-squads .overview-squad-list { flex: 1 1 auto; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+.global-license-warning,
+.license-expiry-warning,
+.access-migration-card,
+.managed-access-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #efc278;
+  border-radius: 18px;
+  background: #fff8e9;
+  color: #263c32;
+}
+
+.global-license-warning { margin: 20px 30px 0; }
+.global-license-warning > span,
+.license-expiry-warning > span,
+.access-migration-card > div,
+.managed-access-card .profile-section-title span { flex: 1; display: grid; gap: 3px; }
+.global-license-warning small,
+.license-expiry-warning small,
+.access-migration-card small { color: #6d7f76; }
+.global-license-warning button,
+.access-migration-card > button { margin-left: auto; white-space: nowrap; }
+.license-expiry-warning { margin-top: 18px; }
+.license-loss-list { display: grid; gap: 7px; padding: 16px; border-radius: 14px; background: #fff6f4; color: #884a43; }
+.access-migration-card { margin-top: 18px; border-color: #b9dfc5; background: #f2fbf5; }
+.managed-access-card { margin: 20px 0; align-items: stretch; flex-direction: column; border-color: #b9dfc5; background: #fff; }
+.managed-access-card label { display: grid; gap: 8px; }
+.managed-access-card input { min-height: 48px; padding: 0 14px; border: 1px solid #cbdad1; border-radius: 12px; }
+.access-link-result { display: flex; gap: 8px; }
+
+@media (max-width: 720px) {
+  .global-license-warning,
+  .access-migration-card { align-items: flex-start; flex-direction: column; margin-inline: 14px; }
+  .global-license-warning button,
+  .access-migration-card > button { margin-left: 0; width: 100%; }
+}
