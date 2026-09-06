@@ -166,7 +166,7 @@ function shiftedTime(time: string, minutes: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, selectedEventId, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; selectedEventId?: string | null; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
+export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, selectedEventId, onSelectedEventHandled, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; selectedEventId?: string | null; onSelectedEventHandled?: () => void; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
   const [editing, setEditing] = useState<ClubEvent | null>(null);
   const [editingPlannedDate, setEditingPlannedDate] = useState<string | null>(null);
@@ -178,15 +178,52 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
   const plannedTrainingByDate = new Map(plannedTrainings.map((training) => [training.date, training]));
 
+  function usesMobileEventNavigation() {
+    return typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches;
+  }
+
+  function openEventDetail(event: ClubEvent, replaceHistory = false) {
+    if (usesMobileEventNavigation()) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("termin", event.id);
+      const state = { ...window.history.state, nextSessionEventDialog: event.id };
+      if (replaceHistory) window.history.replaceState(state, "", url);
+      else window.history.pushState(state, "", url);
+    }
+    setSelected(event);
+  }
+
+  function closeEventDetail() {
+    if (usesMobileEventNavigation() && window.history.state?.nextSessionEventDialog) {
+      window.history.back();
+      return;
+    }
+    setSelected(null);
+  }
+
   useEffect(() => {
     if (!selectedEventId) return;
     const focusedEvent = events.find((event) => event.id === selectedEventId);
     if (!focusedEvent) return;
-    setSelected(focusedEvent);
+    openEventDetail(focusedEvent, true);
     setSelectedDate(focusedEvent.date);
     const date = new Date(`${focusedEvent.date}T12:00:00`);
     setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1, 12));
-  }, [events, selectedEventId]);
+    onSelectedEventHandled?.();
+  }, [events, selectedEventId, onSelectedEventHandled]);
+
+  useEffect(() => {
+    const syncEventFromHistory = () => {
+      const eventId = window.history.state?.nextSessionEventDialog as string | undefined;
+      if (!eventId) {
+        setSelected(null);
+        return;
+      }
+      setSelected(events.find((event) => event.id === eventId) ?? null);
+    };
+    window.addEventListener("popstate", syncEventFromHistory);
+    return () => window.removeEventListener("popstate", syncEventFromHistory);
+  }, [events]);
   const monthYear = visibleMonth.getFullYear();
   const monthIndex = visibleMonth.getMonth();
   const leadingDays = (new Date(monthYear, monthIndex, 1).getDay() + 6) % 7;
@@ -205,7 +242,7 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
 
   function saveEvent(event: ClubEvent) {
     const next = event.id ? events.map((item) => item.id === event.id ? event : item) : [...events, { ...event, id: `event-${Date.now()}` }];
-    onEventsChange(next); setEditing(null); setEditingPlannedDate(null); setSelected(event.id ? event : next[next.length - 1]);
+    onEventsChange(next); setEditing(null); setEditingPlannedDate(null); openEventDetail(event.id ? event : next[next.length - 1]);
   }
 
   function respond(responseUserId: string, value: Attendance) {
@@ -240,22 +277,22 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
 
   function openCalendarDay(dateKey: string, dayEvents: ClubEvent[]) {
     const trainingEvent = dayEvents.find((event) => event.type === "training");
-    if (trainingEvent) return setSelected(trainingEvent);
+    if (trainingEvent) return openEventDetail(trainingEvent);
     const plannedTraining = plannedTrainingByDate.get(dateKey);
     if (plannedTraining && canManage) {
       setEditingPlannedDate(dateKey);
       setEditing({ ...emptyEvent, date: dateKey, title: plannedTraining.title, startTime: plannedTraining.startTime, meetingTime: shiftedTime(plannedTraining.startTime, -10), endTime: shiftedTime(plannedTraining.startTime, 75), location: "" });
       return;
     }
-    if (dayEvents[0]) setSelected(dayEvents[0]);
+    if (dayEvents[0]) openEventDetail(dayEvents[0]);
   }
 
   return <section className="calendar-page module-page">
     <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => { setEditingPlannedDate(null); setEditing({ ...emptyEvent, date: new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity }); }}><Plus /> Termin erstellen</button>}</div>
     <div className="calendar-layout"><section className="month-card"><div className="month-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat"><ChevronLeft /></button><h2>{monthLabel}</h2><button type="button" onClick={() => changeMonth(1)} aria-label="Nächster Monat"><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dateKey = day ? `${monthYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : ""; const dayEvents = day ? events.filter((event) => event.date === dateKey) : []; const hasPlannedTraining = plannedTrainingByDate.has(dateKey) && !dayEvents.some((event) => event.type === "training"); return <button className={dateKey === selectedDate ? "selected-day" : ""} key={`${monthYear}-${monthIndex}-${index}`} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDate(dateKey); clickEvent.currentTarget.blur(); openCalendarDay(dateKey, dayEvents); }}>{day}<span>{dayEvents.map((event) => <i className={event.type} key={event.id} />)}{hasPlannedTraining && <i className="training" />}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
-      <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; return <button className={selected?.id === event.id ? "active" : ""} key={event.id} onClick={() => setSelected(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.startTime} Uhr · {event.location}</p></span><span className="capacity-mini">{yes}/{event.maxParticipants}</span></button>; })}</section>
+      <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; return <button className={selected?.id === event.id ? "active" : ""} key={event.id} onClick={() => openEventDetail(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.startTime} Uhr · {event.location}</p></span><span className="capacity-mini">{yes}/{event.maxParticipants}</span></button>; })}</section>
     </div>
-    {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditingPlannedDate(null); setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditingPlannedDate(null); setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={() => setSelected(null)} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); setSelected(null); }} />}
+    {selected && <EventDetail event={selected} settings={settings} users={users} currentUser={currentUser} onRespond={respond} onEdit={() => { setEditingPlannedDate(null); setEditing({ ...selected }); setSelected(null); }} onDuplicate={() => { setEditingPlannedDate(null); setEditing({ ...selected, id: "", title: `${selected.title} – Kopie`, responses: {} }); setSelected(null); }} onClose={closeEventDetail} onSaveNote={saveTrainerNote} canManage={canManage} onDelete={() => { onEventsChange(events.filter((event) => event.id !== selected.id)); closeEventDetail(); }} />}
     {editing && <EventEditor event={editing} plannedTraining={Boolean(editingPlannedDate)} settings={settings} users={users} onClose={() => { setEditing(null); setEditingPlannedDate(null); }} onDelete={editingPlannedDate && onDeletePlannedTraining ? () => { if (!window.confirm("Training und den zugehörigen Trainingsplan wirklich löschen?")) return; onDeletePlannedTraining(editingPlannedDate); setEditing(null); setEditingPlannedDate(null); } : undefined} onSave={saveEvent} />}
   </section>;
 }
