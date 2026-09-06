@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, CalendarDays, Check, ChevronRight, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, UserRoundCheck, Users, X,
+  AlertTriangle, CalendarDays, Check, ChevronRight, Eye, EyeOff, MapPin, Plus, Search, ShieldCheck, Trash2, Trophy, UserRoundCheck, Users, X,
 } from "lucide-react";
 import type { AgeGroupOption, ClubEvent, ClubSettings, ClubUser, TournamentPlan, TournamentSquad } from "@/data/club";
 import { duplicateTournamentPlayers, validateTournamentSquad } from "@/lib/tournament-planning";
@@ -16,6 +16,7 @@ type Props = {
   ageGroups: AgeGroupOption[];
   currentUser: ClubUser;
   onPlansChange: (eventId: string, squads: TournamentSquad[]) => Promise<boolean>;
+  onPublicationChange: (eventId: string, published: boolean) => Promise<boolean>;
   onCreateTournament: (event: ClubEvent) => Promise<boolean>;
 };
 
@@ -23,7 +24,7 @@ const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/B
 const eventDate = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "long", year: "numeric" });
 
 export function TournamentPlanningPage(props: Props) {
-  const { events, users, plans, settings, ageGroups, currentUser, onPlansChange, onCreateTournament } = props;
+  const { events, users, plans, settings, ageGroups, currentUser, onPlansChange, onPublicationChange, onCreateTournament } = props;
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
   const tournaments = useMemo(() => {
     const todayKey = today();
@@ -41,7 +42,8 @@ export function TournamentPlanningPage(props: Props) {
   useEffect(() => { if (!message) return; const timer = window.setTimeout(() => setMessage(""), 2800); return () => window.clearTimeout(timer); }, [message]);
 
   const selected = tournaments.find((event) => event.id === selectedId) ?? null;
-  const squads = plans.find((plan) => plan.eventId === selectedId)?.squads ?? [];
+  const selectedPlan = plans.find((plan) => plan.eventId === selectedId);
+  const squads = selectedPlan?.squads ?? [];
 
   if (!canManage) return <PlayerTournamentTeams tournaments={tournaments} plans={plans} users={users} />;
 
@@ -52,7 +54,7 @@ export function TournamentPlanningPage(props: Props) {
         return <button role="tab" aria-selected={selectedId === event.id} className={selectedId === event.id ? "active" : ""} key={event.id} onClick={() => setSelectedId(event.id)}><span className="tournament-date"><strong>{event.date.slice(-2)}</strong><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><strong>{event.title}</strong><small className="tournament-location"><MapPin /> {event.location}</small><small>{eventSquads.length ? `${eventSquads.length} Mannschaften` : "Planung offen"}</small></span><ChevronRight /></button>;
       })}</div>
 
-      {selected && <MatchDayOverview event={selected} squads={squads} users={users} settings={settings} ageGroups={ageGroups} busy={busy} onCreateTournament={() => setCreateOpen(true)} onSave={async (nextSquads) => { setBusy(true); const saved = await onPlansChange(selected.id, nextSquads); setBusy(false); if (saved) setMessage("Mannschaftsplanung gespeichert."); return saved; }} />}
+      {selected && <MatchDayOverview event={selected} squads={squads} published={Boolean(selectedPlan?.publishedAt)} users={users} settings={settings} ageGroups={ageGroups} busy={busy} onCreateTournament={() => setCreateOpen(true)} onPublicationChange={async (published) => { setBusy(true); const saved = await onPublicationChange(selected.id, published); setBusy(false); if (saved) setMessage(published ? "Planung für Spieler freigegeben." : "Freigabe zurückgenommen."); return saved; }} onSave={async (nextSquads) => { setBusy(true); const saved = await onPlansChange(selected.id, nextSquads); setBusy(false); if (saved) setMessage("Mannschaftsplanung als Entwurf gespeichert."); return saved; }} />}
     </>}
 
     {createOpen && <TournamentCreateDialog settings={settings} busy={busy} onClose={() => setCreateOpen(false)} onSave={async (event) => { setBusy(true); const saved = await onCreateTournament(event); setBusy(false); if (saved) { setSelectedId(event.id); setCreateOpen(false); setMessage("Turnier angelegt – du kannst jetzt Mannschaften planen."); } }} />}
@@ -60,7 +62,7 @@ export function TournamentPlanningPage(props: Props) {
   </section>;
 }
 
-function MatchDayOverview({ event, squads, users, settings, ageGroups, busy, onCreateTournament, onSave }: { event: ClubEvent; squads: TournamentSquad[]; users: ClubUser[]; settings: ClubSettings; ageGroups: AgeGroupOption[]; busy: boolean; onCreateTournament: () => void; onSave: (squads: TournamentSquad[]) => Promise<boolean> }) {
+function MatchDayOverview({ event, squads, published, users, settings, ageGroups, busy, onCreateTournament, onPublicationChange, onSave }: { event: ClubEvent; squads: TournamentSquad[]; published: boolean; users: ClubUser[]; settings: ClubSettings; ageGroups: AgeGroupOption[]; busy: boolean; onCreateTournament: () => void; onPublicationChange: (published: boolean) => Promise<boolean>; onSave: (squads: TournamentSquad[]) => Promise<boolean> }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<TournamentSquad[]>(squads);
   const [error, setError] = useState("");
@@ -105,7 +107,7 @@ function MatchDayOverview({ event, squads, users, settings, ageGroups, busy, onC
 
   const visibleSquads = editing ? draft : squads;
   return <section className={`matchday-view ${editing ? "is-editing" : ""}`}>
-    <header className="matchday-topbar"><span><small>SPIELTAG</small><strong>{event.title}</strong></span><span className="matchday-team-count">{visibleSquads.length} Teams · {visibleSquads.reduce((sum, squad) => sum + squad.playerIds.length, 0)} Kinder</span>{editing ? <div className="matchday-edit-actions"><button onClick={() => { setDraft(squads); setEditing(false); setError(""); }}>Abbrechen</button><button className="primary" disabled={busy} onClick={() => void save()}><Check /> {busy ? "Speichert …" : "Speichern"}</button></div> : <div className="matchday-view-actions"><button onClick={onCreateTournament}><Plus /> Turnier anlegen</button><button className="matchday-edit-button" onClick={startEditing}><ShieldCheck /> Bearbeiten</button></div>}</header>
+    <header className="matchday-topbar"><span><small>SPIELTAG · {published ? "FREIGEGEBEN" : "ENTWURF"}</small><strong>{event.title}</strong></span><span className="matchday-team-count">{visibleSquads.length} Teams · {visibleSquads.reduce((sum, squad) => sum + squad.playerIds.length, 0)} Kinder</span>{editing ? <div className="matchday-edit-actions"><button onClick={() => { setDraft(squads); setEditing(false); setError(""); }}>Abbrechen</button><button className="primary" disabled={busy} onClick={() => void save()}><Check /> {busy ? "Speichert …" : "Als Entwurf speichern"}</button></div> : <div className="matchday-view-actions"><button onClick={onCreateTournament}><Plus /> Turnier anlegen</button>{squads.length > 0 && <button className={published ? "matchday-unpublish-button" : "matchday-publish-button"} disabled={busy} onClick={() => void onPublicationChange(!published)}>{published ? <EyeOff /> : <Eye />}{published ? "Freigabe zurücknehmen" : "Für Spieler freigeben"}</button>}<button className="matchday-edit-button" onClick={startEditing}><ShieldCheck /> Bearbeiten</button></div>}</header>
     {editing && <div className="matchday-edit-hint"><ShieldCheck /><span><strong>Bearbeitungsmodus</strong><small>Kinder über das Team-Menü verschieben oder aus der Liste entfernen. Alle Änderungen werden erst mit „Speichern“ übernommen.</small></span><button onClick={addSquad}><Plus /> Mannschaft</button></div>}
     {error && <div className="matchday-error"><AlertTriangle /> {error}</div>}
     {!visibleSquads.length ? <section className="matchday-empty-plan"><Users /><h2>Noch keine Mannschaft angelegt</h2><p>Starte direkt in dieser Ansicht und teile danach die Kinder zu.</p><button className="primary" onClick={addFirstSquad}><Plus /> Erste Mannschaft anlegen</button></section> : <div className="matchday-squad-grid">{visibleSquads.map((squad, squadIndex) => { const trainer = squad.trainerId ? trainers.get(squad.trainerId) : null; const validation = validateTournamentSquad(squad, playerAgeGroups, { minFYouth: settings.tournamentMinFYouth, maxTeamSize: settings.tournamentMaxTeamSize, trainerRequired: settings.tournamentTrainerRequired }); return <article className="matchday-squad" key={squad.id}><header><span>{String(squadIndex + 1).padStart(2, "0")}</span><div><small>MANNSCHAFT</small>{editing ? <input aria-label="Mannschaftsname" maxLength={80} value={squad.name} onChange={(event_) => updateSquad(squad.id, { name: event_.target.value })} /> : <h2>{squad.name}</h2>}</div>{editing ? <button className="matchday-delete-team" onClick={() => removeSquad(squad.id)} aria-label={`${squad.name} entfernen`}><Trash2 /></button> : <strong>{squad.playerIds.length}</strong>}</header><div className="matchday-trainer"><UserRoundCheck /><span><small>Verantwortlicher Trainer</small>{editing ? <select value={squad.trainerId ?? ""} onChange={(event_) => updateSquad(squad.id, { trainerId: event_.target.value || null })}><option value="">Noch nicht zugewiesen</option>{trainerList.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select> : <strong>{trainer?.name ?? "Noch nicht zugewiesen"}</strong>}</span></div><ol>{squad.playerIds.map((id, index) => { const player = players.get(id); return player ? <li className={editing ? "is-editing" : ""} key={id}><span>{index + 1}</span><Avatar user={player} size="small" /><strong>{player.name}</strong>{editing ? <select aria-label={`${player.name} verschieben`} value={squad.id} onChange={(event_) => placePlayer(id, event_.target.value)}>{draft.map((target) => <option disabled={target.id !== squad.id && settings.tournamentMaxTeamSize > 0 && target.playerIds.length >= settings.tournamentMaxTeamSize} value={target.id} key={target.id}>{target.name}</option>)}</select> : <><small>{player.ageGroup}</small>{player.number ? <em>#{player.number}</em> : null}</>}{editing && <button onClick={() => removePlayer(id)} aria-label={`${player.name} aus Mannschaft entfernen`}><Trash2 /></button>}</li> : null; })}</ol>{!squad.playerIds.length && <p className="matchday-empty-team">Noch keine Kinder zugeteilt.</p>}{editing && <div className="matchday-add-player"><Plus /><select value="" disabled={!availablePlayers.length || settings.tournamentMaxTeamSize > 0 && squad.playerIds.length >= settings.tournamentMaxTeamSize} onChange={(event_) => { if (event_.target.value) placePlayer(event_.target.value, squad.id); }}><option value="">{settings.tournamentMaxTeamSize > 0 && squad.playerIds.length >= settings.tournamentMaxTeamSize ? "Mannschaft ist voll" : availablePlayers.length ? "Kind hinzufügen …" : "Alle Kinder sind zugeteilt"}</option>{availablePlayers.map((player) => <option value={player.id} key={player.id}>{player.name} · {player.ageGroup}</option>)}</select></div>}<div className="matchday-validation"><span className={validation.minimumMet ? "ok" : "warning"}>{validation.minimumMet ? <Check /> : <AlertTriangle />}{validation.fYouthCount} F-Jugend</span><span className={validation.trainerMissing ? "warning" : "ok"}>{validation.trainerMissing ? <AlertTriangle /> : <ShieldCheck />}{validation.trainerMissing ? "Trainer fehlt" : "Trainer zugeteilt"}</span></div></article>; })}</div>}
@@ -114,8 +116,9 @@ function MatchDayOverview({ event, squads, users, settings, ageGroups, busy, onC
 }
 
 function PlayerTournamentTeams({ tournaments, plans, users }: { tournaments: ClubEvent[]; plans: TournamentPlan[]; users: ClubUser[] }) {
-  const upcoming = tournaments.filter((event) => event.date >= today());
-  return <section className="tournament-page module-page player-tournament-page"><div className="module-hero"><div><span className="eyebrow">MEINE TURNIERE</span><h1>Deine Mannschaft</h1><p>Hier siehst du deine Mannschaft und den zuständigen Trainer.</p></div></div><div className="player-team-list">{upcoming.map((event) => { const squad = plans.find((plan) => plan.eventId === event.id)?.squads[0]; const trainer = users.find((user) => user.id === squad?.trainerId); return <article key={event.id}><span className="event-icon tournament"><Trophy /></span><div><small>{eventDate(event.date)}</small><h2>{event.title}</h2>{squad ? <div className="player-assignment"><span><Users /><small>Mannschaft</small><strong>{squad.name}</strong></span><span><UserRoundCheck /><small>Trainer</small><strong>{trainer?.name ?? "Wird noch bekannt gegeben"}</strong></span></div> : <p>Du wurdest noch keiner Mannschaft zugewiesen.</p>}</div></article>; })}{!upcoming.length && <section className="tournament-empty"><CalendarDays /><h2>Keine anstehenden Turniere</h2><p>Sobald ein Turnier geplant ist, erscheint deine Zuordnung hier.</p></section>}</div></section>;
+  const releasedEventIds = new Set(plans.filter((plan) => plan.publishedAt).map((plan) => plan.eventId));
+  const upcoming = tournaments.filter((event) => event.date >= today() && releasedEventIds.has(event.id));
+  return <section className="tournament-page module-page player-tournament-page"><div className="module-hero"><div><span className="eyebrow">MEINE TURNIERE</span><h1>Deine Mannschaft</h1><p>Hier siehst du freigegebene Mannschaften und den zuständigen Trainer.</p></div></div><div className="player-team-list">{upcoming.map((event) => { const squad = plans.find((plan) => plan.eventId === event.id)?.squads[0]; const trainer = users.find((user) => user.id === squad?.trainerId); return <article key={event.id}><span className="event-icon tournament"><Trophy /></span><div><small>{eventDate(event.date)}</small><h2>{event.title}</h2>{squad ? <div className="player-assignment"><span><Users /><small>Mannschaft</small><strong>{squad.name}</strong></span><span><UserRoundCheck /><small>Trainer</small><strong>{trainer?.name ?? "Wird noch bekannt gegeben"}</strong></span></div> : <p>Du wurdest noch keiner Mannschaft zugewiesen.</p>}</div></article>; })}{!upcoming.length && <section className="tournament-empty"><CalendarDays /><h2>Noch keine Mannschaft freigegeben</h2><p>Sobald ein Trainer die Turnierplanung veröffentlicht, erscheint deine Zuordnung hier.</p></section>}</div></section>;
 }
 
 function SquadEditor({ squad, squads, players, trainers, ageGroups, event, settings, busy, onClose, onSave }: { squad: TournamentSquad; squads: TournamentSquad[]; players: ClubUser[]; trainers: ClubUser[]; ageGroups: AgeGroupOption[]; event: ClubEvent; settings: ClubSettings; busy: boolean; onClose: () => void; onSave: (squad: TournamentSquad) => void }) {

@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const user = await sensitiveAuthenticatedUser(request);
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+  if (!canManage(user.role)) return NextResponse.json({ error: "Trainingsvorlagen sind nur für Trainer und Admins verfügbar." }, { status: 403 });
   return NextResponse.json({ templates: await getTemplates(user) });
 }
 

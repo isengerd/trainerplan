@@ -47,6 +47,7 @@ export async function saveTournamentSquads(eventId: string, value: unknown, scop
   if (existingSquads.some((squad) => squad.eventId !== eventId)) throw new ApiInputError("Eine Mannschaft gehört bereits zu einem anderen Turnier.", 409);
 
   await prisma.$transaction(async (tx) => {
+    await tx.clubEvent.update({ where: { id: eventId }, data: { tournamentPlanPublishedAt: null } });
     await tx.tournamentSquadPlayer.deleteMany({ where: { eventId } });
     const squadIds = squads.map((squad) => squad.id);
     await tx.tournamentSquad.deleteMany({ where: { eventId, ...(squadIds.length ? { id: { notIn: squadIds } } : {}) } });

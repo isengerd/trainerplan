@@ -229,6 +229,7 @@ model ClubEvent {
   competition           String?
   weather               Json?
   maxParticipants       Int
+  tournamentPlanPublishedAt DateTime?
   responses             AttendanceResponse[]
   tournamentSquads      TournamentSquad[]
   tournamentAssignments TournamentSquadPlayer[]

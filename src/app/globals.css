@@ -1095,6 +1095,11 @@ html[data-theme="light"] .attendance-tabs button,
 html[data-theme="light"] .my-response button { border-color: #d5e0d8; background: #e8efea; color: #43584b; }
 html[data-theme="light"] .attendance-tabs button span { background: #d7e2da; }
 html[data-theme="light"] .attendance-tabs button.active { border-color: #8fc69c; background: #d9f1df; color: #176f33; }
+html[data-theme="light"] .capacity-bar { background: #dce7df; }
+html[data-theme="light"] .answer-pill.open { border: 1px solid #ccd9d0; background: #e5ede7; color: #42594a; }
+html[data-theme="light"] .answer-pill.yes { background: #ddf3e3; color: #176f35; }
+html[data-theme="light"] .answer-pill.maybe { background: #fff1cf; color: #835d09; }
+html[data-theme="light"] .answer-pill.no { background: #fde5e3; color: #a43e38; }
 html[data-theme="light"] .event-popup-actions { border-color: #d8e3db; background: rgba(255,255,255,.97); }
 html[data-theme="light"] .event-popup-actions button,
 html[data-theme="light"] .editor-actions button { border-color: #cbd9cf; background: #f1f6f2; color: #294035; }
@@ -2085,6 +2090,8 @@ html[data-theme="light"] .matchday-squad li.is-editing > select { background: wh
 .matchday-view-actions { display: flex; align-items: center; gap: 7px; }
 .matchday-view-actions > button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--text); font-size: 9px; font-weight: 800; }
 .matchday-view-actions > button:first-child { border-color: #8acb9a; background: #e7f5ea; color: #187537; }
+.matchday-view-actions > .matchday-publish-button { border-color: #58b873; background: #daf2e1; color: #126d31; }
+.matchday-view-actions > .matchday-unpublish-button { border-color: #e4c981; background: #fff4d8; color: #795914; }
 .matchday-view-actions svg { width: 15px; }
 .matchday-event-card { grid-template-columns: 46px 1fr; gap: 12px; padding: 14px 16px; border-radius: 13px; }
 .matchday-event-card > .event-icon { width: 46px; height: 46px; }
@@ -2108,6 +2115,7 @@ html[data-theme="light"] .toast svg { color: #22a447; }
   .matchday-topbar > span:first-child { display: none; }
   .matchday-topbar { display: flex; justify-content: flex-end; }
   .matchday-view-actions { width: 100%; justify-content: flex-end; }
+  .matchday-view-actions > button:first-child { display: none; }
   .matchday-view-actions > button { min-height: 44px; padding-inline: 10px; }
   .matchday-edit-actions { width: 100%; justify-content: flex-end; }
   .matchday-event-card { grid-template-columns: 40px 1fr; margin-inline: 0; padding: 12px; border-radius: 12px; }

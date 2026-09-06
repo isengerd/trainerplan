@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
+import { canManage, safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureApplicationData, eventFromDatabase } from "@/lib/server-data";
 import { invitationDto } from "@/lib/invitations";
@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
   ]);
   if (!config) return NextResponse.json({ error: "Die Konfiguration konnte nicht geladen werden." }, { status: 500 });
   const settings = config.settings as { showResponsesToPlayers?: boolean };
+  const managesSportingContent = canManage(currentUser.role);
+  const publishedTournamentIds = new Set(events.filter((event) => event.tournamentPlanPublishedAt).map((event) => event.id));
   const managedPlayerIds = (await prisma.guardianPlayer.findMany({ where: { guardianId: currentUser.id }, select: { playerId: true } })).map((link) => link.playerId);
   const visibleUsers = currentUser.role === "player" && organization?.licenseType === "single_team_free"
     ? users.filter((member) => member.id === currentUser.id)
@@ -53,23 +55,25 @@ export async function GET(request: NextRequest) {
         ? { ...mapped, responses: Object.fromEntries(Object.entries(mapped.responses).filter(([id]) => id === currentUser.id || managedPlayerIds.includes(id))) }
         : mapped;
     }),
-    exercises: exercises.map((exercise) => exercise.data),
+    exercises: managesSportingContent ? exercises.map((exercise) => exercise.data) : [],
     settings: config.settings,
-    plans: config.plans,
-    templates: config.templates,
-    planMeta: config.planMeta,
+    plans: managesSportingContent ? config.plans : {},
+    templates: managesSportingContent ? config.templates : [],
+    planMeta: managesSportingContent ? config.planMeta : Object.fromEntries(Object.entries(config.planMeta as Record<string, { name?: string }>).map(([date, meta]) => [date, { name: meta?.name ?? "Training", focus: [] }])),
     groups: groups.map(({ id, name, description, color }) => ({ id, name, description, color })),
     ageGroups: ageGroups.map(({ id, name, ageRange, sortOrder }) => ({ id, name, ageRange, sortOrder })),
     invitations: invitations.map(invitationDto),
     smtp: organization?.isClubAdmin ? smtpStatus() : { configured: false },
     push: organization?.isClubAdmin ? { ...pushStatus(), devices: await prisma.devicePushToken.count({ where: { userId: currentUser.id } }) } : { configured: false, devices: 0 },
     tournamentPlans: Object.entries(tournamentSquads.reduce<Record<string, Array<(typeof tournamentSquads)[number]>>>((plans, squad) => {
+      if (!managesSportingContent && !publishedTournamentIds.has(squad.eventId)) return plans;
       if (currentUser.role === "player" && !squad.players.some((assignment) => assignment.playerId === currentUser.id)) return plans;
       if (currentUser.role === "guardian" && !squad.players.some((assignment) => managedPlayerIds.includes(assignment.playerId))) return plans;
       (plans[squad.eventId] ??= []).push(squad);
       return plans;
     }, {})).map(([eventId, squads]) => ({
       eventId,
+      publishedAt: events.find((event) => event.id === eventId)?.tournamentPlanPublishedAt?.toISOString() ?? null,
       squads: squads.map((squad) => ({
         id: squad.id,
         eventId,

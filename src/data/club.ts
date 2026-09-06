@@ -57,7 +57,7 @@ export type TournamentSquad = {
   playerIds: string[];
 };
 
-export type TournamentPlan = { eventId: string; squads: TournamentSquad[] };
+export type TournamentPlan = { eventId: string; squads: TournamentSquad[]; publishedAt?: string | null };
 
 export type TeamGroup = { id: string; name: string; description: string; color: string };
 export type AgeGroupOption = { id: string; name: string; ageRange: string; sortOrder: number };
