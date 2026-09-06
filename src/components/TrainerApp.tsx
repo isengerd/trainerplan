@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, CreditCard, Dumbbell, Edit3,
-  Home, Library, LogOut, MapPin, Menu, MoreVertical, Plus, Settings, Shield,
+  Home, Library, LogOut, MapPin, Menu, MessageCircle, MoreVertical, Plus, Settings, Shield,
   Sparkles, Target, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
@@ -844,8 +844,8 @@ export function TrainerApp() {
               <div className="detail-stats"><span><Clock3 /><small>Dauer</small><strong>{detail.duration} Min</strong></span><span><Users /><small>Spieler</small><strong>{detail.players}</strong></span><span><CircleGauge /><small>Intensität</small><strong>{detail.intensity}</strong></span></div>
               <div className="focus-tags">{detail.focus.map((focus) => <span key={focus}>{focus}</span>)}</div>
               <div className="detail-section"><h3>Organisation</h3><p>{detail.setup}</p></div>
-              <div className="detail-section"><h3>Material</h3><div className="detail-materials">{detail.materials.map((material) => <span key={material.id}><Boxes /> <strong>{material.count}</strong> {materialCatalog[material.id].name}</span>)}</div></div>
-              <div className="detail-section"><h3>Coachingpunkte</h3><ul>{detail.coaching.map((point) => <li key={point}><Check />{point}</li>)}</ul></div>
+              <section className="kids-coaching"><header><span><MessageCircle /><strong>Kindgerechte Trainer-Kommandos</strong></span><small>Kurz rufen, spielen lassen</small></header><div>{detail.coaching.slice(0, 3).map((point, index) => <article key={point}><span className="kids-command-number">{index + 1}</span><div><small>{index === 0 ? "STARTIMPULS" : index === 1 ? "IM SPIEL" : "BESTÄRKEN"}</small><strong>„{point.replace(/[.!?]+$/, "")}!“</strong><span><Target /> Ziel: {detail.focus[index % detail.focus.length]}</span></div></article>)}</div></section>
+              <section className="trainer-cheatsheet"><article className="trainer-tip-cell"><span><Sparkles /> Trainer-Tipps</span><ul>{detail.coaching.slice(3).map((point) => <li key={point}>{point}</li>)}<li>Kurze Erklärung, viele Wiederholungen</li><li>Erfolge konkret und positiv benennen</li></ul></article><article><Clock3 /><span><small>Dauer</small><strong>{detail.duration} Min.</strong></span></article><article><Users /><span><small>Spielerzahl</small><strong>{detail.players}</strong></span></article><article><Boxes /><span><small>Material</small><strong>{detail.materials.map((material) => `${material.count} ${materialCatalog[material.id].name}`).join(" · ") || "Ohne Material"}</strong></span></article></section>
               {detail.variations?.length ? <div className="detail-section detail-variations"><h3>Varianten</h3><ul>{detail.variations.map((variation) => <li key={variation}><Sparkles />{variation}</li>)}</ul></div> : null}
             </div>
             <div className="detail-actions"><button className="secondary" onClick={() => setDetail(null)}>Schließen</button>{canManageClub && <button className="secondary" onClick={() => { setEditingExercise(detail); setCreatorOpen(true); setDetail(null); }}><Edit3 /> Bearbeiten</button>}{canManageClub && <button className="primary" onClick={() => { addExercise(detail); setDetail(null); }}><Plus /> Zum Training</button>}</div>
