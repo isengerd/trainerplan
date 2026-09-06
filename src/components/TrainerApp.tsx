@@ -20,6 +20,23 @@ import { TournamentPlanningPage } from "./TournamentPlanning";
 import { FirstLoginSetup } from "./FirstLoginSetup";
 import { firebaseChangePassword, firebaseClientAuthEnabled } from "@/lib/firebase-client";
 
+const kidsCrew = {
+  freilaufen: { src: "/illustrations/kids-crew/freilaufen.jpg", alt: "Kind macht sich zum Anspiel bereit" },
+  dribbling: { src: "/illustrations/kids-crew/dribbling.jpg", alt: "Kind dribbelt mit engem Ballkontakt" },
+  passspiel: { src: "/illustrations/kids-crew/passspiel.jpg", alt: "Kind spielt einen kontrollierten Pass" },
+  torschuss: { src: "/illustrations/kids-crew/torschuss.jpg", alt: "Kind schließt kontrolliert auf das Tor ab" },
+  torwart: { src: "/illustrations/kids-crew/torwart.jpg", alt: "Torwartkind eröffnet das Spiel" },
+} as const;
+
+function kidsCrewForExercise(exercise: Exercise) {
+  const keywords = `${exercise.title} ${exercise.focus.join(" ")}`.toLowerCase();
+  if (/torwart|torhüter|keeper|abwurf/.test(keywords)) return kidsCrew.torwart;
+  if (/torschuss|abschluss|tore erzielen|zielschießen/.test(keywords)) return kidsCrew.torschuss;
+  if (/pass|zusammenspiel|ballannahme/.test(keywords)) return kidsCrew.passspiel;
+  if (/dribbl|ballgefühl|ballkontrolle|finte/.test(keywords)) return kidsCrew.dribbling;
+  return kidsCrew.freilaufen;
+}
+
 function localToday() {
   const parts = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date());
   const value = (type: string) => Number(parts.find((part) => part.type === type)?.value);
@@ -844,7 +861,7 @@ export function TrainerApp() {
               <div className="detail-stats"><span><Clock3 /><small>Dauer</small><strong>{detail.duration} Min</strong></span><span><Users /><small>Spieler</small><strong>{detail.players}</strong></span><span><CircleGauge /><small>Intensität</small><strong>{detail.intensity}</strong></span></div>
               <div className="focus-tags">{detail.focus.map((focus) => <span key={focus}>{focus}</span>)}</div>
               <div className="detail-section"><h3>Organisation</h3><p>{detail.setup}</p></div>
-              <section className="kids-coaching"><header><span><MessageCircle /><strong>Kindgerechte Trainer-Kommandos</strong></span><small>Kurz rufen, spielen lassen</small></header><div>{detail.coaching.slice(0, 3).map((point, index) => <article key={point}><span className="kids-command-number">{index + 1}</span><div><small>{index === 0 ? "STARTIMPULS" : index === 1 ? "IM SPIEL" : "BESTÄRKEN"}</small><strong>„{point.replace(/[.!?]+$/, "")}!“</strong><span><Target /> Ziel: {detail.focus[index % detail.focus.length]}</span></div></article>)}</div></section>
+              <section className="kids-coaching"><header><span><MessageCircle /><strong>Kindgerechte Trainer-Kommandos</strong></span><small>Kurz rufen, spielen lassen</small></header><div className="kids-coaching-body"><figure><img src={kidsCrewForExercise(detail).src} alt={kidsCrewForExercise(detail).alt} loading="lazy" /></figure><div className="kids-command-grid">{detail.coaching.slice(0, 3).map((point, index) => <article key={point}><span className="kids-command-number">{index + 1}</span><div><small>{index === 0 ? "STARTIMPULS" : index === 1 ? "IM SPIEL" : "BESTÄRKEN"}</small><strong>„{point.replace(/[.!?]+$/, "")}!“</strong><span><Target /> Ziel: {detail.focus[index % Math.max(detail.focus.length, 1)] ?? "Spielfreude"}</span></div></article>)}</div></div></section>
               <section className="trainer-cheatsheet"><article className="trainer-tip-cell"><span><Sparkles /> Trainer-Tipps</span><ul>{detail.coaching.slice(3).map((point) => <li key={point}>{point}</li>)}<li>Kurze Erklärung, viele Wiederholungen</li><li>Erfolge konkret und positiv benennen</li></ul></article><article><Clock3 /><span><small>Dauer</small><strong>{detail.duration} Min.</strong></span></article><article><Users /><span><small>Spielerzahl</small><strong>{detail.players}</strong></span></article><article><Boxes /><span><small>Material</small><strong>{detail.materials.map((material) => `${material.count} ${materialCatalog[material.id].name}`).join(" · ") || "Ohne Material"}</strong></span></article></section>
               {detail.variations?.length ? <div className="detail-section detail-variations"><h3>Varianten</h3><ul>{detail.variations.map((variation) => <li key={variation}><Sparkles />{variation}</li>)}</ul></div> : null}
             </div>
