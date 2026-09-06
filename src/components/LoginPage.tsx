@@ -26,7 +26,7 @@ export function LoginPage() {
         const result = await response.json() as { error?: string };
         if (!response.ok) throw new Error(result.error || "Anmeldung fehlgeschlagen.");
       }
-      window.location.assign("/app");
+      window.location.replace("/app");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Anmeldung fehlgeschlagen.");
       setLoading(false);

@@ -63,6 +63,13 @@ const todayIndex = days.findIndex((day) => day.key === todayKey);
 const initialPlanKey = todayKey;
 
 const phases: Exercise["category"][] = ["Ankommen", "Einstieg", "Hauptteil", "Abschlussspiel"];
+type AppView = "overview" | "plan" | "exercises" | "calendar" | "tournaments" | "team" | "profile" | "settings" | "license";
+const appViews = new Set<AppView>(["overview", "plan", "exercises", "calendar", "tournaments", "team", "profile", "settings", "license"]);
+
+function viewFromLocation(): AppView {
+  const requested = new URL(window.location.href).searchParams.get("bereich") as AppView | null;
+  return requested && appViews.has(requested) ? requested : "overview";
+}
 
 const exerciseById = new Map(library.map((exercise) => [exercise.id, exercise]));
 const templateExercises = (ids: string[]) => ids.map((id) => exerciseById.get(id)).filter((exercise): exercise is Exercise => Boolean(exercise));
@@ -104,7 +111,7 @@ function youtubeEmbed(url?: string) {
 
 export function TrainerApp() {
   const router = useRouter();
-  const [view, setView] = useState<"overview" | "plan" | "exercises" | "calendar" | "tournaments" | "team" | "profile" | "settings" | "license">("overview");
+  const [view, setViewState] = useState<AppView>("overview");
   const [selectedDay, setSelectedDay] = useState(initialPlanKey);
   const [targetPhase, setTargetPhase] = useState<Exercise["category"]>("Einstieg");
   const [plans, setPlans] = useState<Record<string, Exercise[]>>({});
@@ -142,7 +149,27 @@ export function TrainerApp() {
   const latestPlanSnapshot = useRef("");
   const autoSaveChain = useRef<Promise<void>>(Promise.resolve());
 
+  function setView(nextView: AppView) {
+    if (nextView === view) return;
+    const url = new URL(window.location.href);
+    if (nextView === "overview") url.searchParams.delete("bereich");
+    else url.searchParams.set("bereich", nextView);
+    window.history.pushState({ ...window.history.state, nextSessionView: nextView }, "", url);
+    setViewState(nextView);
+  }
+
   useEffect(() => { void loadBootstrap(); }, []);
+
+  useEffect(() => {
+    const syncViewFromHistory = () => {
+      setViewState(viewFromLocation());
+      setAccountMenuOpen(false);
+      setMobileMenuOpen(false);
+    };
+    syncViewFromHistory();
+    window.addEventListener("popstate", syncViewFromHistory);
+    return () => window.removeEventListener("popstate", syncViewFromHistory);
+  }, []);
 
   useEffect(() => {
     const refreshPushStatus = () => void loadBootstrap();
@@ -480,7 +507,7 @@ export function TrainerApp() {
     window.setTimeout(() => scrollToDay(todayKey), 0);
   }
 
-  function mobileNavigate(nextView: typeof view) {
+  function mobileNavigate(nextView: AppView) {
     setMobileMenuOpen(false);
     setView(nextView);
   }
