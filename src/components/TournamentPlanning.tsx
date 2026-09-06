@@ -15,6 +15,7 @@ type Props = {
   settings: ClubSettings;
   ageGroups: AgeGroupOption[];
   currentUser: ClubUser;
+  selectedEventId?: string | null;
   onPlansChange: (eventId: string, squads: TournamentSquad[]) => Promise<boolean>;
   onPublicationChange: (eventId: string, published: boolean) => Promise<boolean>;
   onCreateTournament: (event: ClubEvent) => Promise<boolean>;
@@ -24,7 +25,7 @@ const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/B
 const eventDate = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "long", year: "numeric" });
 
 export function TournamentPlanningPage(props: Props) {
-  const { events, users, plans, settings, ageGroups, currentUser, onPlansChange, onPublicationChange, onCreateTournament } = props;
+  const { events, users, plans, settings, ageGroups, currentUser, selectedEventId, onPlansChange, onPublicationChange, onCreateTournament } = props;
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
   const tournaments = useMemo(() => {
     const todayKey = today();
@@ -39,6 +40,9 @@ export function TournamentPlanningPage(props: Props) {
     if (selectedId && tournaments.some((event) => event.id === selectedId)) return;
     setSelectedId(tournaments[0]?.id ?? "");
   }, [selectedId, tournaments]);
+  useEffect(() => {
+    if (selectedEventId && tournaments.some((event) => event.id === selectedEventId)) setSelectedId(selectedEventId);
+  }, [selectedEventId, tournaments]);
   useEffect(() => { if (!message) return; const timer = window.setTimeout(() => setMessage(""), 2800); return () => window.clearTimeout(timer); }, [message]);
 
   const selected = tournaments.find((event) => event.id === selectedId) ?? null;

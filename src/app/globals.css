@@ -2211,3 +2211,55 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
   .global-license-warning button,
   .access-migration-card > button { margin-left: 0; width: 100%; }
 }
+.response-card{margin-bottom:10px;overflow:hidden;border:1px solid #3b7550;border-radius:12px;background:linear-gradient(145deg,#132b1d,#101f19)}
+.response-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px}
+.response-card>header span{color:#65d982;font-size:7px;font-weight:900;letter-spacing:.12em}
+.response-card h3{margin:3px 0 0;font-size:16px}
+.response-card select{max-width:150px;min-height:36px;border:1px solid #345344;border-radius:8px;padding:0 9px;background:#152820;color:var(--text-main);font-size:9px}
+.response-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:0 13px 12px}
+.response-options>button{min-width:0;min-height:58px;display:grid;grid-template-columns:24px 1fr;gap:7px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px;background:#17251f;color:#aab9b1;text-align:left}
+.response-options svg,.response-question{width:20px}
+.response-question{height:20px;display:grid;place-items:center;border:1px solid currentColor;border-radius:50%;font-weight:900}
+.response-options strong,.response-options small{display:block}
+.response-options strong{font-size:10px}
+.response-options small{margin-top:2px;color:var(--muted);font-size:7px}
+.response-options .yes.active{border-color:#4ecb6d;background:#1c7138;color:#fff}
+.response-options .maybe.active{border-color:#e1b64e;background:#6d5318;color:#fff}
+.response-options .no.active{border-color:#e2736d;background:#71312e;color:#fff}
+.response-options button.active small{color:rgba(255,255,255,.78)}
+.response-options button:disabled{opacity:.45;cursor:not-allowed}
+.response-card>footer{display:flex;align-items:center;gap:6px;padding:9px 13px;border-top:1px solid rgba(120,170,137,.18);background:rgba(255,255,255,.025);color:#91a79c;font-size:8px}
+.response-card>footer svg{flex:0 0 13px;width:13px;color:#68d982}
+.response-card>footer.closed svg{color:#e0b553}
+.attendance-distribution{height:8px;display:flex;overflow:hidden;margin:8px 0;border-radius:999px;background:#27352f}
+.attendance-distribution i{display:block;height:100%}
+.attendance-distribution .yes{background:#4fd578}
+.attendance-distribution .maybe{background:#efbd54}
+.attendance-distribution .no{background:#ef746f}
+.attendance-admin-actions{display:flex;justify-content:flex-end;gap:4px}
+.attendance-admin-actions button{width:27px;height:27px;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:#1b2a23;color:#82958b;font-size:11px;font-weight:900}
+.attendance-admin-actions button svg{width:12px}
+.attendance-admin-actions .yes.active{border-color:#4fd578;background:#1c7138;color:#fff}
+.attendance-admin-actions .maybe.active{border-color:#efbd54;background:#6d5318;color:#fff}
+.attendance-admin-actions .no.active{border-color:#ef746f;background:#71312e;color:#fff}
+
+html[data-theme="light"] .response-card{border-color:#b8d9c1;background:linear-gradient(145deg,#f8fcf9,#f1f8f3)}
+html[data-theme="light"] .response-card h3{color:#17271d}
+html[data-theme="light"] .response-card select{border-color:#cbdacf;background:#fff;color:#253b2d}
+html[data-theme="light"] .response-options>button{border-color:#d3dfd6;background:#fff;color:#3b5143}
+html[data-theme="light"] .response-options .yes.active{border-color:#35b85a;background:#dff5e5;color:#126d30}
+html[data-theme="light"] .response-options .maybe.active{border-color:#dcad3c;background:#fff3d5;color:#805b08}
+html[data-theme="light"] .response-options .no.active{border-color:#df6e68;background:#fde6e4;color:#9b2f2a}
+html[data-theme="light"] .response-options button.active small{color:currentColor;opacity:.72}
+html[data-theme="light"] .response-card>footer{border-color:#d9e6dc;background:#eaf4ed;color:#52685a}
+html[data-theme="light"] .attendance-distribution{background:#dce7df}
+html[data-theme="light"] .attendance-admin-actions button{border-color:#d1ddd4;background:#edf3ef;color:#53695b}
+
+@media(max-width:760px){
+  .response-card>header{align-items:flex-start}
+  .response-card select{max-width:130px}
+  .response-options{gap:5px;padding-inline:10px}
+  .response-options>button{grid-template-columns:1fr;place-items:center;padding:8px 4px;text-align:center}
+  .response-options small{font-size:6px}
+  .attendance-admin-actions button{width:32px;height:32px}
+}
