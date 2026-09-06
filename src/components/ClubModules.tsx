@@ -166,7 +166,7 @@ function shiftedTime(time: string, minutes: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
+export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, selectedEventId, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; selectedEventId?: string | null; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
   const [editing, setEditing] = useState<ClubEvent | null>(null);
   const [editingPlannedDate, setEditingPlannedDate] = useState<string | null>(null);
@@ -177,6 +177,16 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
   });
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
   const plannedTrainingByDate = new Map(plannedTrainings.map((training) => [training.date, training]));
+
+  useEffect(() => {
+    if (!selectedEventId) return;
+    const focusedEvent = events.find((event) => event.id === selectedEventId);
+    if (!focusedEvent) return;
+    setSelected(focusedEvent);
+    setSelectedDate(focusedEvent.date);
+    const date = new Date(`${focusedEvent.date}T12:00:00`);
+    setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1, 12));
+  }, [events, selectedEventId]);
   const monthYear = visibleMonth.getFullYear();
   const monthIndex = visibleMonth.getMonth();
   const leadingDays = (new Date(monthYear, monthIndex, 1).getDay() + 6) % 7;

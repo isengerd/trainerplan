@@ -152,6 +152,7 @@ export function TrainerApp() {
   const [push, setPush] = useState<PushStatus>({ configured: false, devices: 0 });
   const [tournamentPlans, setTournamentPlans] = useState<TournamentPlan[]>([]);
   const [tournamentFocusId, setTournamentFocusId] = useState<string | null>(null);
+  const [calendarFocusId, setCalendarFocusId] = useState<string | null>(null);
   const [organization, setOrganization] = useState<OrganizationContext | null>(null);
   const [trainingTemplates, setTrainingTemplates] = useState<TrainingTemplate[]>([]);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -726,6 +727,10 @@ export function TrainerApp() {
     setTournamentFocusId(eventId);
     setView("tournaments");
   };
+  const openEventDetails = (eventId: string) => {
+    setCalendarFocusId(eventId);
+    setView("calendar");
+  };
   const overview = (
     <section className="overview-page">
       <div className="overview-welcome">
@@ -743,8 +748,8 @@ export function TrainerApp() {
 
       <div style={{ order: otherEventComesFirst ? 1 : 2 }} className="overview-next-grid">
         <section className="overview-card overview-next-event">
-          <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TURNIER / EVENT</span><h2>{nextOtherEvent ? nextOtherEvent.title : "Nichts eingetragen"}</h2></div>{nextOtherEvent && <button onClick={() => setView("calendar")}>Details <ChevronRight /></button>}</div>
-          {nextOtherEvent ? <button className="overview-next-event-main" onClick={() => nextOtherEvent.type === "tournament" ? openTournament(nextOtherEvent.id) : setView("calendar")}><span className="overview-next-date"><strong>{new Date(`${nextOtherEvent.date}T12:00:00`).getDate()}</strong><small>{new Date(`${nextOtherEvent.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><em>{nextOtherEvent.type === "tournament" ? "Turnier" : nextOtherEvent.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{overviewDate(nextOtherEvent.date)} · {nextOtherEvent.startTime} Uhr</strong><small><MapPin /> {nextOtherEvent.location || "Ort noch offen"}</small></span><ChevronRight /></button> : <p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p>}
+          <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TURNIER / EVENT</span><h2>{nextOtherEvent ? nextOtherEvent.title : "Nichts eingetragen"}</h2></div>{nextOtherEvent && <button onClick={() => openEventDetails(nextOtherEvent.id)}>Details <ChevronRight /></button>}</div>
+          {nextOtherEvent ? <button className="overview-next-event-main" onClick={() => openEventDetails(nextOtherEvent.id)}><span className="overview-next-date"><strong>{new Date(`${nextOtherEvent.date}T12:00:00`).getDate()}</strong><small>{new Date(`${nextOtherEvent.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><em>{nextOtherEvent.type === "tournament" ? "Turnier" : nextOtherEvent.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{overviewDate(nextOtherEvent.date)} · {nextOtherEvent.startTime} Uhr</strong><small><MapPin /> {nextOtherEvent.location || "Ort noch offen"}</small></span><ChevronRight /></button> : <p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p>}
           {nextOtherEvent?.id === nextTournament?.id && nextTournamentSquads.length > 0 && <div className="overview-event-squads"><div className="overview-squad-list">{nextTournamentSquads.slice(0, 4).map((squad, index) => {
             const trainer = users.find((user) => user.id === squad.trainerId);
             const teamName = overviewSquadName(squad.name, index);
@@ -765,7 +770,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={Object.entries(planMeta).map(([date, meta]) => { const day = days.find((item) => item.key === date); return { date, title: meta.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
+    ? <CalendarPage events={events} plannedTrainings={Object.entries(planMeta).map(([date, meta]) => { const day = days.find((item) => item.key === date); return { date, title: meta.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
     : view === "team"
