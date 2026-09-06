@@ -63,5 +63,5 @@ export async function getTournamentSquads(eventId: string, visiblePlayerIds?: st
   const squads = await prisma.tournamentSquad.findMany({ where: { eventId }, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } });
   return squads
     .filter((squad) => !visiblePlayerIds || squad.players.some((player) => visiblePlayerIds.includes(player.playerId)))
-    .map((squad) => ({ id: squad.id, eventId, name: squad.name, trainerId: squad.trainerId, playerIds: visiblePlayerIds ? squad.players.map((player) => player.playerId).filter((id) => visiblePlayerIds.includes(id)) : squad.players.map((player) => player.playerId) }));
+    .map((squad) => ({ id: squad.id, eventId, name: squad.name, trainerId: squad.trainerId, playerIds: squad.players.map((player) => player.playerId) }));
 }

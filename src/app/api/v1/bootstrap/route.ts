@@ -38,8 +38,11 @@ export async function GET(request: NextRequest) {
   const managesSportingContent = canManage(currentUser.role);
   const publishedTournamentIds = new Set(events.filter((event) => event.tournamentPlanPublishedAt).map((event) => event.id));
   const managedPlayerIds = (await prisma.guardianPlayer.findMany({ where: { guardianId: currentUser.id }, select: { playerId: true } })).map((link) => link.playerId);
+  const releasedRosterIds = new Set(tournamentSquads
+    .filter((squad) => publishedTournamentIds.has(squad.eventId) && squad.players.some((assignment) => assignment.playerId === currentUser.id))
+    .flatMap((squad) => [...squad.players.map((assignment) => assignment.playerId), ...(squad.trainerId ? [squad.trainerId] : [])]));
   const visibleUsers = currentUser.role === "player" && organization?.licenseType === "single_team_free"
-    ? users.filter((member) => member.id === currentUser.id)
+    ? users.filter((member) => member.id === currentUser.id || releasedRosterIds.has(member.id))
     : users;
   return NextResponse.json({
     currentUser: { ...safeUser(currentUser), managedPlayerIds },
@@ -79,7 +82,7 @@ export async function GET(request: NextRequest) {
         eventId,
         name: squad.name,
         trainerId: squad.trainerId,
-        playerIds: currentUser.role === "player" ? [] : currentUser.role === "guardian" ? squad.players.map((assignment) => assignment.playerId).filter((id) => managedPlayerIds.includes(id)) : squad.players.map((assignment) => assignment.playerId),
+        playerIds: squad.players.map((assignment) => assignment.playerId),
       })),
     })),
   });
