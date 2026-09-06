@@ -129,8 +129,11 @@ function TeamInviteDialog({ users, invitations, accessManagementEnabled, smtpCon
   }
 
   async function removePending(id: string) {
+    if (!window.confirm("Offene Einladung wirklich löschen? Das Spielerprofil bleibt erhalten.")) return;
+    setError("");
     const response = await fetch(`/api/v1/invitations/${id}`, { method: "DELETE" });
-    if (!response.ok) return setError("Einladung konnte nicht zurückgezogen werden.");
+    const result = await response.json().catch(() => ({})) as { error?: string };
+    if (!response.ok) return setError(result.error || "Einladung konnte nicht gelöscht werden.");
     onInvited();
   }
 
@@ -147,7 +150,7 @@ function TeamInviteDialog({ users, invitations, accessManagementEnabled, smtpCon
         {accessManagementEnabled && (smtpConfigured && email ? <label className="team-invite-delivery"><input type="checkbox" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /><span><strong>Einladung direkt senden</strong><small>Der Link bleibt auch unten verfügbar.</small></span></label> : <p className="team-invite-mail-note">Ohne E-Mail bleibt ein persönlicher Link unter „Ausstehend“ bereit.</p>)}
         {error && <div className="login-error" role="alert">{error}</div>}
         <footer><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" disabled={busy || name.trim().length < 2 || (role === "admin" && !email) || (role === "player" && playerKind === "child" && !birthday)}>{busy ? "Wird angelegt …" : <><Plus /> {accessManagementEnabled ? "Person anlegen" : "Spieler hinzufügen"}</>}</button></footer>
-        {accessManagementEnabled && <div className="team-pending-invites"><header><span><strong>Ausstehende Einladungen</strong><small>{pending.length ? `${pending.length} noch nicht angenommen` : "Keine offenen Links"}</small></span></header>{pending.map((item) => { const player = item.managedPlayerId ? users.find((entry) => entry.id === item.managedPlayerId) : null; return <article key={item.id}><span><strong>{player?.name || item.name || item.email || "Einladung"}</strong><small>{item.managedPlayerId ? "Elternzugang" : roleLabels[item.role]}{item.email ? ` · ${item.email}` : " · E-Mail offen"}</small></span><button type="button" onClick={() => void copyPending(item.id)} title="Neuen Link erzeugen und kopieren"><Copy /></button>{!item.managedPlayerId && <button type="button" className="danger" onClick={() => void removePending(item.id)} title="Einladung zurückziehen"><Trash2 /></button>}</article>; })}</div>}
+        {accessManagementEnabled && <div className="team-pending-invites"><header><span><strong>Ausstehende Einladungen</strong><small>{pending.length ? `${pending.length} noch nicht angenommen` : "Keine offenen Links"}</small></span></header>{pending.map((item) => { const player = item.managedPlayerId ? users.find((entry) => entry.id === item.managedPlayerId) : null; return <article key={item.id}><span><strong>{player?.name || item.name || item.email || "Einladung"}</strong><small>{item.managedPlayerId ? "Elternzugang" : roleLabels[item.role]}{item.email ? ` · ${item.email}` : " · E-Mail offen"}</small></span><button type="button" onClick={() => void copyPending(item.id)} title="Neuen Link erzeugen und kopieren" aria-label={`Einladungslink für ${player?.name || item.name || item.email} kopieren`}><Copy /></button><button type="button" className="danger" onClick={() => void removePending(item.id)} title="Offene Einladung löschen" aria-label={`Offene Einladung für ${player?.name || item.name || item.email} löschen`}><Trash2 /></button></article>; })}</div>}
       </form> : <div className="team-invite-success"><span><Check /></span><h3>{role === "player" && playerKind === "child" ? "Spieler ist angelegt" : "Einladung ist bereit"}</h3><p>{sendEmail && email && smtpConfigured ? `Die Einladung wurde an ${email} gesendet.` : link ? "Der persönliche Link kann jetzt oder später weitergegeben werden." : "Der vorhandene Elternzugang wurde direkt mit dem Spieler verbunden."}</p>{link && <div><input readOnly value={link} onFocus={(event) => event.currentTarget.select()} /><button type="button" onClick={copyInvitation}>{copied ? <Check /> : <Copy />}{copied ? "Kopiert" : "Link kopieren"}</button></div>}<button className="primary" type="button" onClick={onClose}>Fertig</button></div>}
     </section>
   </div>;
