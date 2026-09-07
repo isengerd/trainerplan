@@ -32,13 +32,18 @@ export async function PATCH(request: NextRequest, context: Context) {
       if (validTrainerCount !== trainerIds.length) return NextResponse.json({ error: "Mindestens eine Trainerzuordnung ist ungültig." }, { status: 400 });
     }
     const updated = await prisma.$transaction(async (tx) => {
-      const result = await tx.clubEvent.updateMany({ where: { id, ...scopedResourceWhere(scope) }, data: eventToDatabase({ ...event, trainerIds }) });
+      const presetPlayerIds = !existing.autoSetPlayersPresent && event.autoSetPlayersPresent && event.type !== "event"
+        ? (await tx.membership.findMany({ where: { clubId: scope.clubId, ...(scope.teamId ? { teamId: scope.teamId } : {}), status: "active", role: "player" }, select: { userId: true } })).map((membership) => membership.userId)
+        : [];
+      const result = await tx.clubEvent.updateMany({ where: { id, ...scopedResourceWhere(scope) }, data: { ...eventToDatabase({ ...event, trainerIds }), maxParticipants: Math.max(event.maxParticipants, presetPlayerIds.length) } });
       for (const trainerId of trainerIds) await tx.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: trainerId } }, update: { value: "yes" }, create: { eventId: id, userId: trainerId, value: "yes" } });
+      if (presetPlayerIds.length) await tx.attendanceResponse.createMany({ data: presetPlayerIds.map((userId) => ({ eventId: id, userId, value: "yes" })), skipDuplicates: true });
       return result;
     });
     if (updated.count !== 1) return NextResponse.json({ error: "Der Termin wurde nicht gefunden." }, { status: 404 });
     const savedEvent = (await getEvents(user)).find((item) => item.id === id);
-    const notifications = savedEvent ? await notifyEventChange({ event: savedEvent, scope, actor: user, action: "updated", appUrl: applicationUrl(request) }).catch(() => ({ email: 0, push: 0 })) : { email: 0, push: 0 };
+    const notificationAction = !existing.cancelledAt && event.cancelledAt ? "cancelled" : existing.cancelledAt && !event.cancelledAt ? "restored" : "updated";
+    const notifications = savedEvent ? await notifyEventChange({ event: savedEvent, scope, actor: user, action: notificationAction, appUrl: applicationUrl(request) }).catch(() => ({ email: 0, push: 0 })) : { email: 0, push: 0 };
     return NextResponse.json({ event: savedEvent, notifications });
   } catch (error) {
     const result = apiError(error);

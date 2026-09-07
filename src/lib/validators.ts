@@ -39,6 +39,11 @@ export function validateUsers(value: unknown, actorId: string, canManagePlayers:
     const birthday = optionalText(input.birthday, "Geburtsdatum", 10);
     if (birthday && !validDate(birthday)) throw new ApiInputError("Das Geburtsdatum ist ungültig.");
     const role = enumValue(input.role, roles, "Rolle");
+    const optionalBoolean = (candidate: unknown, field: string) => {
+      if (candidate === undefined) return undefined;
+      if (typeof candidate !== "boolean") throw new ApiInputError(`${field} ist ungültig.`);
+      return candidate;
+    };
     const position = textValue(input.position, "Position", 100, 1);
     if (!positionOptions[role].includes(position)) throw new ApiInputError("Die Position passt nicht zur ausgewählten Rolle.");
     return {
@@ -58,6 +63,8 @@ export function validateUsers(value: unknown, actorId: string, canManagePlayers:
       shootingRating: integerValue(input.shootingRating ?? 0, "Schuss-Bewertung", 0, 5),
       passingRating: integerValue(input.passingRating ?? 0, "Pass-Bewertung", 0, 5),
       internalTeam: input.internalTeam === null || input.internalTeam === undefined || input.internalTeam === "" ? null : enumValue(input.internalTeam, ["A", "B"] as const, "Internes Team"),
+      defaultTrainingAttendance: optionalBoolean(input.defaultTrainingAttendance, "Trainings-Anwesenheitsstandard"),
+      defaultCompetitionAttendance: optionalBoolean(input.defaultCompetitionAttendance, "Turnier-Anwesenheitsstandard"),
     };
   });
   return uniqueIds(users, "Benutzerdaten");
@@ -78,6 +85,8 @@ export function validateEvents(value: unknown): ClubEvent[] {
     const trainerIds = Array.isArray(input.trainerIds) ? [...new Set(input.trainerIds.map((id) => textValue(id, "Trainer-ID", 100, 1)))] : [];
     const repeatFrequency = input.repeatFrequency === undefined || input.repeatFrequency === null ? "none" : enumValue(input.repeatFrequency, repeatFrequencies, "Wiederholung");
     const repeatUntil = input.repeatUntil === undefined || input.repeatUntil === null || input.repeatUntil === "" ? undefined : textValue(input.repeatUntil, "Ende der Wiederholung", 10, 10);
+    const cancelledAt = input.cancelledAt === undefined || input.cancelledAt === null || input.cancelledAt === "" ? null : textValue(input.cancelledAt, "Absagezeitpunkt", 40, 1);
+    if (cancelledAt && Number.isNaN(Date.parse(cancelledAt))) throw new ApiInputError("Der Absagezeitpunkt ist ungültig.");
     if (repeatUntil && (!validDate(repeatUntil) || repeatUntil < date)) throw new ApiInputError("Das Ende der Wiederholung muss am oder nach dem ersten Termin liegen.");
     if (repeatFrequency !== "none" && !repeatUntil) throw new ApiInputError("Bitte gib an, wann die Wiederholung endet.");
     let weather: ClubEvent["weather"];
@@ -99,6 +108,8 @@ export function validateEvents(value: unknown): ClubEvent[] {
       competition: optionalText(input.competition, "Wettbewerb", 160) || undefined,
       repeatFrequency, repeatUntil,
       maxParticipants: integerValue(input.maxParticipants, "Teilnehmerzahl", 1, 1_000), responses, trainerIds,
+      autoSetPlayersPresent: input.autoSetPlayersPresent === true,
+      cancelledAt,
       weather,
     };
   });

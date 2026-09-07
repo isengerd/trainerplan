@@ -65,8 +65,15 @@ export async function POST(request: NextRequest) {
       const validTrainerCount = await prisma.membership.count({ where: { userId: { in: trainerIds }, clubId: scope.clubId, ...(scope.teamId ? { OR: [{ teamId: scope.teamId }, { teamId: null }] } : {}), status: "active", role: { in: ["trainer", "admin"] } } });
       if (validTrainerCount !== trainerIds.length) return NextResponse.json({ error: "Mindestens eine Trainerzuordnung ist ungültig." }, { status: 400 });
     }
+    const eligiblePlayers = event.type === "event" ? [] : await prisma.membership.findMany({
+      where: { clubId: scope.clubId, ...(scope.teamId ? { teamId: scope.teamId } : {}), status: "active", role: "player" },
+      select: { userId: true, user: { select: { defaultTrainingAttendance: true, defaultCompetitionAttendance: true } } },
+    });
+    const presetPlayerIds = eligiblePlayers.filter((membership) => event.autoSetPlayersPresent
+      || (event.type === "training" ? membership.user.defaultTrainingAttendance : membership.user.defaultCompetitionAttendance)).map((membership) => membership.userId);
+    const initialResponses = [...new Set([...trainerIds, ...presetPlayerIds])];
     const occurrences = expandOccurrences({ ...event, trainerIds });
-    await prisma.$transaction(occurrences.map((occurrence) => prisma.clubEvent.create({ data: { id: occurrence.id, ...eventToDatabase(occurrence), ...scopedResourceWhere(scope), responses: { create: trainerIds.map((trainerId) => ({ userId: trainerId, value: "yes" })) } } })));
+    await prisma.$transaction(occurrences.map((occurrence) => prisma.clubEvent.create({ data: { id: occurrence.id, ...eventToDatabase(occurrence), maxParticipants: Math.max(occurrence.maxParticipants, presetPlayerIds.length), ...scopedResourceWhere(scope), responses: { create: initialResponses.map((userId) => ({ userId, value: "yes" })) } } })));
     const savedEvent = (await getEvents(user)).find((item) => item.id === event.id);
     const notifications = savedEvent ? await notifyEventChange({ event: savedEvent, scope, actor: user, action: "created", appUrl: applicationUrl(request) }).catch(() => ({ email: 0, push: 0 })) : { email: 0, push: 0 };
     return NextResponse.json({ event: savedEvent, notifications }, { status: 201 });

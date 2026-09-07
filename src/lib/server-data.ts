@@ -95,6 +95,8 @@ export function eventFromDatabase(event: DatabaseEvent): ClubEvent {
     competition: event.competition ?? undefined,
     weather: event.weather as ClubEvent["weather"],
     maxParticipants: event.maxParticipants,
+    autoSetPlayersPresent: event.autoSetPlayersPresent,
+    cancelledAt: event.cancelledAt?.toISOString() ?? null,
     responses: Object.fromEntries((event.responses ?? []).map((response) => [response.userId, response.value])) as ClubEvent["responses"],
   };
 }
@@ -117,5 +119,7 @@ export function eventToDatabase(event: ClubEvent) {
     competition: event.competition,
     weather: event.weather ? json(event.weather) : Prisma.JsonNull,
     maxParticipants: event.maxParticipants,
+    autoSetPlayersPresent: event.autoSetPlayersPresent ?? false,
+    cancelledAt: event.cancelledAt ? new Date(event.cancelledAt) : null,
   };
 }

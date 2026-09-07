@@ -37,6 +37,8 @@ export function safeUser(user: User): SafeUser {
     activeTeamId: user.activeTeamId,
     managedProfile: user.managedProfile,
     loginEnabled: user.loginEnabled,
+    defaultTrainingAttendance: user.defaultTrainingAttendance,
+    defaultCompetitionAttendance: user.defaultCompetitionAttendance,
     managedPlayerIds: [],
   };
 }

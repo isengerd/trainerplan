@@ -1,0 +1,2 @@
+ALTER TABLE "ClubEvent"
+ADD COLUMN "cancelledAt" TIMESTAMP(3);

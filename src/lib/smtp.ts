@@ -43,15 +43,15 @@ export async function sendEmailChangeMail(input: { to: string; name: string; lin
   });
 }
 
-export async function sendEventMail(input: { to: string; name: string; actor: string; action: "created" | "updated" | "deleted"; event: { title: string; date: string; startTime: string; meetingTime: string; location: string; address?: string }; link: string }) {
+export async function sendEventMail(input: { to: string; name: string; actor: string; action: "created" | "updated" | "cancelled" | "restored" | "deleted"; event: { title: string; date: string; startTime: string; meetingTime: string; location: string; address?: string }; link: string }) {
   const transport = smtpTransport();
   const date = new Date(`${input.event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
-  const action = input.action === "created" ? "erstellt" : input.action === "updated" ? "aktualisiert" : "abgesagt";
-  const subject = input.action === "created" ? "Neuer Termin" : input.action === "updated" ? "Termin aktualisiert" : "Termin abgesagt";
+  const action = input.action === "created" ? "erstellt" : input.action === "updated" ? "aktualisiert" : input.action === "cancelled" ? "abgesagt" : input.action === "restored" ? "wieder freigegeben" : "gelöscht";
+  const subject = input.action === "created" ? "Neuer Termin" : input.action === "updated" ? "Termin aktualisiert" : input.action === "cancelled" ? "Termin abgesagt" : input.action === "restored" ? "Termin findet wieder statt" : "Termin gelöscht";
   await transport.sendMail({
     from: process.env.SMTP_FROM,
     to: input.to,
     subject: `${subject}: ${input.event.title}`,
-    text: `Hallo ${input.name},\n\n${input.actor} hat den Termin „${input.event.title}“ ${action}.\n\nDatum: ${date}\nTreffen: ${input.event.meetingTime} Uhr\nBeginn: ${input.event.startTime} Uhr\nOrt: ${input.event.location}${input.event.address ? `\nAdresse: ${input.event.address}` : ""}${input.action === "deleted" ? "" : `\n\nTermin in NextSession öffnen: ${input.link}\n\nBitte gib deine Zu- oder Absage in NextSession ab.`}`,
+    text: `Hallo ${input.name},\n\n${input.actor} hat den Termin „${input.event.title}“ ${action}.\n\nDatum: ${date}\nTreffen: ${input.event.meetingTime} Uhr\nBeginn: ${input.event.startTime} Uhr\nOrt: ${input.event.location}${input.event.address ? `\nAdresse: ${input.event.address}` : ""}${input.action === "deleted" ? "" : `\n\nTermin in NextSession öffnen: ${input.link}`}${input.action === "created" || input.action === "updated" || input.action === "restored" ? "\n\nBitte gib deine Zu- oder Absage in NextSession ab." : ""}`,
   });
 }

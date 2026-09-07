@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sensitiveAuthenticatedUser } from "@/lib/auth";
+import { canManage, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, readJson } from "@/lib/api-security";
 import { getEvents } from "@/lib/events";
 import { prisma } from "@/lib/db";
@@ -27,17 +27,21 @@ export async function PUT(request: NextRequest, context: Context) {
       Promise.resolve(scopedConfig),
     ]);
     if (!event) return NextResponse.json({ error: "Der Termin wurde nicht gefunden." }, { status: 404 });
+    if (event.cancelledAt) return NextResponse.json({ error: "Der Termin wurde abgesagt." }, { status: 409 });
     const responseUserId = body.playerId || user.id;
     if (responseUserId !== user.id) {
-      const managedPlayer = await prisma.guardianPlayer.findUnique({ where: { guardianId_playerId: { guardianId: user.id, playerId: responseUserId } } });
       const playerMembership = await prisma.membership.findFirst({ where: { userId: responseUserId, clubId: scope.clubId, teamId: scope.teamId, role: "player", status: "active" } });
-      if (!managedPlayer || !playerMembership) throw new ApiInputError("Du darfst die Teilnahme dieses Kindes nicht ändern.", 403);
+      if (!playerMembership) throw new ApiInputError("Der Spieler gehört nicht zu dieser Mannschaft.", 403);
+      if (!canManage(user.role)) {
+        const managedPlayer = await prisma.guardianPlayer.findUnique({ where: { guardianId_playerId: { guardianId: user.id, playerId: responseUserId } } });
+        if (!managedPlayer) throw new ApiInputError("Du darfst die Teilnahme dieses Kindes nicht ändern.", 403);
+      }
     }
     const settings = config.settings as unknown as ClubSettings;
     if (!settings.attendanceEnabled) throw new ApiInputError("Teilnahmerückmeldungen sind deaktiviert.", 403);
     const storedDate = event.date.toISOString().slice(0, 10);
     const deadlineHours = event.type === "training" ? settings.trainingDeadlineHours : event.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
-    if (Date.now() > berlinDateTime(storedDate, event.startTime).getTime() - deadlineHours * 3600000) throw new ApiInputError("Die Rückmeldefrist ist abgelaufen.", 409);
+    if (!canManage(user.role) && Date.now() > berlinDateTime(storedDate, event.startTime).getTime() - deadlineHours * 3600000) throw new ApiInputError("Die Rückmeldefrist ist abgelaufen.", 409);
 
     const trainerIds = Array.isArray(event.trainerIds) ? event.trainerIds.filter((value): value is string => typeof value === "string") : [];
     if (responseUserId === user.id && user.role !== "player" && user.role !== "guardian" && event.type === "training") {

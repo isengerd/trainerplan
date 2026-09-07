@@ -64,6 +64,8 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
       shootingRating: canEditDevelopment && existing.role === "player" ? entry.shootingRating : undefined,
       passingRating: canEditDevelopment && existing.role === "player" ? entry.passingRating : undefined,
       internalTeam: canEditDevelopment && existing.role === "player" ? entry.internalTeam || null : undefined,
+      defaultTrainingAttendance: canEditProfile && existing.role === "player" ? entry.defaultTrainingAttendance : undefined,
+      defaultCompetitionAttendance: canEditProfile && existing.role === "player" ? entry.defaultCompetitionAttendance : undefined,
     } });
   }));
   if (actor.role === "admin" && accessManagementEnabled) {

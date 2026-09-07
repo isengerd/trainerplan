@@ -43,6 +43,7 @@ export async function saveEvents(value: unknown, user: User) {
     for (const incoming of events) {
       const existing = await prisma.clubEvent.findFirst({ where: { id: incoming.id, OR: [scopedResourceWhere(scope), { clubId: null }] }, include: { responses: true } });
       if (!existing) continue;
+      if (existing.cancelledAt) throw new ApiInputError("Der Termin wurde abgesagt.", 409);
       const value = incoming.responses[user.id];
       const deadlineHours = existing.type === "training" ? settings.trainingDeadlineHours : existing.type === "tournament" ? settings.tournamentDeadlineHours : settings.eventDeadlineHours;
       const storedDate = existing.date.toISOString().slice(0, 10);

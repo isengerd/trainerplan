@@ -2242,6 +2242,7 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
 .attendance-admin-actions .yes.active{border-color:#4fd578;background:#1c7138;color:#fff}
 .attendance-admin-actions .maybe.active{border-color:#efbd54;background:#6d5318;color:#fff}
 .attendance-admin-actions .no.active{border-color:#ef746f;background:#71312e;color:#fff}
+.attendance-admin-actions button:disabled{opacity:.42;cursor:not-allowed}
 
 html[data-theme="light"] .response-card{border-color:#b8d9c1;background:linear-gradient(145deg,#f8fcf9,#f1f8f3)}
 html[data-theme="light"] .response-card h3{color:#17271d}
@@ -2270,3 +2271,39 @@ html[data-theme="light"] .attendance-admin-actions button{border-color:#d1ddd4;b
 }
 
 @keyframes event-mobile-page-in{from{opacity:.7;transform:translateX(18px)}}
+
+.event-attendance-preset{position:relative!important;min-height:62px!important;display:grid!important;grid-template-columns:1fr 36px!important;gap:12px!important;align-items:center!important;margin-top:9px;border-color:#3a6547!important;background:#12291b!important;cursor:pointer}
+.event-attendance-preset strong,.event-attendance-preset small{display:block}
+.event-attendance-preset strong{color:var(--text-main);font-size:10px}
+.event-attendance-preset small{margin-top:4px;color:var(--muted);font-size:8px;line-height:1.45}
+.event-attendance-preset input{position:absolute;opacity:0}
+.event-attendance-preset i{position:relative;width:34px;height:19px;border-radius:99px;background:#314039;transition:.2s}
+.event-attendance-preset i::after{content:"";position:absolute;left:3px;top:3px;width:13px;height:13px;border-radius:50%;background:#84958e;transition:.2s}
+.event-attendance-preset input:checked+i{background:#278e47}
+.event-attendance-preset input:checked+i::after{left:18px;background:#fff}
+html[data-theme="light"] .event-attendance-preset{border-color:#b9d8c1!important;background:#edf7ef!important}
+
+.month-grid i.cancelled{background:#ef645f}
+.upcoming-card>button.cancelled{border-color:#7a3432;background:#2b1817}
+.upcoming-card>button.cancelled p,.upcoming-card>button.cancelled .capacity-mini{color:#ff8a84}
+.upcoming-card>button.cancelled .capacity-mini{background:#3c201e}
+.event-popup-hero.cancelled{border-color:#8b3e3a;background:radial-gradient(circle at 82% 15%,rgba(239,100,95,.2),transparent 30%),linear-gradient(135deg,#492321,#251b18)}
+.event-cancelled-notice{display:flex;gap:10px;align-items:center;margin-bottom:10px;padding:14px;border:1px solid #8b4541;border-radius:11px;background:#321c1a;color:#ffaaa5}
+.event-cancelled-notice>svg{flex:0 0 22px;width:22px}
+.event-cancelled-notice strong,.event-cancelled-notice small{display:block}
+.event-cancelled-notice strong{font-size:11px}
+.event-cancelled-notice small{margin-top:4px;color:#d4938f;font-size:8px;line-height:1.45}
+.event-popup-actions .event-cancel-action{border-color:#81403c;color:#f18a84}
+.event-popup-actions .event-restore-action{border-color:#3d7c50;color:#70dc88}
+.overview-card.cancelled-event{border-color:#8b4541;background:linear-gradient(145deg,#2c1918,#171614)}
+.cancelled-event .next-session-main,.cancelled-event .overview-next-event-main{border-color:#8b4541;background:linear-gradient(100deg,#3b1f1d,#241817)}
+.cancelled-event .date-tile,.cancelled-event .overview-next-date{background:#74332f;color:#ffd4d1}
+.session-status.is-cancelled,.cancelled-event .overview-next-event-main em,.cancelled-event .overview-next-event-main>span:nth-child(2)>small{color:#ff817a}
+.session-status.is-cancelled i{background:#ef645f}
+html[data-theme="light"] .upcoming-card>button.cancelled{border-color:#e7a29e;background:#fff0ef}
+html[data-theme="light"] .event-cancelled-notice{border-color:#e5a19d;background:#fff0ef;color:#a6322d}
+html[data-theme="light"] .event-cancelled-notice small{color:#915d59}
+html[data-theme="light"] .overview-card.cancelled-event{border-color:#e8aaa6;background:#fff5f4}
+html[data-theme="light"] .cancelled-event .next-session-main,html[data-theme="light"] .cancelled-event .overview-next-event-main{border-color:#e5a19d;background:#fff0ef}
+
+@media(max-width:760px){.event-popup-actions{grid-template-columns:1fr 1fr}.event-popup-actions button{min-width:0}}

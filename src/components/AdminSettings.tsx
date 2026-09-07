@@ -32,10 +32,21 @@ export function CalendarExportCard() {
   </section>;
 }
 
-export function UserSettingsPage() {
+export function UserSettingsPage({ currentUser, onSave }: { currentUser: ClubUser; onSave: (user: ClubUser) => void }) {
+  const [form, setForm] = useState(currentUser);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => setForm(currentUser), [currentUser]);
+
+  function saveAttendanceDefaults() {
+    onSave(form);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 1800);
+  }
+
   return <section className="settings-page module-page">
     <div className="module-hero"><div><span className="eyebrow">DEINE APP</span><h1>Einstellungen</h1><p>Persönliche Funktionen und Exporte verwalten.</p></div></div>
-    <div className="settings-layout"><CalendarExportCard /></div>
+    <div className="settings-layout">{currentUser.role === "player" && <section className="settings-card settings-wide"><div className="settings-title"><Check /><span><h2>Meine Anwesenheits-Standards</h2><p>Lege fest, bei welchen neuen Terminen du automatisch als dabei eingetragen wirst. Du kannst jeden Termin weiterhin einzeln ab- oder zusagen.</p></span></div><div className="toggle-list"><label><span><strong>Bei Trainings immer anwesend</strong><small>Neue Trainings starten für dich mit „Dabei“.</small></span><input type="checkbox" checked={Boolean(form.defaultTrainingAttendance)} onChange={(event) => setForm({ ...form, defaultTrainingAttendance: event.target.checked })} /><i /></label><label><span><strong>Bei Turnieren und Ligaspielen immer anwesend</strong><small>Neue Turniere und Ligaspiele starten für dich mit „Dabei“.</small></span><input type="checkbox" checked={Boolean(form.defaultCompetitionAttendance)} onChange={(event) => setForm({ ...form, defaultCompetitionAttendance: event.target.checked })} /><i /></label></div><div className="profile-inline-actions"><button className="primary" onClick={saveAttendanceDefaults}><Check /> {saved ? "Gespeichert" : "Standards speichern"}</button></div></section>}<CalendarExportCard /></div>
   </section>;
 }
 

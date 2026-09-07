@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       `DTSTART;TZID=Europe/Berlin:${localDateTime(event.date, event.startTime)}`,
       `DTEND;TZID=Europe/Berlin:${localDateTime(event.date, event.endTime)}`,
       `SUMMARY:${escapeIcs(event.title)}`,
+      ...(event.cancelledAt ? ["STATUS:CANCELLED"] : []),
       `LOCATION:${escapeIcs([event.location, event.address].filter(Boolean).join(", "))}`,
       `DESCRIPTION:${escapeIcs(event.description || "Termin aus NextSession")}`,
       "END:VEVENT",

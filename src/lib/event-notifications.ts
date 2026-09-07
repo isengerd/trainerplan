@@ -4,13 +4,13 @@ import { prisma } from "./db";
 import { sendPushToUsers } from "./push";
 import { sendEventMail, smtpStatus } from "./smtp";
 
-export async function notifyEventChange(input: { event: ClubEvent; scope: ClubScope; actor: { id: string; name: string }; action: "created" | "updated" | "deleted"; appUrl: string }) {
+export async function notifyEventChange(input: { event: ClubEvent; scope: ClubScope; actor: { id: string; name: string }; action: "created" | "updated" | "cancelled" | "restored" | "deleted"; appUrl: string }) {
   const memberships = await prisma.membership.findMany({
     where: { clubId: input.scope.clubId, status: "active", ...(input.scope.teamId ? { teamId: input.scope.teamId } : {}), userId: { not: input.actor.id } },
     select: { user: { select: { id: true, name: true, email: true, loginEnabled: true } } },
   });
   const recipients = [...new Map(memberships.map(({ user }) => [user.id, user])).values()].filter((user) => user.loginEnabled);
-  const verb = input.action === "created" ? "Neu" : input.action === "updated" ? "Aktualisiert" : "Abgesagt";
+  const verb = input.action === "created" ? "Neu" : input.action === "updated" ? "Aktualisiert" : input.action === "cancelled" ? "Abgesagt" : input.action === "restored" ? "Findet wieder statt" : "Gelöscht";
   const push = sendPushToUsers({ userIds: recipients.map((user) => user.id), title: `${verb}: ${input.event.title}`, body: `${input.event.date} · ${input.event.startTime} Uhr · ${input.event.location}`, eventId: input.event.id }).catch(() => ({ sent: 0, configured: false }));
   const email = smtpStatus().configured
     ? Promise.allSettled(recipients.filter((user) => user.email).map((user) => sendEventMail({ to: user.email, name: user.name, actor: input.actor.name, action: input.action, event: input.event, link: `${input.appUrl}/app` })))

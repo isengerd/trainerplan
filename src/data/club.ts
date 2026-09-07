@@ -42,6 +42,8 @@ export type ClubUser = {
   internalTeam?: InternalTeam | null;
   managedProfile?: boolean;
   managedPlayerIds?: string[];
+  defaultTrainingAttendance?: boolean;
+  defaultCompetitionAttendance?: boolean;
 };
 
 export type TrainingPlanMeta = {
@@ -100,6 +102,8 @@ export type ClubEvent = {
   repeatUntil?: string;
   weather?: { condition: "sunny" | "partly-cloudy" | "cloudy"; label: string; temperature: number };
   maxParticipants: number;
+  autoSetPlayersPresent?: boolean;
+  cancelledAt?: string | null;
   responses: Record<string, Attendance>;
 };
 

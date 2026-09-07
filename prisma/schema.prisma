@@ -47,6 +47,8 @@ model User {
   activeTeamId            String?
   managedProfile          Boolean                 @default(false)
   loginEnabled            Boolean                 @default(true)
+  defaultTrainingAttendance Boolean               @default(false)
+  defaultCompetitionAttendance Boolean            @default(false)
   group                   TeamGroup?              @relation(fields: [groupId], references: [id], onDelete: SetNull)
   invitations             Invitation[]            @relation("InvitationCreator")
   emailChangeRequests     EmailChangeRequest[]
@@ -229,6 +231,8 @@ model ClubEvent {
   competition           String?
   weather               Json?
   maxParticipants       Int
+  autoSetPlayersPresent Boolean                 @default(false)
+  cancelledAt          DateTime?
   tournamentPlanPublishedAt DateTime?
   responses             AttendanceResponse[]
   tournamentSquads      TournamentSquad[]
