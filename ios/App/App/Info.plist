@@ -16,6 +16,10 @@
 	<string>6.0</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>NextSession Kids benötigt Zugriff auf die Kamera, damit du ein Profilfoto aufnehmen kannst.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>NextSession Kids benötigt Zugriff auf deine Fotomediathek, damit du ein Profilfoto auswählen kannst.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

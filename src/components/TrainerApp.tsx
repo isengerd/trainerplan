@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, CreditCard, Dumbbell, Edit3,
   Home, Library, LogOut, MapPin, Menu, MessageCircle, MoreVertical, Plus, Settings, Shield,
-  Sparkles, Target, Trash2, Trophy, Users, X,
+  Sparkles, Target, ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
 import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type OrganizationContext, type PushStatus, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
@@ -420,6 +420,23 @@ export function TrainerApp() {
 
   function updateEvents(next: ClubEvent[]) { setEvents(next); void syncEvents(next); }
 
+  async function updateAttendance(eventId: string, responseUserId: string, value: "yes" | "no") {
+    try {
+      const response = await fetch(`/api/v1/events/${encodeURIComponent(eventId)}/attendance`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value, ...(responseUserId !== currentUserId ? { playerId: responseUserId } : {}) }),
+      });
+      const result = await response.json().catch(() => ({})) as { event?: ClubEvent; error?: string };
+      if (!response.ok || !result.event) throw new Error(result.error ?? "Rückmeldung konnte nicht gespeichert werden.");
+      setEvents((current) => current.map((event) => event.id === result.event!.id ? result.event! : event));
+      showToast(value === "yes" ? "Zusage gespeichert." : "Absage gespeichert.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Rückmeldung konnte nicht gespeichert werden.");
+    }
+  }
+
   function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next); }
 
@@ -731,6 +748,32 @@ export function TrainerApp() {
     setCalendarFocusId(eventId);
     setView("calendar");
   };
+  const dashboardPlayers = users.filter((user) => user.role === "player");
+  const dashboardResponseSubjects: ClubUser[] = !currentUser ? [] : currentUser.role === "guardian"
+    ? dashboardPlayers.filter((player) => currentUser.managedPlayerIds?.includes(player.id))
+    : currentUser.role === "player" ? [currentUser] : [];
+  const attendanceOverview = (event: ClubEvent) => {
+    const yes = dashboardPlayers.filter((player) => event.responses[player.id] === "yes").length;
+    const no = dashboardPlayers.filter((player) => event.responses[player.id] === "no").length;
+    const open = Math.max(0, dashboardPlayers.length - yes - no);
+    const deadlineHours = event.type === "training" ? clubSettings.trainingDeadlineHours : event.type === "tournament" ? clubSettings.tournamentDeadlineHours : clubSettings.eventDeadlineHours;
+    const responseClosed = Date.now() > new Date(`${event.date}T${event.startTime}:00`).getTime() - deadlineHours * 3_600_000;
+    return <div className="overview-attendance">
+      <button className="overview-attendance-summary" onClick={() => openEventDetails(event.id)} aria-label={`Teilnehmer für ${event.title} ansehen`}>
+        <span className="yes"><ThumbsUp /><strong>{yes}</strong><small>Dabei</small></span>
+        <span className="open"><strong>{open}</strong><small>Offen</small></span>
+        <span className="no"><ThumbsDown /><strong>{no}</strong><small>Absagen</small></span>
+        <span className="roster"><Users /><small>Mannschaft</small><ChevronRight /></span>
+      </button>
+      {!event.cancelledAt && clubSettings.attendanceEnabled && dashboardResponseSubjects.length > 0 && <div className="overview-quick-rsvp">
+        {dashboardResponseSubjects.map((subject) => <div key={subject.id}>
+          <span><strong>{subject.id === currentUser?.id ? "Deine Rückmeldung" : subject.name}</strong><small>{responseClosed ? "Rückmeldung geschlossen" : event.responses[subject.id] === "yes" ? "Aktuell zugesagt" : event.responses[subject.id] === "no" ? "Aktuell abgesagt" : event.responses[subject.id] === "maybe" ? "Noch unsicher" : "Noch nicht beantwortet"}</small></span>
+          <button className={event.responses[subject.id] === "yes" ? "yes active" : "yes"} disabled={responseClosed} onClick={() => void updateAttendance(event.id, subject.id, "yes")}><ThumbsUp /> Zusagen</button>
+          <button className={event.responses[subject.id] === "no" ? "no active" : "no"} disabled={responseClosed} onClick={() => void updateAttendance(event.id, subject.id, "no")}><ThumbsDown /> Absagen</button>
+        </div>)}
+      </div>}
+    </div>;
+  };
   const overview = (
     <section className="overview-page">
       <div className="overview-welcome">
@@ -739,7 +782,8 @@ export function TrainerApp() {
       <section style={{ order: otherEventComesFirst ? 2 : 1 }} className={`overview-card next-session overview-primary ${trainingDate ? "has-session" : "empty-session"} ${nextTrainingEvent?.cancelledAt ? "cancelled-event" : ""}`}>
         <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>{trainingDate ? `${overviewDate(trainingDate)} · ${nextTrainingEvent?.startTime ?? trainingDay?.time ?? "Zeit offen"}${nextTrainingEvent?.startTime || trainingDay?.time ? " Uhr" : ""}` : "Noch kein Training eingetragen"}</h2></div></div>
         {trainingDate ? <>
-          <div className="next-session-main"><div className="date-tile"><strong>{new Date(`${trainingDate}T12:00:00`).getDate()}</strong><span>{new Date(`${trainingDate}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</span></div><div className="next-session-copy"><span className={`session-status ${nextTrainingEvent?.cancelledAt ? "is-cancelled" : trainingExercises.length ? "" : "is-open"}`}><i /> {nextTrainingEvent?.cancelledAt ? "TRAINING ABGESAGT" : trainingExercises.length ? "PLAN VORBEREITET" : "PLAN NOCH OFFEN"}</span><h3>{planMeta[trainingDate]?.name ?? nextTrainingEvent?.title ?? trainingDay?.theme ?? "Training"}</h3><p><MapPin /> {nextTrainingEvent?.location || "Ort noch nicht eingetragen"}</p><p>{nextTrainingEvent?.cancelledAt ? "Der Termin bleibt zur Information sichtbar." : `${trainingExercises.length} Übungen · ${nextPlanDuration} Minuten${nextTrainingEvent ? ` · ${users.filter((user) => user.role === "player" && nextTrainingEvent.responses[user.id] === "yes").length} Zusagen` : ""}`}</p></div>{nextTrainingCoaches.length > 0 && <div className="next-training-coaches" aria-label="Verantwortliche Trainer">{nextTrainingCoaches.slice(0, 4).map((trainer) => <span key={trainer.id} title={trainer.name}><Avatar user={trainer} size="small" /></span>)}</div>}</div>
+          <div className="next-session-main"><div className="date-tile"><strong>{new Date(`${trainingDate}T12:00:00`).getDate()}</strong><span>{new Date(`${trainingDate}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</span></div><div className="next-session-copy"><span className={`session-status ${nextTrainingEvent?.cancelledAt ? "is-cancelled" : trainingExercises.length ? "" : "is-open"}`}><i /> {nextTrainingEvent?.cancelledAt ? "TRAINING ABGESAGT" : trainingExercises.length ? "PLAN VORBEREITET" : "PLAN NOCH OFFEN"}</span><h3>{planMeta[trainingDate]?.name ?? nextTrainingEvent?.title ?? trainingDay?.theme ?? "Training"}</h3><p><MapPin /> {nextTrainingEvent?.location || "Ort noch nicht eingetragen"}</p><p>{nextTrainingEvent?.cancelledAt ? "Der Termin bleibt zur Information sichtbar." : `${trainingExercises.length} Übungen · ${nextPlanDuration} Minuten`}</p></div>{nextTrainingCoaches.length > 0 && <div className="next-training-coaches" aria-label="Verantwortliche Trainer">{nextTrainingCoaches.slice(0, 4).map((trainer) => <span key={trainer.id} title={trainer.name}><Avatar user={trainer} size="small" /></span>)}</div>}</div>
+          {nextTrainingEvent && attendanceOverview(nextTrainingEvent)}
           {!nextTrainingEvent?.cancelledAt && <div className="overview-primary-actions">{canManageClub ? <><button className="primary" onClick={openPlan}>{nextPlanLabel} <ChevronRight /></button>{nextTrainingEvent && <button onClick={() => openEventDetails(nextTrainingEvent.id)}><Users /> Teilnehmer</button>}</> : nextTrainingEvent ? <button className="primary" onClick={() => openEventDetails(nextTrainingEvent.id)}>Termin ansehen <ChevronRight /></button> : null}</div>}
         </> : <div className="overview-empty"><CalendarDays /><div><strong>Plane deine nächste Einheit</strong><p>Lege einen Trainingstag fest und stelle anschließend die Übungen zusammen.</p></div>{canManageClub && <button className="primary" onClick={openPlan}><Plus /> Training planen</button>}</div>}
       </section>
@@ -749,7 +793,7 @@ export function TrainerApp() {
       <div style={{ order: otherEventComesFirst ? 1 : 2 }} className="overview-next-grid">
         <section className={`overview-card overview-next-event ${nextOtherEvent?.cancelledAt ? "cancelled-event" : ""}`}>
           <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TURNIER / EVENT</span><h2>{nextOtherEvent ? nextOtherEvent.title : "Nichts eingetragen"}</h2></div>{nextOtherEvent && <button onClick={() => openEventDetails(nextOtherEvent.id)}>Details <ChevronRight /></button>}</div>
-          {nextOtherEvent ? <button className="overview-next-event-main" onClick={() => openEventDetails(nextOtherEvent.id)}><span className="overview-next-date"><strong>{new Date(`${nextOtherEvent.date}T12:00:00`).getDate()}</strong><small>{new Date(`${nextOtherEvent.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><em>{nextOtherEvent.cancelledAt ? "Abgesagt" : nextOtherEvent.type === "tournament" ? "Turnier" : nextOtherEvent.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{overviewDate(nextOtherEvent.date)} · {nextOtherEvent.startTime} Uhr</strong><small>{nextOtherEvent.cancelledAt ? <><AlertTriangle /> Termin abgesagt</> : <><MapPin /> {nextOtherEvent.location || "Ort noch offen"}</>}</small></span><ChevronRight /></button> : <p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p>}
+          {nextOtherEvent ? <><button className="overview-next-event-main" onClick={() => openEventDetails(nextOtherEvent.id)}><span className="overview-next-date"><strong>{new Date(`${nextOtherEvent.date}T12:00:00`).getDate()}</strong><small>{new Date(`${nextOtherEvent.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><em>{nextOtherEvent.cancelledAt ? "Abgesagt" : nextOtherEvent.type === "tournament" ? "Turnier" : nextOtherEvent.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{overviewDate(nextOtherEvent.date)} · {nextOtherEvent.startTime} Uhr</strong><small>{nextOtherEvent.cancelledAt ? <><AlertTriangle /> Termin abgesagt</> : <><MapPin /> {nextOtherEvent.location || "Ort noch offen"}</>}</small></span><ChevronRight /></button>{attendanceOverview(nextOtherEvent)}</> : <p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p>}
           {nextOtherEvent?.id === nextTournament?.id && nextTournamentSquads.length > 0 && <div className="overview-event-squads"><div className="overview-squad-list">{nextTournamentSquads.slice(0, 4).map((squad, index) => {
             const trainer = users.find((user) => user.id === squad.trainerId);
             const teamName = overviewSquadName(squad.name, index);
