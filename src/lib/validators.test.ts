@@ -30,6 +30,15 @@ test("das lokale Rate-Limit sperrt erst nach dem erlaubten Kontingent", () => {
   assert.equal(rateLimit(key, 2, 60_000).allowed, false);
 });
 
+test("Teilnehmerlimit 0 wird als unbegrenzt akzeptiert", () => {
+  const event = {
+    id: "event-unlimited", type: "training", title: "Training", date: "2026-09-12",
+    startTime: "17:00", endTime: "18:00", meetingTime: "16:50", location: "Platz",
+    description: "Test", maxParticipants: 0, responses: {},
+  };
+  assert.equal(validateEvents([event])[0].maxParticipants, 0);
+});
+
 test("Spielerbewertungen akzeptieren nur null bis fünf Sterne und Team A oder B", () => {
   const player = {
     id: "player-test", name: "Test Spieler", email: "test@example.org", role: "player",

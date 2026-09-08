@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest, context: Context) {
       await prisma.attendanceResponse.deleteMany({ where: { eventId: id, userId: responseUserId } });
     } else {
       const yesCount = await prisma.attendanceResponse.count({ where: { eventId: id, value: "yes", userId: { not: responseUserId }, user: { role: "player" } } });
-      const acceptedValue = body.value === "yes" && yesCount >= event.maxParticipants ? (settings.waitlistEnabled ? "maybe" : null) : body.value;
+      const acceptedValue = body.value === "yes" && event.maxParticipants > 0 && yesCount >= event.maxParticipants ? (settings.waitlistEnabled ? "maybe" : null) : body.value;
       if (!acceptedValue) throw new ApiInputError("Der Termin ist bereits voll.", 409);
       await prisma.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: responseUserId } }, update: { value: acceptedValue }, create: { eventId: id, userId: responseUserId, value: acceptedValue } });
     }

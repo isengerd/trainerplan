@@ -2329,7 +2329,7 @@ html[data-theme="light"] .cancelled-event .next-session-main,html[data-theme="li
 
 /* Teilnahme steht im Alltag vor Planungsdetails: kompakt im Dashboard, ausführlich im Termin. */
 .overview-attendance{margin-top:9px;overflow:hidden;border:1px solid #315141;border-radius:10px;background:#0d1d17}
-.overview-attendance-summary{width:100%;min-height:47px;display:grid;grid-template-columns:repeat(3,minmax(58px,1fr)) minmax(92px,1.15fr);align-items:stretch;border:0;padding:0;background:transparent;color:#dce9e0;text-align:center}
+.overview-attendance-summary{width:100%;min-height:47px;display:grid;grid-template-columns:repeat(3,minmax(58px,1fr));align-items:stretch;border:0;padding:0;background:transparent;color:#dce9e0;text-align:center}
 .overview-attendance-summary>span{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border-right:1px solid #294036}
 .overview-attendance-summary>span:last-child{border-right:0}.overview-attendance-summary svg{width:14px}.overview-attendance-summary strong{font-size:13px}.overview-attendance-summary small{color:#9aafa2;font-size:8px}
 .overview-attendance-summary .yes{color:#6fe08a}.overview-attendance-summary .open strong{color:#f0c35e}.overview-attendance-summary .no{color:#f28a83}.overview-attendance-summary .roster{color:#c9d9ce}.overview-attendance-summary .roster svg:last-child{width:11px;color:#71877a}
@@ -2344,7 +2344,15 @@ html[data-theme="light"] .overview-quick-rsvp{border-color:#d8e5dc}html[data-the
 html[data-theme="light"] .event-stepper button{border-color:#c5d8ca;background:rgba(255,255,255,.72)}html[data-theme="light"] .event-stepper span{color:#526b5b}html[data-theme="light"] .event-roster-link{color:#187b38}html[data-theme="light"] .capacity-mini strong{color:#1a7b38}html[data-theme="light"] .capacity-mini i{color:#855f0d}
 
 @media(max-width:760px){
-  .overview-attendance-summary{grid-template-columns:repeat(3,1fr) 1.25fr}.overview-attendance-summary>span{padding:7px 4px}.overview-attendance-summary small{font-size:7px}.overview-quick-rsvp>div{grid-template-columns:1fr 88px 88px}.overview-quick-rsvp button{justify-content:center;padding-inline:5px}
+  .overview-attendance-summary{grid-template-columns:repeat(3,1fr)}.overview-attendance-summary>span{padding:7px 4px}.overview-attendance-summary small{font-size:7px}.overview-quick-rsvp>div{grid-template-columns:1fr 88px 88px}.overview-quick-rsvp button{justify-content:center;padding-inline:5px}
   .event-participation-overview{grid-template-columns:1fr}.event-participation-overview .capacity-block{min-height:105px}.event-facts{margin-top:10px}.event-content-columns{margin-top:10px}.event-popup-topline{flex-wrap:wrap}.event-weather{margin-left:auto}.event-stepper{order:2;margin-left:0}.event-type-label{order:1}.event-weather{order:3}.event-popup-close{order:4}.event-popup-title{margin-top:8px}.event-popup-title p{font-size:7px}
 }
 @media(max-width:430px){.overview-quick-rsvp>div{grid-template-columns:1fr 1fr}.overview-quick-rsvp>div>span{grid-column:1/-1}.overview-attendance-summary .roster small{display:none}}
+
+.next-session-main { width: 100%; color: inherit; font: inherit; text-align: left; }
+.next-session-main:not(:disabled) { cursor: pointer; }
+.next-session-main:disabled { opacity: 1; cursor: default; }
+
+.event-participation-overview.compact { display: block; }
+.event-participation-overview.compact .event-cancelled-notice { margin-bottom: 9px; }
+.event-participation-overview.compact .capacity-block { min-height: 0; padding: 11px 13px; }

@@ -35,7 +35,8 @@ export async function PATCH(request: NextRequest, context: Context) {
       const presetPlayerIds = !existing.autoSetPlayersPresent && event.autoSetPlayersPresent && event.type !== "event"
         ? (await tx.membership.findMany({ where: { clubId: scope.clubId, ...(scope.teamId ? { teamId: scope.teamId } : {}), status: "active", role: "player" }, select: { userId: true } })).map((membership) => membership.userId)
         : [];
-      const result = await tx.clubEvent.updateMany({ where: { id, ...scopedResourceWhere(scope) }, data: { ...eventToDatabase({ ...event, trainerIds }), maxParticipants: Math.max(event.maxParticipants, presetPlayerIds.length) } });
+      const maxParticipants = event.maxParticipants === 0 ? 0 : Math.max(event.maxParticipants, presetPlayerIds.length);
+      const result = await tx.clubEvent.updateMany({ where: { id, ...scopedResourceWhere(scope) }, data: { ...eventToDatabase({ ...event, trainerIds }), maxParticipants } });
       for (const trainerId of trainerIds) await tx.attendanceResponse.upsert({ where: { eventId_userId: { eventId: id, userId: trainerId } }, update: { value: "yes" }, create: { eventId: id, userId: trainerId, value: "yes" } });
       if (presetPlayerIds.length) await tx.attendanceResponse.createMany({ data: presetPlayerIds.map((userId) => ({ eventId: id, userId, value: "yes" })), skipDuplicates: true });
       return result;
