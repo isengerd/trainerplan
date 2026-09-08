@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>de.trainerplan.app</string>
+	<string>de.nextsession.kids</string>
 	<key>PROJECT_ID</key>
 	<string>trainerplan-ba953</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:337482384161:ios:aae1054067c1d13f83b460</string>
+	<string>1:337482384161:ios:3e743e14f7b35cef83b460</string>
 </dict>
 </plist>

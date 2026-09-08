@@ -1,4 +1,4 @@
-package de.trainerplan.app;
+package de.nextsession.kids;
 
 import com.getcapacitor.BridgeActivity;
 

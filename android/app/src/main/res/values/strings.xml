@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">NextSession Kids!</string>
     <string name="title_activity_main">NextSession Kids!</string>
-    <string name="package_name">de.trainerplan.app</string>
-    <string name="custom_url_scheme">de.trainerplan.app</string>
+    <string name="package_name">de.nextsession.kids</string>
+    <string name="custom_url_scheme">de.nextsession.kids</string>
 </resources>

@@ -47,7 +47,7 @@ export function NativeAppBridge() {
       const urlListener = await App.addListener("appUrlOpen", ({ url }) => {
         try {
           const incoming = new URL(url);
-          if (incoming.protocol === "de.trainerplan.app:" && incoming.hostname === "login" && incoming.pathname === "/email-link") {
+          if (incoming.protocol === "de.nextsession.kids:" && incoming.hostname === "login" && incoming.pathname === "/email-link") {
             window.location.assign(`/login/email-link${incoming.search}`);
           }
         } catch { /* Unbekannte oder fehlerhafte Deep Links werden ignoriert. */ }

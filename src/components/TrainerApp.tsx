@@ -706,7 +706,7 @@ export function TrainerApp() {
   const trainingDay = trainingDate ? days.find((day) => day.key === trainingDate) ?? null : null;
   const trainingExercises = trainingDate ? plans[trainingDate] ?? [] : [];
   const playerCount = users.filter((user) => user.role === "player").length;
-  const openResponses = nextTrainingEvent ? Math.max(0, playerCount - Object.keys(nextTrainingEvent.responses).length) : 0;
+  const openResponses = nextTrainingEvent && !nextTrainingEvent.cancelledAt ? Math.max(0, playerCount - Object.keys(nextTrainingEvent.responses).length) : 0;
   const nextPlanDuration = trainingExercises.reduce((sum, item) => sum + item.duration, 0);
   const nextPlanLabel = trainingExercises.length ? "Plan öffnen" : "Training planen";
   const trainingSortKey = trainingDate ? `${trainingDate}T${nextTrainingEvent?.startTime ?? trainingDay?.time ?? "23:59"}` : "9999-12-31T23:59";
@@ -740,7 +740,7 @@ export function TrainerApp() {
         <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>{trainingDate ? `${overviewDate(trainingDate)} · ${nextTrainingEvent?.startTime ?? trainingDay?.time ?? "Zeit offen"}${nextTrainingEvent?.startTime || trainingDay?.time ? " Uhr" : ""}` : "Noch kein Training eingetragen"}</h2></div></div>
         {trainingDate ? <>
           <div className="next-session-main"><div className="date-tile"><strong>{new Date(`${trainingDate}T12:00:00`).getDate()}</strong><span>{new Date(`${trainingDate}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</span></div><div className="next-session-copy"><span className={`session-status ${nextTrainingEvent?.cancelledAt ? "is-cancelled" : trainingExercises.length ? "" : "is-open"}`}><i /> {nextTrainingEvent?.cancelledAt ? "TRAINING ABGESAGT" : trainingExercises.length ? "PLAN VORBEREITET" : "PLAN NOCH OFFEN"}</span><h3>{planMeta[trainingDate]?.name ?? nextTrainingEvent?.title ?? trainingDay?.theme ?? "Training"}</h3><p><MapPin /> {nextTrainingEvent?.location || "Ort noch nicht eingetragen"}</p><p>{nextTrainingEvent?.cancelledAt ? "Der Termin bleibt zur Information sichtbar." : `${trainingExercises.length} Übungen · ${nextPlanDuration} Minuten${nextTrainingEvent ? ` · ${users.filter((user) => user.role === "player" && nextTrainingEvent.responses[user.id] === "yes").length} Zusagen` : ""}`}</p></div>{nextTrainingCoaches.length > 0 && <div className="next-training-coaches" aria-label="Verantwortliche Trainer">{nextTrainingCoaches.slice(0, 4).map((trainer) => <span key={trainer.id} title={trainer.name}><Avatar user={trainer} size="small" /></span>)}</div>}</div>
-          <div className="overview-primary-actions"><button className="primary" onClick={openPlan}>{nextPlanLabel} <ChevronRight /></button>{nextTrainingEvent && <button onClick={() => setView("calendar")}><Users /> Teilnehmer</button>}</div>
+          {!nextTrainingEvent?.cancelledAt && <div className="overview-primary-actions">{canManageClub ? <><button className="primary" onClick={openPlan}>{nextPlanLabel} <ChevronRight /></button>{nextTrainingEvent && <button onClick={() => openEventDetails(nextTrainingEvent.id)}><Users /> Teilnehmer</button>}</> : nextTrainingEvent ? <button className="primary" onClick={() => openEventDetails(nextTrainingEvent.id)}>Termin ansehen <ChevronRight /></button> : null}</div>}
         </> : <div className="overview-empty"><CalendarDays /><div><strong>Plane deine nächste Einheit</strong><p>Lege einen Trainingstag fest und stelle anschließend die Übungen zusammen.</p></div>{canManageClub && <button className="primary" onClick={openPlan}><Plus /> Training planen</button>}</div>}
       </section>
 
@@ -768,7 +768,7 @@ export function TrainerApp() {
   const accessManagementEnabled = organization?.licenseType !== "single_team_free";
   const licenseDaysLeft = organization?.licenseExpiresAt ? Math.ceil((new Date(organization.licenseExpiresAt).getTime() - Date.now()) / 86_400_000) : null;
 
-  const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? "Mannschaftsplanung" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
+  const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
     ? <CalendarPage events={events} plannedTrainings={Object.entries(planMeta).map(([date, meta]) => { const day = days.find((item) => item.key === date); return { date, title: meta.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} onSelectedEventHandled={() => setCalendarFocusId(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
@@ -793,7 +793,7 @@ export function TrainerApp() {
         <nav>
           <a className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><Home /> Übersicht</a>
           <a className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /> Kalender</a>
-          <a className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /> Mannschaftsplanung</a>
+          <a className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /> {canManageClub ? "Mannschaftsplanung" : "Turniermannschaften"}</a>
           {canManageClub && <a className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}><CalendarDays /> Trainingsplan</a>}
           {canManageClub && <a className={view === "exercises" ? "active" : ""} onClick={() => setView("exercises")}><Library /> Übungen</a>}
           {(accessManagementEnabled || currentUser.role === "admin") && <a className={view === "team" ? "active" : ""} onClick={() => setView("team")}><Dumbbell /> {accessManagementEnabled ? "Mannschaft" : "Spieler"}</a>}
@@ -832,7 +832,7 @@ export function TrainerApp() {
           <div>
             <button className={view === "overview" ? "active" : ""} onClick={() => mobileNavigate("overview")}><Home /><span><strong>Übersicht</strong><small>Dashboard und nächste Termine</small></span><ChevronRight /></button>
             <button className={view === "calendar" ? "active" : ""} onClick={() => mobileNavigate("calendar")}><CalendarDays /><span><strong>Kalender</strong><small>Training, Turniere und Ereignisse</small></span><ChevronRight /></button>
-            <button className={view === "tournaments" ? "active" : ""} onClick={() => mobileNavigate("tournaments")}><Trophy /><span><strong>Mannschaftsplanung</strong><small>Turnierteams und Trainer zuordnen</small></span><ChevronRight /></button>
+            <button className={view === "tournaments" ? "active" : ""} onClick={() => mobileNavigate("tournaments")}><Trophy /><span><strong>{canManageClub ? "Mannschaftsplanung" : "Turniermannschaften"}</strong><small>{canManageClub ? "Turnierteams und Trainer zuordnen" : "Freigegebene Teams ansehen"}</small></span><ChevronRight /></button>
             {canManageClub && <button className={view === "plan" ? "active" : ""} onClick={() => mobileNavigate("plan")}><CalendarDays /><span><strong>Trainingsplan</strong><small>Einheiten planen und bearbeiten</small></span><ChevronRight /></button>}
             {canManageClub && <button className={view === "exercises" ? "active" : ""} onClick={() => mobileNavigate("exercises")}><Library /><span><strong>Übungen</strong><small>Übungsbibliothek durchsuchen</small></span><ChevronRight /></button>}
             {(accessManagementEnabled || currentUser.role === "admin") && <button className={view === "team" ? "active" : ""} onClick={() => mobileNavigate("team")}><Users /><span><strong>{accessManagementEnabled ? "Mannschaft" : "Spieler"}</strong><small>{accessManagementEnabled ? "Kader und Rollen verwalten" : "Spielerprofile verwalten"}</small></span><ChevronRight /></button>}
@@ -910,7 +910,7 @@ export function TrainerApp() {
           <button className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /><span>Kalender</span></button>
           {canManageClub && <button className={view === "plan" ? "active" : ""} onClick={openPlan} aria-label="Trainingsplanung öffnen"><Dumbbell /><span>Training</span></button>}
           <button className={view === "team" ? "active" : ""} onClick={() => setView(accessManagementEnabled || currentUser.role === "admin" ? "team" : "profile")}><Users /><span>Team</span></button>
-          <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>Mannschaftsplanung</span></button>
+          <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>{canManageClub ? "Mannschaftsplanung" : "Turnierteams"}</span></button>
         </nav>
       </section>
 

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "de.trainerplan.app"
+    namespace = "de.nextsession.kids"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "de.trainerplan.app"
+        applicationId "de.nextsession.kids"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

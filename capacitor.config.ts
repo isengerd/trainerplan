@@ -4,7 +4,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const serverUrl = process.env.CAPACITOR_SERVER_URL?.trim() || process.env.PUBLIC_APP_URL?.trim();
 
 const config: CapacitorConfig = {
-  appId: "de.trainerplan.app",
+  appId: "de.nextsession.kids",
   appName: "NextSession Kids!",
   appendUserAgent: "TrainerplanNative/1.0",
   webDir: ".capacitor-web",

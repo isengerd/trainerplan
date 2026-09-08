@@ -36,7 +36,7 @@ export function EmailLinkLogin() {
     }
   }
 
-  const appLink = oobCode ? `de.trainerplan.app://login/email-link?oobCode=${encodeURIComponent(oobCode)}` : "";
+  const appLink = oobCode ? `de.nextsession.kids://login/email-link?oobCode=${encodeURIComponent(oobCode)}` : "";
 
   return <main className="email-link-page"><section className="email-link-card">
     <span className={`email-link-icon ${complete ? "success" : error ? "error" : ""}`}>{loading ? <LoaderCircle /> : complete ? <Check /> : error ? <X /> : <Mail />}</span>

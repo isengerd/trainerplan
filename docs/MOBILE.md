@@ -44,7 +44,7 @@ Für lokale Android-Emulator-Tests kann `http://10.0.2.2:3000` verwendet werden.
 
 ## Hinweise
 
-- Bundle-ID: `de.trainerplan.app`
+- Bundle-ID: `de.nextsession.kids`
 - App-Name: `NextSession Kids!`
 - Der native Zurück-Button navigiert zunächst im Verlauf und minimiert die App auf der obersten Ebene.
 - Statusleiste, Splashscreen, Safe Areas und natives Overscroll-Verhalten werden beim Start konfiguriert.
