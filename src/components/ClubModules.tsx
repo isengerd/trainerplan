@@ -326,17 +326,24 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onPreviou
       </header>
 
       <div className="event-popup-body">
-        <div className="event-participation-overview compact">
-          {event.cancelledAt && <section className="event-cancelled-notice"><AlertTriangle /><span><strong>Dieser Termin wurde abgesagt</strong><small>Der Termin bleibt zur Information sichtbar.</small></span></section>}
-          <div className="capacity-block"><div><span>TEILNAHME</span><strong>{event.maxParticipants === 0 ? `${counts.yes} dabei · kein Limit` : `${counts.yes} / ${event.maxParticipants} Plätze`}</strong></div><div className="attendance-distribution" aria-label={`${counts.yes} dabei, ${counts.maybe + unanswered} offen, ${counts.no} Absagen`}><i className="yes" style={{ width: `${players.length ? counts.yes / players.length * 100 : 0}%` }} /><i className="maybe" style={{ width: `${players.length ? (counts.maybe + unanswered) / players.length * 100 : 0}%` }} /><i className="no" style={{ width: `${players.length ? counts.no / players.length * 100 : 0}%` }} /></div><div className="attendance-counts"><span className="yes">● {counts.yes} dabei</span><span className="maybe">● {counts.maybe + unanswered} offen</span><span className="no">● {counts.no} nicht dabei</span></div>{(settings.showResponsesToPlayers || canManage) && <a className="event-roster-link" href="#termin-teilnehmer"><Users /> Mannschaft ansehen <ChevronRight /></a>}</div>
-        </div>
+        {event.cancelledAt && <section className="event-cancelled-notice event-cancelled-compact"><AlertTriangle /><span><strong>Dieser Termin wurde abgesagt</strong><small>Der Termin bleibt zur Information sichtbar.</small></span></section>}
 
-        <div className="event-facts">
-          <article><Clock3 /><span><small>Treffen</small><strong>{event.meetingTime}</strong></span></article>
-          <article><Trophy /><span><small>{event.type === "tournament" ? "Anstoß" : "Beginn"}</small><strong>{event.startTime}</strong></span></article>
-          <article><Clock3 /><span><small>Ende</small><strong>{event.endTime}</strong></span></article>
-          <a href={mapsUrl} target="_blank" rel="noreferrer"><Navigation /><span><small>Adresse & Route</small><strong>{event.address || event.location}</strong></span><ChevronRight /></a>
-        </div>
+        <section className="event-overview-panel">
+          <div className="event-attendance-inline">
+            <div className="event-attendance-label"><small>TEILNAHME</small><strong>{event.maxParticipants === 0 ? "Ohne Limit" : `${counts.yes} / ${event.maxParticipants} Plätze`}</strong></div>
+            <div className="event-attendance-stat yes"><ThumbsUp /><strong>{counts.yes}</strong><small>Dabei</small></div>
+            <div className="event-attendance-stat open"><span>?</span><strong>{counts.maybe + unanswered}</strong><small>Offen</small></div>
+            <div className="event-attendance-stat no"><ThumbsDown /><strong>{counts.no}</strong><small>Absagen</small></div>
+            {(settings.showResponsesToPlayers || canManage) && <a className="event-attendance-link" href="#termin-teilnehmer"><Users /><span>Teilnehmer</span><ChevronRight /></a>}
+          </div>
+          <div className="event-attendance-meter" aria-label={`${counts.yes} dabei, ${counts.maybe + unanswered} offen, ${counts.no} Absagen`}><i className="yes" style={{ width: `${players.length ? counts.yes / players.length * 100 : 0}%` }} /><i className="open" style={{ width: `${players.length ? (counts.maybe + unanswered) / players.length * 100 : 0}%` }} /><i className="no" style={{ width: `${players.length ? counts.no / players.length * 100 : 0}%` }} /></div>
+          <div className="event-facts">
+            <article><Clock3 /><span><small>Treffen</small><strong>{event.meetingTime}</strong></span></article>
+            <article><Trophy /><span><small>{event.type === "tournament" ? "Anstoß" : "Beginn"}</small><strong>{event.startTime}</strong></span></article>
+            <article><Clock3 /><span><small>Ende</small><strong>{event.endTime}</strong></span></article>
+            <a href={mapsUrl} target="_blank" rel="noreferrer"><Navigation /><span><small>Adresse & Route</small><strong>{event.address || event.location}</strong></span><ChevronRight /></a>
+          </div>
+        </section>
 
         <div className="event-popup-columns event-content-columns">
           <div className="event-main-column">
