@@ -51,12 +51,14 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
     const existing = existingById.get(entry.id)!;
     const canEditProfile = actor.role === "admin" || actor.id === entry.id;
     const canEditDevelopment = actor.role === "admin" || (actor.role === "trainer" && existing.role === "player");
+    const canEditPlayerEquipment = existing.role === "player" && (actor.role === "admin" || actor.role === "trainer");
     return prisma.user.update({ where: { id: entry.id }, data: {
       name: canEditProfile ? entry.name : undefined,
       email: actor.role === "admin" && existing.managedProfile && entry.email ? entry.email.trim().toLowerCase() : undefined,
       role: actor.role === "admin" && accessManagementEnabled ? entry.role : undefined,
-      position: canEditProfile ? entry.position : undefined, number: canEditProfile ? entry.number : undefined,
-      ballNumber: canEditProfile ? entry.ballNumber : undefined, phone: canEditProfile ? entry.phone : undefined,
+      position: existing.role === "player" ? (canEditPlayerEquipment ? entry.position : undefined) : (canEditProfile ? entry.position : undefined),
+      number: canEditPlayerEquipment ? entry.number : undefined,
+      ballNumber: canEditPlayerEquipment ? entry.ballNumber : undefined, phone: canEditProfile ? entry.phone : undefined,
       birthday: canEditProfile ? (entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null) : undefined,
       ageGroup: actor.role === "admin" ? (entry.role === "player" ? ageGroupForBirthday(entry.birthday) ?? "" : entry.ageGroup) : undefined,
       avatar: canEditProfile ? entry.avatar : undefined,
