@@ -8,7 +8,7 @@ import {
   Sparkles, Target, ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
-import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type InternalTeam, type OrganizationContext, type PushStatus, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
+import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type FamilyDashboardEvent, type InternalTeam, type OrganizationContext, type PushStatus, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
 import { ageGroupForBirthday } from "@/lib/age-groups";
 import { Pitch } from "./Pitch";
 import { Avatar, CalendarPage, ProfilePage, TeamPage } from "./ClubModules";
@@ -101,6 +101,7 @@ type BootstrapData = {
   setupRequired?: boolean;
   users: ClubUser[];
   events: ClubEvent[];
+  familyEvents?: FamilyDashboardEvent[];
   exercises: Exercise[];
   settings: ClubSettings;
   plans: Record<string, Exercise[]>;
@@ -137,6 +138,7 @@ export function TrainerApp() {
   const [planSaveState, setPlanSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [users, setUsers] = useState<ClubUser[]>([]);
   const [events, setEvents] = useState<ClubEvent[]>([]);
+  const [familyEvents, setFamilyEvents] = useState<FamilyDashboardEvent[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState(false);
   const [authReady, setAuthReady] = useState(false);
@@ -314,6 +316,7 @@ export function TrainerApp() {
     const migratedPlanMeta = Object.fromEntries(Object.entries(data.planMeta).map(([date, meta]) => [date, { name: meta.name, focus: meta.focus }]));
     setUsers(data.users);
     setEvents(data.events);
+    setFamilyEvents(data.familyEvents ?? []);
     setCurrentUserId(data.currentUser.id);
     setSetupRequired(Boolean(data.setupRequired));
     setExerciseLibrary(data.exercises);
@@ -758,6 +761,20 @@ export function TrainerApp() {
   const nextTournament = upcomingEvents.find((event) => event.type === "tournament") ?? null;
   const nextTournamentSquads = tournamentPlans.find((plan) => plan.eventId === nextTournament?.id)?.squads ?? [];
   const nextTrainingCoaches = (nextTrainingEvent?.trainerIds ?? []).map((id) => users.find((user) => user.id === id)).filter((user): user is ClubUser => Boolean(user));
+  const visibleFamilyEvents = selectedManagedPlayerId
+    ? familyEvents.filter((event) => event.playerIds.includes(selectedManagedPlayerId))
+    : familyEvents;
+  const familyDashboardEntries = [...visibleFamilyEvents.reduce<Map<string, { event: FamilyDashboardEvent; variants: FamilyDashboardEvent[]; playerIds: Set<string>; teamNames: Set<string> }>>((grouped, event) => {
+    const key = [event.type, event.title.trim().toLocaleLowerCase("de-DE"), event.date, event.meetingTime, event.startTime, event.endTime, event.location.trim().toLocaleLowerCase("de-DE"), Boolean(event.cancelledAt)].join("|");
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.variants.push(event);
+      event.playerIds.forEach((id) => existing.playerIds.add(id));
+      existing.teamNames.add(event.teamName);
+    } else grouped.set(key, { event, variants: [event], playerIds: new Set(event.playerIds), teamNames: new Set([event.teamName]) });
+    return grouped;
+  }, new Map()).values()];
+  const visibleFamilyDashboardEntries = familyDashboardEntries.slice(0, 6);
   const trainingDate = nextTrainingEvent?.date ?? nextPlannedDay?.day.key ?? null;
   const trainingDay = trainingDate ? days.find((day) => day.key === trainingDate) ?? null : null;
   const trainingExercises = trainingDate ? plans[trainingDate] ?? [] : [];
@@ -782,6 +799,12 @@ export function TrainerApp() {
   };
   const openEventDetails = (eventId: string) => {
     setCalendarFocusId(eventId);
+    setView("calendar");
+  };
+  const openFamilyEventDetails = async (entry: { variants: FamilyDashboardEvent[] }) => {
+    const target = entry.variants.find((event) => event.teamId === organization?.activeTeamId) ?? entry.variants[0];
+    if (target.teamId !== organization?.activeTeamId) await switchTeam(target.teamId);
+    setCalendarFocusId(target.id);
     setView("calendar");
   };
   const openPlannedTrainingDetails = (date: string) => {
@@ -830,7 +853,11 @@ export function TrainerApp() {
       <div className="overview-welcome">
         <div><span className="eyebrow">GUTEN TAG, {firstName.toUpperCase()}</span><h1>Das steht als Nächstes an</h1><p>Training, Termine und offene Aufgaben auf einen Blick.</p></div>
       </div>
-      <section style={{ order: otherEventComesFirst ? 2 : 1 }} className={`overview-card next-session overview-primary ${trainingDate ? "has-session" : "empty-session"} ${nextTrainingEvent?.cancelledAt ? "cancelled-event" : ""}`}>
+      {currentUser?.role === "guardian" && <section className="overview-card family-dashboard-card"><div className="overview-card-title"><div><span className="eyebrow">FAMILIENKALENDER</span><h2>{selectedManagedPlayer ? `Als Nächstes für ${selectedManagedPlayer.name}` : "Alle Kinder auf einen Blick"}</h2></div></div><div className="family-dashboard-events">{visibleFamilyDashboardEntries.map((entry) => {
+        const playerNames = [...entry.playerIds].map((id) => organization?.managedPlayers.find((player) => player.id === id)?.name).filter((name): name is string => Boolean(name));
+        return <button key={`${entry.event.id}:${entry.variants.length}`} className="family-dashboard-event" onClick={() => void openFamilyEventDetails(entry)}><span className="overview-next-date"><strong>{new Date(`${entry.event.date}T12:00:00`).getDate()}</strong><small>{new Date(`${entry.event.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span className="family-event-copy"><em>{entry.event.cancelledAt ? "Abgesagt" : entry.event.type === "training" ? "Training" : entry.event.type === "tournament" ? "Turnier" : entry.event.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{entry.event.title}</strong><small>{entry.event.meetingTime && entry.event.meetingTime !== entry.event.startTime ? `Treffen ${entry.event.meetingTime} · ` : ""}{entry.event.startTime}–{entry.event.endTime} Uhr</small><span className="family-event-context">{playerNames.map((name) => <i key={name}>{name}</i>)}{[...entry.teamNames].map((name) => <i key={name} className="team">{name}</i>)}</span></span><ChevronRight /></button>;
+      })}{familyDashboardEntries.length === 0 && <div className="family-dashboard-empty"><CalendarDays /><span><strong>Nichts eingetragen</strong><small>Für die ausgewählten Kinder stehen keine kommenden Termine an.</small></span></div>}{familyDashboardEntries.length > visibleFamilyDashboardEntries.length && <p className="family-dashboard-more">+ {familyDashboardEntries.length - visibleFamilyDashboardEntries.length} weitere Termine</p>}</div></section>}
+      <section style={{ order: otherEventComesFirst ? 2 : 1 }} className={`overview-card next-session overview-primary ${currentUser?.role === "guardian" ? "family-dashboard-suppressed" : ""} ${trainingDate ? "has-session" : "empty-session"} ${nextTrainingEvent?.cancelledAt ? "cancelled-event" : ""}`}>
         {!trainingDate && <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>Noch kein Training eingetragen</h2></div></div>}
         {trainingDate ? <>
           <div className="dashboard-event-combined">
@@ -843,7 +870,7 @@ export function TrainerApp() {
 
       {nextPlannedDay && !nextTrainingEvent && <section className="overview-card overview-todos"><div className="overview-card-title"><div><span className="eyebrow">NOCH ZU ERLEDIGEN</span><h2>Offene Aufgaben</h2></div></div><button onClick={() => openPlannedTrainingDetails(nextPlannedDay.day.key)}><AlertTriangle /><span><strong>Termindetails fehlen</strong><small>Ort, Zeiten und Verantwortliche ergänzen</small></span><ChevronRight /></button></section>}
 
-      <div style={{ order: otherEventComesFirst ? 1 : 2 }} className="overview-next-grid">
+      <div style={{ order: otherEventComesFirst ? 1 : 2 }} className={`overview-next-grid ${currentUser?.role === "guardian" ? "family-dashboard-suppressed" : ""}`}>
         <section className={`overview-card overview-next-event ${nextOtherEvent?.cancelledAt ? "cancelled-event" : ""}`}>
           <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TURNIER / EVENT</span><h2>{nextOtherEvent ? nextOtherEvent.title : "Nichts eingetragen"}</h2></div>{nextOtherEvent && <button onClick={() => openEventDetails(nextOtherEvent.id)}>Details <ChevronRight /></button>}</div>
           {nextOtherEvent ? <><button className="overview-next-event-main" onClick={() => openEventDetails(nextOtherEvent.id)}><span className="overview-next-date"><strong>{new Date(`${nextOtherEvent.date}T12:00:00`).getDate()}</strong><small>{new Date(`${nextOtherEvent.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><em>{nextOtherEvent.cancelledAt ? "Abgesagt" : nextOtherEvent.type === "tournament" ? "Turnier" : nextOtherEvent.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{overviewDate(nextOtherEvent.date)} · {nextOtherEvent.startTime} Uhr</strong><small>{nextOtherEvent.cancelledAt ? <><AlertTriangle /> Termin abgesagt</> : <><MapPin /> {nextOtherEvent.location || "Ort noch offen"}</>}</small></span><ChevronRight /></button>{attendanceOverview(nextOtherEvent)}</> : <p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p>}

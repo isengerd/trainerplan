@@ -38,6 +38,14 @@ export async function GET(request: NextRequest) {
   const managesSportingContent = canManage(currentUser.role);
   const publishedTournamentIds = new Set(events.filter((event) => event.tournamentPlanPublishedAt).map((event) => event.id));
   const managedPlayerIds = (await prisma.guardianPlayer.findMany({ where: { guardianId: currentUser.id }, select: { playerId: true } })).map((link) => link.playerId);
+  const familyTeamIds = [...new Set(organization?.managedPlayers.map((player) => player.teamId) ?? [])];
+  const familyEvents = currentUser.role === "guardian" && organization && familyTeamIds.length
+    ? await prisma.clubEvent.findMany({
+        where: { clubId: organization.clubId, teamId: { in: familyTeamIds }, date: { gte: new Date(new Date().toISOString().slice(0, 10) + "T00:00:00.000Z") } },
+        include: { responses: { where: { userId: { in: managedPlayerIds } } } },
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      })
+    : [];
   const releasedRosterIds = new Set(tournamentSquads
     .filter((squad) => publishedTournamentIds.has(squad.eventId) && squad.players.some((assignment) => assignment.playerId === currentUser.id))
     .flatMap((squad) => [...squad.players.map((assignment) => assignment.playerId), ...(squad.trainerId ? [squad.trainerId] : [])]));
@@ -58,6 +66,12 @@ export async function GET(request: NextRequest) {
         ? { ...mapped, responses: Object.fromEntries(Object.entries(mapped.responses).filter(([id]) => id === currentUser.id || managedPlayerIds.includes(id))) }
         : mapped;
     }),
+    familyEvents: familyEvents.map((event) => ({
+      ...eventFromDatabase(event),
+      teamId: event.teamId!,
+      teamName: organization?.teams.find((team) => team.id === event.teamId)?.name ?? "Mannschaft",
+      playerIds: organization?.managedPlayers.filter((player) => player.teamId === event.teamId).map((player) => player.id) ?? [],
+    })),
     exercises: managesSportingContent ? exercises.map((exercise) => exercise.data) : [],
     settings: config.settings,
     plans: managesSportingContent ? config.plans : {},

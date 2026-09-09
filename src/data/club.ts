@@ -115,6 +115,12 @@ export type ClubEvent = {
   responses: Record<string, Attendance>;
 };
 
+export type FamilyDashboardEvent = ClubEvent & {
+  teamId: string;
+  teamName: string;
+  playerIds: string[];
+};
+
 export type ClubSettings = {
   theme: "dark" | "light";
   teamFeatureEnabled: boolean;
