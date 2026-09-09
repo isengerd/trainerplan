@@ -783,6 +783,18 @@ export function TrainerApp() {
       </div>}
     </div>;
   };
+  const compactDashboardRsvp = (event: ClubEvent) => {
+    if (event.cancelledAt || !clubSettings.attendanceEnabled || dashboardResponseSubjects.length === 0) return null;
+    const deadlineHours = event.type === "training" ? clubSettings.trainingDeadlineHours : event.type === "tournament" ? clubSettings.tournamentDeadlineHours : clubSettings.eventDeadlineHours;
+    const responseClosed = Date.now() > new Date(`${event.date}T${event.startTime}:00`).getTime() - deadlineHours * 3_600_000;
+    return <div className="dashboard-inline-rsvp" aria-label={`Rückmeldung für ${event.title}`}>
+      {dashboardResponseSubjects.map((subject) => <div key={subject.id}>
+        {dashboardResponseSubjects.length > 1 && <small>{subject.name}</small>}
+        <button className={event.responses[subject.id] === "yes" ? "yes active" : "yes"} disabled={responseClosed} onClick={() => void updateAttendance(event.id, subject.id, "yes")} aria-label={`${subject.name}: Zusagen`}><ThumbsUp /><span>Zusagen</span></button>
+        <button className={event.responses[subject.id] === "no" ? "no active" : "no"} disabled={responseClosed} onClick={() => void updateAttendance(event.id, subject.id, "no")} aria-label={`${subject.name}: Absagen`}><ThumbsDown /><span>Absagen</span></button>
+      </div>)}
+    </div>;
+  };
   const overview = (
     <section className="overview-page">
       <div className="overview-welcome">
@@ -791,8 +803,10 @@ export function TrainerApp() {
       <section style={{ order: otherEventComesFirst ? 2 : 1 }} className={`overview-card next-session overview-primary ${trainingDate ? "has-session" : "empty-session"} ${nextTrainingEvent?.cancelledAt ? "cancelled-event" : ""}`}>
         {!trainingDate && <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>Noch kein Training eingetragen</h2></div></div>}
         {trainingDate ? <>
+          <div className="dashboard-event-combined">
           <button type="button" className="next-session-main dashboard-event-head" disabled={!nextTrainingEvent} onClick={() => nextTrainingEvent && openEventDetails(nextTrainingEvent.id)} aria-label={nextTrainingEvent ? `${nextTrainingEvent.title} im Kalender öffnen` : undefined}><div className="date-tile"><strong>{new Date(`${trainingDate}T12:00:00`).getDate()}</strong><span>{new Date(`${trainingDate}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</span></div><div className="next-session-copy"><span className={`session-status ${nextTrainingEvent?.cancelledAt ? "is-cancelled" : ""}`}><i /> {nextTrainingEvent?.cancelledAt ? "TRAINING ABGESAGT" : "NÄCHSTES TRAINING"}</span><h3>{planMeta[trainingDate]?.name ?? nextTrainingEvent?.title ?? trainingDay?.theme ?? "Training"}</h3><div className="dashboard-event-times"><span><small>Treffen</small><strong>{nextTrainingEvent?.meetingTime ?? "–"}</strong></span><span><small>Beginn</small><strong>{nextTrainingEvent?.startTime ?? trainingDay?.time ?? "–"}</strong></span><span><small>Ende</small><strong>{nextTrainingEvent?.endTime ?? "–"}</strong></span></div></div>{nextTrainingCoaches.length > 0 && <div className="next-training-coaches" aria-label="Verantwortliche Trainer">{nextTrainingCoaches.slice(0, 4).map((trainer) => <span key={trainer.id} title={trainer.name}><Avatar user={trainer} size="small" /></span>)}</div>}</button>
-          {nextTrainingEvent && attendanceOverview(nextTrainingEvent)}
+          {nextTrainingEvent && (canManageClub ? attendanceOverview(nextTrainingEvent) : compactDashboardRsvp(nextTrainingEvent))}
+          </div>
           {!nextTrainingEvent?.cancelledAt && canManageClub && <div className="overview-primary-actions"><button className="primary" onClick={openPlan}>{nextPlanLabel} <ChevronRight /></button>{nextTrainingEvent && <button onClick={() => openEventDetails(nextTrainingEvent.id)}><Users /> Teilnehmer</button>}</div>}
         </> : <div className="overview-empty"><CalendarDays /><div><strong>Plane deine nächste Einheit</strong><p>Lege einen Trainingstag fest und stelle anschließend die Übungen zusammen.</p></div>{canManageClub && <button className="primary" onClick={openPlan}><Plus /> Training planen</button>}</div>}
       </section>
