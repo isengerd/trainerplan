@@ -2273,6 +2273,20 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
 .managed-access-card label { display: grid; gap: 8px; }
 .managed-access-card input { min-height: 48px; padding: 0 14px; border: 1px solid #cbdad1; border-radius: 12px; }
 .access-link-result { display: flex; gap: 8px; }
+.guardian-access-list { display: grid; gap: 7px; }
+.guardian-access-list > article { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; gap: 10px; align-items: center; padding: 10px; border: 1px solid #d6e5da; border-radius: 12px; background: #f5faf6; }
+.guardian-access-list > article.pending { border-style: dashed; background: #fbfcfb; }
+.guardian-access-list > article > span:nth-child(2) { min-width: 0; }
+.guardian-access-list strong, .guardian-access-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.guardian-access-list strong { font-size: 11px; }.guardian-access-list small { margin-top: 3px; color: #718078; font-size: 8px; }
+.guardian-access-list > p { margin: 0; padding: 13px; border: 1px dashed #d6e5da; border-radius: 11px; color: #718078; font-size: 9px; text-align: center; }
+.guardian-access-avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #ccefd6; color: #18743a; font-size: 10px; font-weight: 900; }
+.guardian-access-avatar svg { width: 16px; }
+.guardian-access-list article > button { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #ecd0cd; border-radius: 9px; background: #fff5f4; color: #ca4b45; }
+.guardian-access-list article > button svg { width: 15px; }
+.guardian-invite-form { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid #dce8df; }
+.guardian-invite-form h3 { margin: 0; font-size: 12px; }
+.guardian-invite-form > button { justify-self: start; }
 
 @media (max-width: 720px) {
   .global-license-warning,
