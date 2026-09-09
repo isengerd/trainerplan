@@ -21,6 +21,14 @@ export type OrganizationContext = {
   activeTeamId: string | null;
   isClubAdmin: boolean;
   teams: OrganizationTeam[];
+  managedPlayers: Array<{
+    id: string;
+    name: string;
+    avatar?: string;
+    teamId: string;
+    teamName: string;
+    ageGroup: string;
+  }>;
 };
 
 export type ClubUser = {

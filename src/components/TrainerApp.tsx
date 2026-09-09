@@ -155,6 +155,7 @@ export function TrainerApp() {
   const [calendarFocusId, setCalendarFocusId] = useState<string | null>(null);
   const [calendarPlannedDate, setCalendarPlannedDate] = useState<string | null>(null);
   const [organization, setOrganization] = useState<OrganizationContext | null>(null);
+  const [selectedManagedPlayerId, setSelectedManagedPlayerId] = useState<string | null>(null);
   const [trainingTemplates, setTrainingTemplates] = useState<TrainingTemplate[]>([]);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [assignmentExerciseId, setAssignmentExerciseId] = useState<string | null>(null);
@@ -278,6 +279,17 @@ export function TrainerApp() {
   const profileUser = users.find((user) => user.id === (profileUserId ?? currentUserId)) ?? currentUser;
   const canManageClub = currentUser?.role === "admin" || currentUser?.role === "trainer";
   const currentDay = days.find((day) => day.key === selectedDay) ?? days[todayIndex];
+  const activeManagedPlayers = organization?.managedPlayers.filter((player) => player.teamId === organization.activeTeamId) ?? [];
+  const activeManagedPlayerIds = activeManagedPlayers.map((player) => player.id);
+  const effectiveManagedPlayerIds = selectedManagedPlayerId && activeManagedPlayerIds.includes(selectedManagedPlayerId)
+    ? [selectedManagedPlayerId]
+    : activeManagedPlayerIds;
+  const contextualCurrentUser = currentUser?.role === "guardian"
+    ? { ...currentUser, managedPlayerIds: effectiveManagedPlayerIds }
+    : currentUser;
+  const activeTeamName = organization?.teams.find((team) => team.id === organization.activeTeamId)?.name ?? clubSettings.teamName;
+  const selectedManagedPlayer = activeManagedPlayers.find((player) => player.id === selectedManagedPlayerId);
+  const activeFamilyLabel = selectedManagedPlayer ? `${selectedManagedPlayer.name} · ${activeTeamName}` : activeTeamName;
 
   useEffect(() => {
     if (!currentUser || canManageClub || (view !== "plan" && view !== "exercises")) return;
@@ -316,6 +328,13 @@ export function TrainerApp() {
     setPush(data.push);
     setTournamentPlans(data.tournamentPlans ?? []);
     setOrganization(data.organization ?? null);
+    if (data.currentUser.role === "guardian") {
+      const activeTeamId = data.organization?.activeTeamId;
+      const availableIds = data.organization?.managedPlayers.filter((player) => player.teamId === activeTeamId).map((player) => player.id) ?? [];
+      let storedPlayerId: string | null = null;
+      try { storedPlayerId = window.localStorage.getItem("nextsession-family-player"); } catch { /* Optionaler Komfortwert. */ }
+      setSelectedManagedPlayerId(storedPlayerId && availableIds.includes(storedPlayerId) ? storedPlayerId : null);
+    } else setSelectedManagedPlayerId(null);
   }
 
   async function switchTeam(teamId: string) {
@@ -324,6 +343,17 @@ export function TrainerApp() {
     const result = await response.json() as { error?: string };
     if (!response.ok) return showToast(result.error || "Mannschaft konnte nicht gewechselt werden.");
     setSelectedDay(initialPlanKey); setProfileUserId(null); await loadBootstrap(); showToast("Mannschaft gewechselt.");
+  }
+
+  async function switchFamilyContext(value: string) {
+    const [teamId, playerId = "all"] = value.split(":");
+    const nextPlayerId = playerId === "all" ? null : playerId;
+    setSelectedManagedPlayerId(nextPlayerId);
+    try {
+      if (nextPlayerId) window.localStorage.setItem("nextsession-family-player", nextPlayerId);
+      else window.localStorage.removeItem("nextsession-family-player");
+    } catch { /* Die Auswahl funktioniert auch ohne lokale Speicherung. */ }
+    if (teamId !== organization?.activeTeamId) await switchTeam(teamId);
   }
 
   async function loadBootstrap() {
@@ -759,9 +789,9 @@ export function TrainerApp() {
     setView("calendar");
   };
   const dashboardPlayers = users.filter((user) => user.role === "player");
-  const dashboardResponseSubjects: ClubUser[] = !currentUser ? [] : currentUser.role === "guardian"
-    ? dashboardPlayers.filter((player) => currentUser.managedPlayerIds?.includes(player.id))
-    : currentUser.role === "player" ? [currentUser] : [];
+  const dashboardResponseSubjects: ClubUser[] = !contextualCurrentUser ? [] : contextualCurrentUser.role === "guardian"
+    ? dashboardPlayers.filter((player) => contextualCurrentUser.managedPlayerIds?.includes(player.id))
+    : contextualCurrentUser.role === "player" ? [contextualCurrentUser] : [];
   const attendanceOverview = (event: ClubEvent) => {
     const yes = dashboardPlayers.filter((player) => event.responses[player.id] === "yes").length;
     const no = dashboardPlayers.filter((player) => event.responses[player.id] === "no").length;
@@ -837,9 +867,9 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
+    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
-      ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
+      ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
     : view === "team"
       ? (accessManagementEnabled || currentUser.role === "admin" ? <TeamPage users={users} invitations={invitations} currentUser={currentUser} accessManagementEnabled={accessManagementEnabled} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} smtpConfigured={smtp.configured} onInvited={() => void loadBootstrap()} /> : overview)
       : view === "profile" && profileUser
@@ -870,9 +900,11 @@ export function TrainerApp() {
 
       <section className="workspace">
         <header className="topbar">
-          <div><span className="eyebrow">{organization?.clubName ?? clubSettings.clubName} · {organization?.teams.find((team) => team.id === organization.activeTeamId)?.name ?? clubSettings.teamName}</span><h1>{viewTitle}</h1><p>{view === "plan" ? `${days[0].full} – ${days[days.length - 1].full}` : view === "calendar" ? "Termine und Verfügbarkeiten" : view === "settings" ? "Mannschaft und Zugänge verwalten" : view === "license" ? "Tarif und Vertragsdaten verwalten" : "Dein Team auf einen Blick"}</p></div>
+          <div><span className="eyebrow">{organization?.clubName ?? clubSettings.clubName} · {activeFamilyLabel}</span><h1>{viewTitle}</h1><p>{view === "plan" ? `${days[0].full} – ${days[days.length - 1].full}` : view === "calendar" ? "Termine und Verfügbarkeiten" : view === "settings" ? "Mannschaft und Zugänge verwalten" : view === "license" ? "Tarif und Vertragsdaten verwalten" : "Dein Team auf einen Blick"}</p></div>
           <div className="top-actions">
-            {(organization?.teams.length ?? 0) > 1 && <label className="team-switcher"><span>Mannschaft</span><select value={organization?.activeTeamId ?? ""} onChange={(event) => void switchTeam(event.target.value)}>{organization?.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
+            {currentUser.role === "guardian" && (organization?.managedPlayers.length ?? 0) > 0
+              ? <label className="team-switcher family-switcher"><span>Familie</span><select value={`${organization?.activeTeamId}:${selectedManagedPlayerId ?? "all"}`} onChange={(event) => void switchFamilyContext(event.target.value)}>{organization?.teams.filter((team) => organization.managedPlayers.some((player) => player.teamId === team.id)).map((team) => <optgroup key={team.id} label={`${team.name} · ${team.ageGroup}`}><option value={`${team.id}:all`}>Alle Kinder in {team.name}</option>{organization.managedPlayers.filter((player) => player.teamId === team.id).map((player) => <option key={`${team.id}:${player.id}`} value={`${team.id}:${player.id}`}>{player.name}</option>)}</optgroup>)}</select></label>
+              : (organization?.teams.length ?? 0) > 1 && <label className="team-switcher"><span>Mannschaft</span><select value={organization?.activeTeamId ?? ""} onChange={(event) => void switchTeam(event.target.value)}>{organization?.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
             {view === "plan" && canManageClub && planSaveState === "error" && <button className="auto-save-status error" onClick={retryPlanSave}><Check /><span>Speichern fehlgeschlagen – erneut versuchen</span></button>}
             <div className="account-menu-wrap">
               <button className="avatar top-avatar" onClick={() => setAccountMenuOpen((open) => !open)} aria-label="Benutzermenü öffnen" aria-expanded={accountMenuOpen}><Avatar user={currentUser} size="small" /></button>
@@ -889,13 +921,15 @@ export function TrainerApp() {
 
         <div className="mobile-head">
           {view === "overview" ? <span className="mobile-head-spacer" aria-hidden="true" /> : <button className="icon-button" onClick={mobileBack} aria-label="Zurück zur Übersicht"><ArrowLeft /></button>}
-          <div><span>{view === "plan" ? `${currentDay.month} ${currentDay.key.slice(0, 4)}` : organization?.teams.find((team) => team.id === organization.activeTeamId)?.name ?? clubSettings.teamName}</span><strong>{viewTitle}</strong></div>
+          <div><span>{view === "plan" ? `${currentDay.month} ${currentDay.key.slice(0, 4)}` : activeFamilyLabel}</span><strong>{viewTitle}</strong></div>
           <button className="icon-button" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"} aria-expanded={mobileMenuOpen}><Menu /></button>
         </div>
 
         {mobileMenuOpen && <div className="mobile-menu-backdrop" onMouseDown={() => setMobileMenuOpen(false)}><nav className="mobile-menu-sheet" aria-label="Mobile Hauptnavigation" onMouseDown={(event) => event.stopPropagation()}>
           <header><div><span className="eyebrow">{organization?.clubName ?? clubSettings.clubName}</span><strong>Navigation</strong></div><button onClick={() => setMobileMenuOpen(false)} aria-label="Menü schließen"><X /></button></header>
-          {(organization?.teams.length ?? 0) > 1 && <label className="mobile-team-switcher"><span>Aktive Mannschaft</span><select value={organization?.activeTeamId ?? ""} onChange={(event) => { setMobileMenuOpen(false); void switchTeam(event.target.value); }}>{organization?.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
+          {currentUser.role === "guardian" && (organization?.managedPlayers.length ?? 0) > 0
+            ? <label className="mobile-team-switcher family-switcher"><span>Kind & Mannschaft</span><select value={`${organization?.activeTeamId}:${selectedManagedPlayerId ?? "all"}`} onChange={(event) => { setMobileMenuOpen(false); void switchFamilyContext(event.target.value); }}>{organization?.teams.filter((team) => organization.managedPlayers.some((player) => player.teamId === team.id)).map((team) => <optgroup key={team.id} label={`${team.name} · ${team.ageGroup}`}><option value={`${team.id}:all`}>Alle Kinder in {team.name}</option>{organization.managedPlayers.filter((player) => player.teamId === team.id).map((player) => <option key={`${team.id}:${player.id}`} value={`${team.id}:${player.id}`}>{player.name}</option>)}</optgroup>)}</select></label>
+            : (organization?.teams.length ?? 0) > 1 && <label className="mobile-team-switcher"><span>Aktive Mannschaft</span><select value={organization?.activeTeamId ?? ""} onChange={(event) => { setMobileMenuOpen(false); void switchTeam(event.target.value); }}>{organization?.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>}
           <div>
             <button className={view === "overview" ? "active" : ""} onClick={() => mobileNavigate("overview")}><Home /><span><strong>Übersicht</strong><small>Dashboard und nächste Termine</small></span><ChevronRight /></button>
             <button className={view === "calendar" ? "active" : ""} onClick={() => mobileNavigate("calendar")}><CalendarDays /><span><strong>Kalender</strong><small>Training, Turniere und Ereignisse</small></span><ChevronRight /></button>

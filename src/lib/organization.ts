@@ -15,7 +15,7 @@ export async function organizationContext(userId: string): Promise<OrganizationC
   const first = memberships[0];
   if (!first) return null;
   const isClubAdmin = memberships.some((membership) => membership.clubAdmin);
-  const scopedTeamIds = memberships.map((membership) => membership.teamId).filter((teamId): teamId is string => Boolean(teamId && teamId === scope.teamId));
+  const scopedTeamIds = memberships.map((membership) => membership.teamId).filter((teamId): teamId is string => Boolean(teamId));
   const availableTeams = await prisma.team.findMany({
     where: {
       clubId: scope.clubId,
@@ -26,6 +26,21 @@ export async function organizationContext(userId: string): Promise<OrganizationC
     orderBy: { createdAt: "asc" },
   });
   const roleByTeam = new Map(memberships.map((membership) => [membership.teamId, membership.role]));
+  const accessibleTeamIds = new Set(availableTeams.map((team) => team.id));
+  const managedLinks = await prisma.guardianPlayer.findMany({
+    where: { guardianId: userId },
+    include: {
+      player: {
+        select: {
+          id: true, name: true, avatar: true, ageGroup: true,
+          memberships: {
+            where: { clubId: scope.clubId, status: "active", teamId: { not: null } },
+            include: { team: { select: { id: true, name: true, ageGroup: true } } },
+          },
+        },
+      },
+    },
+  });
   return {
     clubId: scope.clubId,
     clubName: first.club.name,
@@ -40,6 +55,16 @@ export async function organizationContext(userId: string): Promise<OrganizationC
       role: (roleByTeam.get(team.id) ?? (isClubAdmin ? "admin" : "player")) as Role,
       memberCount: team._count.memberships,
     })),
+    managedPlayers: managedLinks.flatMap(({ player }) => player.memberships
+      .filter((membership) => membership.team && accessibleTeamIds.has(membership.team.id))
+      .map((membership) => ({
+        id: player.id,
+        name: player.name,
+        avatar: player.avatar ?? undefined,
+        teamId: membership.team!.id,
+        teamName: membership.team!.name,
+        ageGroup: membership.team!.ageGroup || player.ageGroup,
+      }))),
   };
 }
 
