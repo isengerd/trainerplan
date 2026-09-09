@@ -2590,8 +2590,8 @@ html[data-theme="light"] .event-header-times small { color: #63786b; }
   .event-popup-title { gap: 10px; }
   .event-date-tile { flex-basis: 50px; min-height: 62px; border-radius: 10px; }
   .event-date-tile strong { font-size: 22px; }
-  .event-popup-title .event-header-times > span { min-width: 0; flex: 1; display: grid; gap: 1px; padding: 0 8px; }
-  .event-header-times small { font-size: 6px; }
-  .event-header-times strong { font-size: 9px; }
+  .event-popup-title .event-header-times > span { min-width: 0; flex: 1; display: grid; gap: 3px; padding: 0 9px; }
+  .event-header-times small { font-size: 7px; line-height: 1; }
+  .event-header-times strong { font-size: 12px; line-height: 1; }
   .event-facts.address-only { grid-template-columns: 1fr; }
 }
