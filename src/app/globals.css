@@ -2404,6 +2404,49 @@ html[data-theme="light"] .event-overview-panel .event-facts article + article, h
   html[data-theme="light"] .event-overview-panel .event-facts a { border-top-color: #d7e3da; }
 }
 
+/* The team is the heart of a kids session: roster comes first, directly below the hero. */
+.event-popup-body { display: flex; flex-direction: column; }
+.event-popup-columns.event-content-columns { display: contents; }
+.event-attendance-column { order: -1; margin-bottom: 10px; }
+.event-attendance-column:not(:has(.popup-attendees)) { display: none; }
+.event-main-column { margin-top: 10px; }
+.event-attendance-column .popup-attendees { padding: 10px 12px 8px; border-radius: 14px; background: linear-gradient(145deg, #12271d, #0f1f19); }
+.event-attendance-column .popup-attendees .attendee-list { max-height: 250px; margin-top: 8px; }
+.event-attendance-column .attendance-tabs { position: static; gap: 5px; padding: 4px; border: 0; border-radius: 11px; background: #0b1914; }
+.event-attendance-column .attendance-tabs button { min-height: 38px; gap: 5px; border: 1px solid transparent; border-radius: 8px; background: transparent; font-size: 8px; font-weight: 800; }
+.event-attendance-column .attendance-tabs button::before { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: #1d3027; color: #91a59a; font-size: 9px; font-weight: 900; }
+.event-attendance-column .attendance-tabs button:nth-child(1)::before { content: "•••"; font-size: 6px; letter-spacing: -1px; }
+.event-attendance-column .attendance-tabs button:nth-child(2)::before { content: "✓"; }
+.event-attendance-column .attendance-tabs button:nth-child(3)::before { content: "?"; }
+.event-attendance-column .attendance-tabs button:nth-child(4)::before { content: "–"; }
+.event-attendance-column .attendance-tabs button.active { border-color: #4dc66d; background: #1c6d37; color: #fff; box-shadow: 0 5px 14px rgba(32,154,70,.2); }
+.event-attendance-column .attendance-tabs button.active::before { background: rgba(255,255,255,.18); color: #fff; }
+.event-attendance-column .attendance-tabs button > span { min-width: 18px; height: 18px; background: rgba(255,255,255,.09); color: inherit; }
+.event-attendance-column .attendee-head { padding-top: 6px; }
+.event-attendance-column .attendee-list article { min-height: 52px; padding: 8px 3px; }
+.event-attendance-column .attendance-admin-actions button { border-radius: 9px; }
+.event-attendance-column .attendance-admin-actions .yes.active { border-color: #42bf64; background: #dff6e5; color: #167536; }
+.event-attendance-column .attendance-admin-actions .maybe.active { border-color: #e2b94f; background: #fff3cf; color: #805e0d; }
+.event-attendance-column .attendance-admin-actions .no.active { border-color: #df7771; background: #fde5e3; color: #a23833; }
+
+html[data-theme="light"] .event-attendance-column .popup-attendees { border-color: #c9ddd0; background: linear-gradient(145deg, #f8fbf9, #eef6f0); }
+html[data-theme="light"] .event-attendance-column .attendance-tabs { background: #e7f0e9; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button { background: transparent; color: #51685a; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button::before { background: #d6e5da; color: #52695a; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button.active { border-color: #56bd71; background: #d9f3df; color: #176f33; box-shadow: 0 5px 14px rgba(38,143,65,.12); }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button.active::before { background: #50bd6d; color: white; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button > span { background: rgba(30,98,49,.08); }
+
+@media (max-width: 620px) {
+  .event-attendance-column { margin-bottom: 8px; }
+  .event-attendance-column .popup-attendees { padding: 8px; }
+  .event-attendance-column .attendance-tabs { gap: 3px; }
+  .event-attendance-column .attendance-tabs button { min-height: 40px; display: grid; grid-template-columns: 18px auto; gap: 3px; padding: 4px 2px; font-size: 7px; }
+  .event-attendance-column .attendance-tabs button::before { grid-row: 1 / 3; }
+  .event-attendance-column .attendance-tabs button > span { min-width: 16px; height: 16px; font-size: 6px; }
+  .event-attendance-column .popup-attendees .attendee-list { max-height: none; }
+}
+
 /* Keep the event hero deliberately shallow; location lives in the route row. */
 .event-popup-hero { padding-bottom: 12px; }
 .event-popup-title { margin-top: 9px; }
