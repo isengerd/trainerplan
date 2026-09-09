@@ -153,6 +153,7 @@ export function TrainerApp() {
   const [tournamentPlans, setTournamentPlans] = useState<TournamentPlan[]>([]);
   const [tournamentFocusId, setTournamentFocusId] = useState<string | null>(null);
   const [calendarFocusId, setCalendarFocusId] = useState<string | null>(null);
+  const [calendarPlannedDate, setCalendarPlannedDate] = useState<string | null>(null);
   const [organization, setOrganization] = useState<OrganizationContext | null>(null);
   const [trainingTemplates, setTrainingTemplates] = useState<TrainingTemplate[]>([]);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -756,6 +757,10 @@ export function TrainerApp() {
     setCalendarFocusId(eventId);
     setView("calendar");
   };
+  const openPlannedTrainingDetails = (date: string) => {
+    setCalendarPlannedDate(date);
+    setView("calendar");
+  };
   const dashboardPlayers = users.filter((user) => user.role === "player");
   const dashboardResponseSubjects: ClubUser[] = !currentUser ? [] : currentUser.role === "guardian"
     ? dashboardPlayers.filter((player) => currentUser.managedPlayerIds?.includes(player.id))
@@ -795,7 +800,7 @@ export function TrainerApp() {
         </> : <div className="overview-empty"><CalendarDays /><div><strong>Plane deine nächste Einheit</strong><p>Lege einen Trainingstag fest und stelle anschließend die Übungen zusammen.</p></div>{canManageClub && <button className="primary" onClick={openPlan}><Plus /> Training planen</button>}</div>}
       </section>
 
-      {(openResponses > 0 || (nextPlannedDay && !nextTrainingEvent)) && <section className="overview-card overview-todos"><div className="overview-card-title"><div><span className="eyebrow">NOCH ZU ERLEDIGEN</span><h2>Offene Aufgaben</h2></div></div>{openResponses > 0 && <button onClick={() => setView("calendar")}><AlertTriangle /><span><strong>{openResponses} Rückmeldungen fehlen</strong><small>Verfügbarkeit für das nächste Training prüfen</small></span><ChevronRight /></button>}{nextPlannedDay && !nextTrainingEvent && <button onClick={() => setView("calendar")}><AlertTriangle /><span><strong>Termindetails fehlen</strong><small>Ort und Teilnehmer zum Training ergänzen</small></span><ChevronRight /></button>}</section>}
+      {(openResponses > 0 || (nextPlannedDay && !nextTrainingEvent)) && <section className="overview-card overview-todos"><div className="overview-card-title"><div><span className="eyebrow">NOCH ZU ERLEDIGEN</span><h2>Offene Aufgaben</h2></div></div>{openResponses > 0 && <button onClick={() => nextTrainingEvent ? openEventDetails(nextTrainingEvent.id) : setView("calendar")}><AlertTriangle /><span><strong>{openResponses} Rückmeldungen fehlen</strong><small>Verfügbarkeit für das nächste Training prüfen</small></span><ChevronRight /></button>}{nextPlannedDay && !nextTrainingEvent && <button onClick={() => openPlannedTrainingDetails(nextPlannedDay.day.key)}><AlertTriangle /><span><strong>Termindetails fehlen</strong><small>Ort, Zeiten und Verantwortliche ergänzen</small></span><ChevronRight /></button>}</section>}
 
       <div style={{ order: otherEventComesFirst ? 1 : 2 }} className="overview-next-grid">
         <section className={`overview-card overview-next-event ${nextOtherEvent?.cancelledAt ? "cancelled-event" : ""}`}>
@@ -821,7 +826,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} onSelectedEventHandled={() => setCalendarFocusId(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
+    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
     : view === "team"

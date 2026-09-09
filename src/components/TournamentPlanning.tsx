@@ -61,7 +61,7 @@ export function TournamentPlanningPage(props: Props) {
       {selected && <MatchDayOverview event={selected} squads={squads} published={Boolean(selectedPlan?.publishedAt)} users={users} settings={settings} ageGroups={ageGroups} busy={busy} onCreateTournament={() => setCreateOpen(true)} onPublicationChange={async (published) => { setBusy(true); const saved = await onPublicationChange(selected.id, published); setBusy(false); if (saved) setMessage(published ? "Planung für Spieler freigegeben." : "Freigabe zurückgenommen."); return saved; }} onSave={async (nextSquads) => { setBusy(true); const saved = await onPlansChange(selected.id, nextSquads); setBusy(false); if (saved) setMessage("Mannschaftsplanung als Entwurf gespeichert."); return saved; }} />}
     </>}
 
-    {createOpen && <TournamentCreateDialog settings={settings} playerCount={users.filter((user) => user.role === "player").length} busy={busy} onClose={() => setCreateOpen(false)} onSave={async (event) => { setBusy(true); const saved = await onCreateTournament(event); setBusy(false); if (saved) { setSelectedId(event.id); setCreateOpen(false); setMessage("Turnier angelegt – du kannst jetzt Mannschaften planen."); } }} />}
+    {createOpen && <TournamentCreateDialog settings={{ ...settings, defaultTournamentCapacity: 0 }} playerCount={0} busy={busy} onClose={() => setCreateOpen(false)} onSave={async (event) => { setBusy(true); const saved = await onCreateTournament(event); setBusy(false); if (saved) { setSelectedId(event.id); setCreateOpen(false); setMessage("Turnier angelegt – du kannst jetzt Mannschaften planen."); } }} />}
     {message && <div className="toast"><Check /> {message}</div>}
   </section>;
 }

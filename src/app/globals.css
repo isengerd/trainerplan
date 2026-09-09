@@ -2388,6 +2388,9 @@ html[data-theme="light"] .event-attendance-link { color: #187b38; }
 html[data-theme="light"] .event-attendance-meter { background: #dfe8e1; }
 html[data-theme="light"] .event-overview-panel .event-facts article + article, html[data-theme="light"] .event-overview-panel .event-facts article + a { border-left-color: #d7e3da; }
 
+/* Limits are configured per event in the calendar; duplicate global controls stay hidden. */
+.team-standards-card > .deadline-grid { display: none; }
+
 @media (max-width: 620px) {
   .event-attendance-inline { grid-template-columns: repeat(3, 1fr); }
   .event-attendance-label { grid-column: 1 / -1; min-height: 43px; flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 11px; border-right: 0; border-bottom: 1px solid #294137; }
@@ -2399,4 +2402,40 @@ html[data-theme="light"] .event-overview-panel .event-facts article + article, h
   .event-overview-panel .event-facts { grid-template-columns: repeat(3, 1fr); padding: 7px; }
   .event-overview-panel .event-facts a { grid-column: 1 / -1; border-top: 1px solid #294137; border-left: 0; border-radius: 0; }
   html[data-theme="light"] .event-overview-panel .event-facts a { border-top-color: #d7e3da; }
+}
+
+/* Compact event header: date, title and times are read as one hierarchy. */
+.event-popup-title { align-items: stretch; }
+.event-date-tile { flex: 0 0 58px; min-height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; background: rgba(5,25,16,.28); color: #75df8d; font-variant-numeric: tabular-nums; }
+.event-date-tile strong { font-size: 25px; line-height: .95; letter-spacing: -.04em; }
+.event-date-tile small { margin-top: 5px; font-size: 7px; font-weight: 900; letter-spacing: .13em; }
+.event-date-tile.tournament, .event-date-tile.match { color: #f0c45a; }
+.event-date-tile.event { color: #70b8f5; }
+.event-title-content { flex: 1; min-width: 0; }
+.event-title-content h2 { margin-top: 0; }
+.event-header-location { display: flex !important; align-items: center; gap: 4px; margin-top: 4px !important; }
+.event-header-location svg { width: 11px; }
+.event-header-times { display: flex; align-items: center; margin-top: 9px; }
+.event-popup-title .event-header-times > span { min-width: 76px; display: flex; align-items: baseline; gap: 5px; margin: 0; padding: 0 12px; border-left: 1px solid rgba(255,255,255,.13); }
+.event-popup-title .event-header-times > span:first-child { padding-left: 0; border-left: 0; }
+.event-header-times small { color: #8ea39a; font-size: 7px; }
+.event-header-times strong { font-size: 10px; font-variant-numeric: tabular-nums; }
+.event-facts.address-only { grid-template-columns: 1fr; }
+.event-facts.address-only a { min-height: 43px; }
+.event-overview-panel.without-capacity .event-facts { padding: 6px 9px; }
+
+html[data-theme="light"] .event-date-tile { border-color: #bcd6c3; background: rgba(255,255,255,.62); color: #17813a; }
+html[data-theme="light"] .event-date-tile.tournament, html[data-theme="light"] .event-date-tile.match { color: #95670a; }
+html[data-theme="light"] .event-date-tile.event { color: #256eaa; }
+html[data-theme="light"] .event-popup-title .event-header-times > span { border-left-color: #bfd4c4; }
+html[data-theme="light"] .event-header-times small { color: #63786b; }
+
+@media (max-width: 620px) {
+  .event-popup-title { gap: 10px; }
+  .event-date-tile { flex-basis: 50px; min-height: 62px; border-radius: 10px; }
+  .event-date-tile strong { font-size: 22px; }
+  .event-popup-title .event-header-times > span { min-width: 0; flex: 1; display: grid; gap: 1px; padding: 0 8px; }
+  .event-header-times small { font-size: 6px; }
+  .event-header-times strong { font-size: 9px; }
+  .event-facts.address-only { grid-template-columns: 1fr; }
 }

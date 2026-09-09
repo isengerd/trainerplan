@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, Bell, CalendarDays, Camera, Check, ChevronLeft, ChevronRight, Clock3, Cloud, CloudSun, Copy, Edit3,
-  Info, KeyRound, Lock, Mail, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
+  Info, KeyRound, Lock, Mail, MapPin, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
   ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
@@ -156,7 +156,7 @@ function TeamInviteDialog({ users, invitations, accessManagementEnabled, smtpCon
   </div>;
 }
 
-const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", trainerIds: [], repeatFrequency: "none", maxParticipants: 14, autoSetPlayersPresent: false, responses: {} };
+const emptyEvent: ClubEvent = { id: "", type: "training", title: "", date: "2026-07-16", startTime: "17:00", endTime: "18:15", meetingTime: "16:50", location: "Sportplatz Nord", address: "", description: "", trainerNote: "", trainerIds: [], repeatFrequency: "none", maxParticipants: 0, autoSetPlayersPresent: false, responses: {} };
 
 type PlannedCalendarTraining = { date: string; title: string; startTime: string };
 
@@ -166,7 +166,7 @@ function shiftedTime(time: string, minutes: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, selectedEventId, onSelectedEventHandled, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; selectedEventId?: string | null; onSelectedEventHandled?: () => void; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
+export function CalendarPage({ events, plannedTrainings = [], users, settings, currentUser, selectedEventId, selectedPlannedDate, onSelectedEventHandled, onSelectedPlannedDateHandled, onEventsChange, onDeletePlannedTraining }: { events: ClubEvent[]; plannedTrainings?: PlannedCalendarTraining[]; users: ClubUser[]; settings: ClubSettings; currentUser: ClubUser; selectedEventId?: string | null; selectedPlannedDate?: string | null; onSelectedEventHandled?: () => void; onSelectedPlannedDateHandled?: () => void; onEventsChange: (events: ClubEvent[]) => void; onDeletePlannedTraining?: (date: string) => void }) {
   const [selected, setSelected] = useState<ClubEvent | null>(null);
   const [editing, setEditing] = useState<ClubEvent | null>(null);
   const [editingPlannedDate, setEditingPlannedDate] = useState<string | null>(null);
@@ -177,6 +177,13 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
   });
   const canManage = currentUser.role === "admin" || currentUser.role === "trainer";
   const plannedTrainingByDate = new Map(plannedTrainings.map((training) => [training.date, training]));
+  const homeTraining = events.find((event) => event.type === "training" && event.location.trim());
+  const defaultTrainingLocation = homeTraining?.location ?? emptyEvent.location;
+  const defaultTrainingAddress = homeTraining?.address ?? "";
+
+  function plannedTrainingDraft(training: PlannedCalendarTraining): ClubEvent {
+    return { ...emptyEvent, date: training.date, title: training.title, startTime: training.startTime, meetingTime: shiftedTime(training.startTime, -10), endTime: shiftedTime(training.startTime, 75), location: defaultTrainingLocation, address: defaultTrainingAddress, maxParticipants: 0 };
+  }
 
   function usesMobileEventNavigation() {
     return typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches;
@@ -211,6 +218,18 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
     setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1, 12));
     onSelectedEventHandled?.();
   }, [events, selectedEventId, onSelectedEventHandled]);
+
+  useEffect(() => {
+    if (!selectedPlannedDate || !canManage) return;
+    const plannedTraining = plannedTrainingByDate.get(selectedPlannedDate);
+    if (!plannedTraining) return;
+    setSelectedDate(selectedPlannedDate);
+    const date = new Date(`${selectedPlannedDate}T12:00:00`);
+    setVisibleMonth(new Date(date.getFullYear(), date.getMonth(), 1, 12));
+    setEditingPlannedDate(selectedPlannedDate);
+    setEditing(plannedTrainingDraft(plannedTraining));
+    onSelectedPlannedDateHandled?.();
+  }, [selectedPlannedDate]);
 
   useEffect(() => {
     const syncEventFromHistory = () => {
@@ -287,14 +306,14 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
     const plannedTraining = plannedTrainingByDate.get(dateKey);
     if (plannedTraining && canManage) {
       setEditingPlannedDate(dateKey);
-      setEditing({ ...emptyEvent, date: dateKey, title: plannedTraining.title, startTime: plannedTraining.startTime, meetingTime: shiftedTime(plannedTraining.startTime, -10), endTime: shiftedTime(plannedTraining.startTime, 75), location: "" });
+      setEditing(plannedTrainingDraft(plannedTraining));
       return;
     }
     if (dayEvents[0]) openEventDetail(dayEvents[0]);
   }
 
   return <section className="calendar-page module-page">
-    <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => { setEditingPlannedDate(null); setEditing({ ...emptyEvent, date: selectedDate ?? new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), maxParticipants: settings.defaultTrainingCapacity }); }}><Plus /> Termin erstellen</button>}</div>
+    <div className="module-hero"><div><span className="eyebrow">TEAMKALENDER</span><h1>Termine & Verfügbarkeiten</h1><p>Training, Turniere und Vereinsereignisse auf einen Blick.</p></div>{canManage && <button className="primary" onClick={() => { setEditingPlannedDate(null); setEditing({ ...emptyEvent, date: selectedDate ?? new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }), location: defaultTrainingLocation, address: defaultTrainingAddress, maxParticipants: 0 }); }}><Plus /> Termin erstellen</button>}</div>
     <div className="calendar-layout"><section className="month-card"><div className="month-head"><button type="button" onClick={() => changeMonth(-1)} aria-label="Vorheriger Monat"><ChevronLeft /></button><h2>{monthLabel}</h2><button type="button" onClick={() => changeMonth(1)} aria-label="Nächster Monat"><ChevronRight /></button></div><div className="month-grid">{["MO", "DI", "MI", "DO", "FR", "SA", "SO"].map((day) => <span className="weekday" key={day}>{day}</span>)}{monthDays.map((day, index) => { const dateKey = day ? `${monthYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}` : ""; const dayEvents = day ? events.filter((event) => event.date === dateKey) : []; const hasPlannedTraining = plannedTrainingByDate.has(dateKey) && !dayEvents.some((event) => event.type === "training"); return <button className={dateKey === selectedDate ? "selected-day" : ""} key={`${monthYear}-${monthIndex}-${index}`} disabled={!day} onClick={(clickEvent) => { if (!day) return; setSelectedDate(dateKey); clickEvent.currentTarget.blur(); openCalendarDay(dateKey, dayEvents); }}>{day}<span>{dayEvents.map((event) => <i className={`${event.type} ${event.cancelledAt ? "cancelled" : ""}`} key={event.id} />)}{hasPlannedTraining && <i className="training" />}</span></button>; })}</div><div className="calendar-legend"><span><i className="training" />Training</span><span><i className="tournament" />Turnier</span><span><i className="event" />Ereignis</span></div></section>
       <section className="upcoming-card"><div className="overview-card-title"><div><span className="eyebrow">ANSTEHEND</span><h2>Nächste Termine</h2></div></div>{upcoming.map((event) => { const yes = Object.values(event.responses).filter((item) => item === "yes").length; const no = Object.values(event.responses).filter((item) => item === "no").length; const open = Math.max(0, users.filter((user) => user.role === "player").length - yes - no); return <button className={`${selected?.id === event.id ? "active " : ""}${event.cancelledAt ? "cancelled" : ""}`} key={event.id} onClick={() => openEventDetail(event)}><span className={`event-icon ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><span><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" })}</small><strong>{event.title}</strong><p>{event.cancelledAt ? "ABGESAGT" : <><Clock3 /> {event.startTime}–{event.endTime} <span>·</span> {event.location}</>}</p></span><span className="capacity-mini">{event.cancelledAt ? "Absage" : <><strong>{yes}</strong><small>dabei</small><i>{open} offen</i></>}</span></button>; })}</section>
     </div>
@@ -310,7 +329,9 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onPreviou
   const counts = { yes: 0, maybe: 0, no: 0 }; Object.entries(event.responses).forEach(([userId, value]) => { if (playerIds.has(userId)) counts[value]++; });
   const unanswered = players.filter((player) => !event.responses[player.id]).length;
   const visiblePlayers = players.filter((player) => attendanceFilter === "all" || attendanceFilter === "open" ? attendanceFilter === "all" || !event.responses[player.id] || event.responses[player.id] === "maybe" : event.responses[player.id] === attendanceFilter);
-  const dateLabel = new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" });
+  const eventDate = new Date(`${event.date}T12:00:00`);
+  const dateDay = eventDate.toLocaleDateString("de-DE", { day: "numeric" });
+  const dateMonth = eventDate.toLocaleDateString("de-DE", { month: "short" }).replace(".", "").toUpperCase();
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address || event.location)}`;
   const WeatherIcon = event.weather?.condition === "sunny" ? Sun : event.weather?.condition === "partly-cloudy" ? CloudSun : Cloud;
 
@@ -322,24 +343,21 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onPreviou
     <section className="event-popup" role="dialog" aria-modal="true" aria-labelledby="event-popup-title" onMouseDown={(event) => event.stopPropagation()}>
       <header className={`event-popup-hero ${event.type} ${event.cancelledAt ? "cancelled" : ""}`}>
         <div className="event-popup-topline"><span className="event-type-label">{eventLabels[event.type]}</span><div className="event-stepper"><button disabled={!onPrevious} onClick={onPrevious} aria-label="Vorheriger Termin"><ChevronLeft /></button><span>{position.current} / {position.total}</span><button disabled={!onNext} onClick={onNext} aria-label="Nächster Termin"><ChevronRight /></button></div>{event.weather ? <span className="event-weather"><WeatherIcon /><strong>{event.weather.temperature}°</strong><small>{event.weather.label}</small></span> : <span className="event-weather"><Cloud /><small>Vorhersage folgt</small></span>}<button className="event-popup-close" onClick={onClose} aria-label="Termin schließen"><X /></button></div>
-        <div className="event-popup-title"><span className={`event-flag ${event.type}`}>{event.type === "tournament" ? <Trophy /> : <CalendarDays />}</span><div><p>{dateLabel}</p><h2 id="event-popup-title">{event.title}</h2><span>{event.location}</span></div></div>
+        <div className="event-popup-title"><time className={`event-date-tile ${event.type}`} dateTime={event.date}><strong>{dateDay}</strong><small>{dateMonth}</small></time><div className="event-title-content"><h2 id="event-popup-title">{event.title}</h2><span className="event-header-location"><MapPin /> {event.location}</span><div className="event-header-times"><span><small>Treffen</small><strong>{event.meetingTime}</strong></span><span><small>{event.type === "tournament" ? "Anstoß" : "Beginn"}</small><strong>{event.startTime}</strong></span><span><small>Ende</small><strong>{event.endTime}</strong></span></div></div></div>
       </header>
 
       <div className="event-popup-body">
         {event.cancelledAt && <section className="event-cancelled-notice event-cancelled-compact"><AlertTriangle /><span><strong>Dieser Termin wurde abgesagt</strong><small>Der Termin bleibt zur Information sichtbar.</small></span></section>}
 
-        <section className="event-overview-panel">
-          <div className="event-attendance-inline">
+        <section className={`event-overview-panel ${event.maxParticipants === 0 ? "without-capacity" : ""}`}>
+          {event.maxParticipants > 0 && <><div className="event-attendance-inline">
             <div className="event-attendance-label"><small>TEILNAHME</small><strong>{event.maxParticipants === 0 ? "Ohne Limit" : `${counts.yes} / ${event.maxParticipants} Plätze`}</strong></div>
             <div className="event-attendance-stat yes"><ThumbsUp /><strong>{counts.yes}</strong><small>Dabei</small></div>
             <div className="event-attendance-stat open"><span>?</span><strong>{counts.maybe + unanswered}</strong><small>Offen</small></div>
             <div className="event-attendance-stat no"><ThumbsDown /><strong>{counts.no}</strong><small>Absagen</small></div>
           </div>
-          <div className="event-attendance-meter" aria-label={`${counts.yes} dabei, ${counts.maybe + unanswered} offen, ${counts.no} Absagen`}><i className="yes" style={{ width: `${players.length ? counts.yes / players.length * 100 : 0}%` }} /><i className="open" style={{ width: `${players.length ? (counts.maybe + unanswered) / players.length * 100 : 0}%` }} /><i className="no" style={{ width: `${players.length ? counts.no / players.length * 100 : 0}%` }} /></div>
-          <div className="event-facts">
-            <article><Clock3 /><span><small>Treffen</small><strong>{event.meetingTime}</strong></span></article>
-            <article><Trophy /><span><small>{event.type === "tournament" ? "Anstoß" : "Beginn"}</small><strong>{event.startTime}</strong></span></article>
-            <article><Clock3 /><span><small>Ende</small><strong>{event.endTime}</strong></span></article>
+          <div className="event-attendance-meter" aria-label={`${counts.yes} dabei, ${counts.maybe + unanswered} offen, ${counts.no} Absagen`}><i className="yes" style={{ width: `${players.length ? counts.yes / players.length * 100 : 0}%` }} /><i className="open" style={{ width: `${players.length ? (counts.maybe + unanswered) / players.length * 100 : 0}%` }} /><i className="no" style={{ width: `${players.length ? counts.no / players.length * 100 : 0}%` }} /></div></>}
+          <div className="event-facts address-only">
             <a href={mapsUrl} target="_blank" rel="noreferrer"><Navigation /><span><small>Adresse & Route</small><strong>{event.address || event.location}</strong></span><ChevronRight /></a>
           </div>
         </section>
@@ -394,7 +412,7 @@ function EventEditor({ event, plannedTraining = false, settings, users, onClose,
   }
   return <div className="modal-backdrop event-editor-backdrop" onMouseDown={onClose}><form className="event-editor" onSubmit={submit} onMouseDown={(e) => e.stopPropagation()}>
     <div className="editor-head"><div><span className="eyebrow">TERMINPLANUNG</span><h2>{plannedTraining ? "Training bearbeiten" : event.id ? "Termin bearbeiten" : "Neuen Termin erstellen"}</h2><p>{plannedTraining ? "Ergänze oder ändere die Termindetails des geplanten Trainings." : "Alle wichtigen Angaben für Mannschaft und Trainer."}</p></div><button type="button" onClick={onClose} aria-label="Terminplanung schließen"><X /></button></div>
-    <div className="event-type-select">{(["training", "tournament", ...(settings.leagueMatchesEnabled ? ["match" as const] : []), "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => setForm((current) => ({ ...current, type, maxParticipants: type === "tournament" || type === "match" ? settings.defaultTournamentCapacity : type === "training" ? settings.defaultTrainingCapacity : current.maxParticipants }))} key={type}>{eventLabels[type]}</button>)}</div>
+    <div className="event-type-select">{(["training", "tournament", ...(settings.leagueMatchesEnabled ? ["match" as const] : []), "event"] as EventType[]).map((type) => <button type="button" className={form.type === type ? "active" : ""} onClick={() => setForm((current) => ({ ...current, type, maxParticipants: type === "training" || type === "tournament" || type === "match" ? 0 : current.maxParticipants }))} key={type}>{eventLabels[type]}</button>)}</div>
 
     <section className="event-editor-section"><header><Info /><span><strong>Informationen</strong><small>Was findet statt?</small></span></header><label><span>Name des Termins</span><input required maxLength={160} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={form.type === "training" ? "z. B. Training – Dribbling & Torschuss" : form.type === "tournament" ? "z. B. Kinderfußball-Festival" : "z. B. Mannschaftsabend"} /></label><label><span>Zusätzliche Informationen <em>optional</em></span><textarea rows={3} maxLength={5000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Ausrüstung, Ablauf oder wichtige Hinweise für das Team …" /></label></section>
 
