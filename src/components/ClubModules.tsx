@@ -2,22 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, Bell, CalendarDays, Camera, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, CloudSun, Copy, Edit3,
+  AlertTriangle, Bell, CalendarDays, Camera, Check, ChevronLeft, ChevronRight, Clock3, Cloud, CloudSun, Copy, Edit3,
   Info, KeyRound, Lock, Mail, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
-  ThumbsDown, ThumbsUp, Trash2, Trophy, UserRound, Users, X,
+  ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
 import { firebaseClientAuthEnabled, firebasePasswordSignIn } from "@/lib/firebase-client";
 
 function AttendanceTabIcon({ type }: { type: "all" | "yes" | "open" | "no" }) {
-  if (type === "all") return <span className="attendance-tab-icon team" aria-hidden="true"><Users /></span>;
-
-  return <span className={`attendance-tab-icon player ${type}`} aria-hidden="true">
-    <UserRound className="attendance-tab-person" />
-    {type === "yes" && <ThumbsUp className="attendance-tab-status" />}
-    {type === "open" && <CircleHelp className="attendance-tab-status" />}
-    {type === "no" && <ThumbsDown className="attendance-tab-status" />}
-  </span>;
+  return <span className={`attendance-tab-icon mascot-${type}`} aria-hidden="true" />;
 }
 
 export function Avatar({ user, size = "medium" }: { user: ClubUser; size?: "small" | "medium" | "large" }) {
@@ -336,6 +329,8 @@ export function CalendarPage({ events, plannedTrainings = [], users, settings, c
 function EventDetail({ event, settings, users, currentUser, onRespond, onPrevious, onNext, position, onEdit, onDuplicate, onDelete, onCancel, onClose, canManage }: { event: ClubEvent; settings: ClubSettings; users: ClubUser[]; currentUser: ClubUser; onRespond: (userId: string, value: Attendance) => void; onPrevious?: () => void; onNext?: () => void; position: { current: number; total: number }; onEdit: () => void; onDuplicate: () => void; onDelete: () => void; onCancel: () => void; onClose: () => void; canManage: boolean }) {
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | Attendance | "open">("all");
   const players = users.filter((user) => user.role === "player");
+  const teamAgeGroup = players.find((player) => player.ageGroup.trim())?.ageGroup ?? settings.teamName;
+  const mascotStage: "kids" | "youth" = /^[A-D](?:\d|\b)/i.test(teamAgeGroup.trim()) ? "youth" : "kids";
   const playerIds = new Set(players.map((player) => player.id));
   const counts = { yes: 0, maybe: 0, no: 0 }; Object.entries(event.responses).forEach(([userId, value]) => { if (playerIds.has(userId)) counts[value]++; });
   const unanswered = players.filter((player) => !event.responses[player.id]).length;
@@ -379,7 +374,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onPreviou
             {event.trainerNote?.trim() && <section className="trainer-message"><div className="event-section-title"><Megaphone /><span><small>MITTEILUNG DES TRAINERS</small><strong>Hinweis an die Mannschaft</strong></span></div><p>{event.trainerNote}</p></section>}
           </div>
 
-          <aside className="event-attendance-column">
+          <aside className={`event-attendance-column mascot-${mascotStage}`}>
             {(settings.showResponsesToPlayers || canManage) && <div className="popup-attendees" id="termin-teilnehmer"><div className="attendance-tabs"><button className={attendanceFilter === "all" ? "active" : ""} onClick={() => setAttendanceFilter("all")}><AttendanceTabIcon type="all" />Alle <span>{players.length}</span></button><button className={attendanceFilter === "yes" ? "active" : ""} onClick={() => setAttendanceFilter("yes")}><AttendanceTabIcon type="yes" />Dabei <span>{counts.yes}</span></button><button className={attendanceFilter === "open" ? "active" : ""} onClick={() => setAttendanceFilter("open")}><AttendanceTabIcon type="open" />Offen <span>{unanswered + counts.maybe}</span></button><button className={attendanceFilter === "no" ? "active" : ""} onClick={() => setAttendanceFilter("no")}><AttendanceTabIcon type="no" />Absagen <span>{counts.no}</span></button></div><div className="attendee-list"><div className="attendee-head"><span>SPIELER ({visiblePlayers.length})</span><span>STATUS</span></div>{visiblePlayers.map((player) => { const answer = event.responses[player.id]; return <article key={player.id}><Avatar user={player} size="small" /><span><strong>{player.name}</strong><small>{player.position}</small></span>{canManage ? <div className="attendance-admin-actions" aria-label={`Teilnahme von ${player.name}`}><button disabled={Boolean(event.cancelledAt)} className={answer === "yes" ? "yes active" : "yes"} onClick={() => onRespond(player.id, "yes")} aria-label={`${player.name}: Dabei`}><ThumbsUp /></button><button disabled={Boolean(event.cancelledAt)} className={answer === "maybe" ? "maybe active" : "maybe"} onClick={() => onRespond(player.id, "maybe")} aria-label={`${player.name}: Unsicher`}>?</button><button disabled={Boolean(event.cancelledAt)} className={answer === "no" ? "no active" : "no"} onClick={() => onRespond(player.id, "no")} aria-label={`${player.name}: Absage`}><ThumbsDown /></button></div> : <span className={`answer-pill ${answer ?? "open"}`}>{answer === "yes" ? <><ThumbsUp /> Dabei</> : answer === "no" ? <><ThumbsDown /> Absage</> : answer === "maybe" ? "Unsicher" : "Keine Antwort"}</span>}</article>; })}{!visiblePlayers.length && <div className="attendee-empty">Keine Spieler in dieser Auswahl.</div>}</div></div>}
           </aside>
         </div>
