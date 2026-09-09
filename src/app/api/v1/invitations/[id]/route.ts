@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { activeClubScope } from "@/lib/club-context";
+import { activeClubScope, ensureClubConfig } from "@/lib/club-context";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
 import { hasAccessManagement } from "@/lib/license";
+import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -13,12 +14,23 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   if (!scope) return NextResponse.json({ error: "Keine aktive Mannschaft." }, { status: 409 });
   const club = await prisma.club.findUnique({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
   if (!club || !hasAccessManagement(club.licenseType, club.licenseExpiresAt)) return NextResponse.json({ error: "Einladungen benötigen EM Pro oder die Vereinslizenz." }, { status: 403 });
-  const invitation = await prisma.invitation.findFirst({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null } });
+  const invitation = await prisma.invitation.findFirst({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null }, include: { invitedBy: { select: { name: true } } } });
   if (!invitation) return NextResponse.json({ error: "Die Einladung wurde nicht gefunden." }, { status: 404 });
   const { token, tokenHash } = createInvitationToken();
   const link = `${applicationUrl(request)}/einladung?token=${encodeURIComponent(token)}`;
   await prisma.invitation.update({ where: { id }, data: { tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) } });
-  return NextResponse.json({ link });
+  let emailSent = false;
+  let emailError: string | undefined;
+  if (invitation.email) {
+    const config = await ensureClubConfig(scope);
+    const settings = config?.settings as { clubName?: string } | undefined;
+    if (!smtpStatus().configured) emailError = "SMTP ist nicht konfiguriert. Der erneuerte Link wurde kopiert.";
+    else try {
+      await sendInvitationMail({ to: invitation.email, name: invitation.name, inviter: invitation.invitedBy.name, clubName: settings?.clubName ?? "deinem Verein", link });
+      emailSent = true;
+    } catch { emailError = "Die Einladung konnte nicht per E-Mail gesendet werden. Der erneuerte Link wurde kopiert."; }
+  }
+  return NextResponse.json({ link, emailSent, emailError });
 }
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {

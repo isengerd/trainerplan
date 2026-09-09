@@ -1236,11 +1236,15 @@ html[data-theme="light"] .quick-library article small { color: #18813a; }
 .team-pending-invites > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
 .team-pending-invites > header strong, .team-pending-invites > header small { display: block; }
 .team-pending-invites > header strong { font-size: 12px; }.team-pending-invites > header small { margin-top: 2px; color: #788a7f; font-size: 9px; }
-.team-pending-invites article { min-height: 51px; display: grid; grid-template-columns: minmax(0,1fr) 36px 36px; gap: 6px; align-items: center; border-top: 1px solid #e7ede9; }
+.team-pending-invites article { min-height: 57px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid #e7ede9; }
 .team-pending-invites article > span { min-width: 0; }.team-pending-invites article strong, .team-pending-invites article small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team-pending-invites article strong { font-size: 11px; }.team-pending-invites article small { margin-top: 2px; color: #77897e; font-size: 9px; }
-.team-pending-invites article button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: #edf5ef; color: #278148; }
-.team-pending-invites article button.danger { background: #faeeee; color: #bd554f; }.team-pending-invites article button svg { width: 15px; }
+.pending-invite-actions, .guardian-row-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.team-pending-invites article button, .guardian-row-actions button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; border: 1px solid #ceddd2; border-radius: 9px; background: #f6faf7; color: #356246; font-size: 9px; font-weight: 800; white-space: nowrap; transition: background-color .15s ease, border-color .15s ease, transform .12s ease; }
+.team-pending-invites article button:hover, .guardian-row-actions button:hover { border-color: #9fc9aa; background: #eaf5ed; }
+.team-pending-invites article button:active, .guardian-row-actions button:active { transform: scale(.97); }
+.team-pending-invites article button.danger, .guardian-row-actions button.danger { border-color: #edcfcc; background: #fff8f7; color: #b84943; }
+.team-pending-invites article button.danger:hover, .guardian-row-actions button.danger:hover { border-color: #e3aaa6; background: #fdebea; }.team-pending-invites article button svg, .guardian-row-actions button svg { width: 14px; }
 .invitation-open-email { display: grid; gap: 7px; margin-bottom: 20px; }
 .invitation-open-email > span { font-size: 13px !important; font-weight: 750; }
 .invitation-open-email > div { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 13px; border-radius: 12px; }
@@ -2274,7 +2278,7 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
 .managed-access-card input { min-height: 48px; padding: 0 14px; border: 1px solid #cbdad1; border-radius: 12px; }
 .access-link-result { display: flex; gap: 8px; }
 .guardian-access-list { display: grid; gap: 7px; }
-.guardian-access-list > article { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; gap: 10px; align-items: center; padding: 10px; border: 1px solid #d6e5da; border-radius: 12px; background: #f5faf6; }
+.guardian-access-list > article { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px; border: 1px solid #d6e5da; border-radius: 12px; background: #f5faf6; }
 .guardian-access-list > article.pending { border-style: dashed; background: #fbfcfb; }
 .guardian-access-list > article > span:nth-child(2) { min-width: 0; }
 .guardian-access-list strong, .guardian-access-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2282,8 +2286,22 @@ html[data-theme="light"] .settings-subnav button:focus-visible { border-color: #
 .guardian-access-list > p { margin: 0; padding: 13px; border: 1px dashed #d6e5da; border-radius: 11px; color: #718078; font-size: 9px; text-align: center; }
 .guardian-access-avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #ccefd6; color: #18743a; font-size: 10px; font-weight: 900; }
 .guardian-access-avatar svg { width: 16px; }
-.guardian-access-list article > button { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #ecd0cd; border-radius: 9px; background: #fff5f4; color: #ca4b45; }
-.guardian-access-list article > button svg { width: 15px; }
+.guardian-invite-form { display: grid; gap: 10px; margin-top: 7px; padding-top: 16px; border-top: 1px solid #deE8e1; }
+.guardian-invite-form h3 { margin: 0; color: #294534; font-size: 12px; }
+.guardian-invite-button, .button-secondary { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; box-sizing: border-box; border: 1px solid #b7d9c0; border-radius: 11px; padding: 0 15px; background: #edf8f0; color: #1d7439; font-size: 11px; font-weight: 800; }
+.guardian-invite-button { justify-self: start; border-color: #2daf52; background: #2daf52; color: #fff; box-shadow: 0 5px 14px rgba(37, 145, 70, .16); }
+.guardian-invite-button svg, .button-secondary svg { width: 16px; }
+.guardian-invite-button:hover { background: #279d49; }.guardian-invite-button:active, .button-secondary:active { transform: scale(.98); }.guardian-invite-button:disabled { cursor: not-allowed; opacity: .5; box-shadow: none; }
+.invite-notice { padding: 9px 11px; border: 1px solid #bfe2c8; border-radius: 9px; background: #edf8f0; color: #226b38; font-size: 9px; }
+@media (max-width: 620px) {
+  .team-pending-invites article, .guardian-access-list > article { grid-template-columns: 36px minmax(0, 1fr); }
+  .team-pending-invites article > span:first-child { grid-column: 1 / -1; }
+  .pending-invite-actions, .guardian-row-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .guardian-access-list > article:not(.pending) .guardian-row-actions { grid-template-columns: 1fr; }
+  .team-pending-invites article button, .guardian-row-actions button { min-height: 44px; }
+  .guardian-invite-button { width: 100%; }
+  .access-link-result { display: grid; }
+}
 .guardian-invite-form { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid #dce8df; }
 .guardian-invite-form h3 { margin: 0; font-size: 12px; }
 .guardian-invite-form > button { justify-self: start; }
