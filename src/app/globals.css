@@ -1297,15 +1297,18 @@ html[data-theme="light"] .editor-actions.with-delete .event-delete-action.icon-o
 .event-trainer-select > button > svg { width: 14px; color: #55cc70; }
 .event-trainer-select > button.active { border-color: #4fc76a; background: #153523; }
 .next-session-copy { min-width: 0; flex: 1 1 auto; }
-.dashboard-event-head { align-items: stretch; padding: 10px 12px; }
-.dashboard-event-head .date-tile { align-self: stretch; height: auto; min-height: 62px; }
+.dashboard-event-head { align-items: stretch; min-height: 82px; padding: 13px 14px; }
+.dashboard-event-head .date-tile { align-self: stretch; width: 52px; height: auto; min-height: 70px; }
+.dashboard-event-head .date-tile strong { font-size: 22px; }
+.dashboard-event-head .date-tile span { font-size: 7px; }
 .dashboard-event-head .next-session-copy { display: flex; flex-direction: column; justify-content: center; }
-.dashboard-event-head .next-session-copy h3 { margin: 3px 0 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-event-head .session-status { font-size: 8px; }
+.dashboard-event-head .next-session-copy h3 { margin: 4px 0 9px; overflow: hidden; font-size: 14px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-event-times { width: min(100%, 330px); display: grid; grid-template-columns: repeat(3, minmax(52px, 1fr)); }
 .dashboard-event-times > span { min-width: 0; display: flex; flex-direction: column; padding: 0 10px; border-left: 1px solid var(--line); }
 .dashboard-event-times > span:first-child { padding-left: 0; border-left: 0; }
-.dashboard-event-times small { color: var(--muted); font-size: 6px; line-height: 1; }
-.dashboard-event-times strong { margin-top: 3px; font-size: 10px; font-variant-numeric: tabular-nums; line-height: 1; }
+.dashboard-event-times small { color: var(--muted); font-size: 7px; line-height: 1; }
+.dashboard-event-times strong { margin-top: 4px; font-size: 12px; font-variant-numeric: tabular-nums; line-height: 1; }
 .dashboard-event-combined { overflow: hidden; border: 1px solid #2c5439; border-radius: 11px; background: linear-gradient(100deg, #143923, #10251c); }
 .dashboard-event-combined .dashboard-event-head { border: 0; border-radius: 0; background: transparent; }
 .dashboard-event-combined .overview-attendance { margin: 0; border-width: 1px 0 0; border-radius: 0; }
