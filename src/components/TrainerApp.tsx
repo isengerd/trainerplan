@@ -731,8 +731,6 @@ export function TrainerApp() {
   const trainingDate = nextTrainingEvent?.date ?? nextPlannedDay?.day.key ?? null;
   const trainingDay = trainingDate ? days.find((day) => day.key === trainingDate) ?? null : null;
   const trainingExercises = trainingDate ? plans[trainingDate] ?? [] : [];
-  const playerCount = users.filter((user) => user.role === "player").length;
-  const openResponses = nextTrainingEvent && !nextTrainingEvent.cancelledAt ? Math.max(0, playerCount - Object.keys(nextTrainingEvent.responses).length) : 0;
   const nextPlanDuration = trainingExercises.reduce((sum, item) => sum + item.duration, 0);
   const nextPlanLabel = trainingExercises.length ? "Plan öffnen" : "Training planen";
   const trainingSortKey = trainingDate ? `${trainingDate}T${nextTrainingEvent?.startTime ?? trainingDay?.time ?? "23:59"}` : "9999-12-31T23:59";
@@ -800,7 +798,7 @@ export function TrainerApp() {
         </> : <div className="overview-empty"><CalendarDays /><div><strong>Plane deine nächste Einheit</strong><p>Lege einen Trainingstag fest und stelle anschließend die Übungen zusammen.</p></div>{canManageClub && <button className="primary" onClick={openPlan}><Plus /> Training planen</button>}</div>}
       </section>
 
-      {(openResponses > 0 || (nextPlannedDay && !nextTrainingEvent)) && <section className="overview-card overview-todos"><div className="overview-card-title"><div><span className="eyebrow">NOCH ZU ERLEDIGEN</span><h2>Offene Aufgaben</h2></div></div>{openResponses > 0 && <button onClick={() => nextTrainingEvent ? openEventDetails(nextTrainingEvent.id) : setView("calendar")}><AlertTriangle /><span><strong>{openResponses} Rückmeldungen fehlen</strong><small>Verfügbarkeit für das nächste Training prüfen</small></span><ChevronRight /></button>}{nextPlannedDay && !nextTrainingEvent && <button onClick={() => openPlannedTrainingDetails(nextPlannedDay.day.key)}><AlertTriangle /><span><strong>Termindetails fehlen</strong><small>Ort, Zeiten und Verantwortliche ergänzen</small></span><ChevronRight /></button>}</section>}
+      {nextPlannedDay && !nextTrainingEvent && <section className="overview-card overview-todos"><div className="overview-card-title"><div><span className="eyebrow">NOCH ZU ERLEDIGEN</span><h2>Offene Aufgaben</h2></div></div><button onClick={() => openPlannedTrainingDetails(nextPlannedDay.day.key)}><AlertTriangle /><span><strong>Termindetails fehlen</strong><small>Ort, Zeiten und Verantwortliche ergänzen</small></span><ChevronRight /></button></section>}
 
       <div style={{ order: otherEventComesFirst ? 1 : 2 }} className="overview-next-grid">
         <section className={`overview-card overview-next-event ${nextOtherEvent?.cancelledAt ? "cancelled-event" : ""}`}>
