@@ -2413,15 +2413,18 @@ html[data-theme="light"] .event-overview-panel .event-facts article + article, h
 .event-attendance-column .popup-attendees { padding: 10px 12px 8px; border-radius: 14px; background: linear-gradient(145deg, #12271d, #0f1f19); }
 .event-attendance-column .popup-attendees .attendee-list { max-height: 250px; margin-top: 8px; }
 .event-attendance-column .attendance-tabs { position: static; gap: 5px; padding: 4px; border: 0; border-radius: 11px; background: #0b1914; }
-.event-attendance-column .attendance-tabs button { min-height: 38px; gap: 5px; border: 1px solid transparent; border-radius: 8px; background: transparent; font-size: 8px; font-weight: 800; }
-.event-attendance-column .attendance-tabs button::before { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: #1d3027; color: #91a59a; font-size: 9px; font-weight: 900; }
-.event-attendance-column .attendance-tabs button:nth-child(1)::before { content: "•••"; font-size: 6px; letter-spacing: -1px; }
-.event-attendance-column .attendance-tabs button:nth-child(2)::before { content: "✓"; }
-.event-attendance-column .attendance-tabs button:nth-child(3)::before { content: "?"; }
-.event-attendance-column .attendance-tabs button:nth-child(4)::before { content: "–"; }
+.event-attendance-column .attendance-tabs button { min-height: 40px; gap: 5px; border: 1px solid transparent; border-radius: 9px; background: transparent; font-size: 8px; font-weight: 800; }
+.event-attendance-column .attendance-tabs button::before { content: none; }
+.event-attendance-column .attendance-tabs button .attendance-tab-icon { position: relative; flex: 0 0 25px; width: 25px; min-width: 25px; height: 25px; display: grid; place-items: center; border-radius: 9px 11px 8px 10px; background: #1b3127; color: #88a096; transform: rotate(-2deg); }
+.event-attendance-column .attendance-tab-icon > svg { width: 15px; height: 15px; stroke-width: 2.25; transform: rotate(2deg); }
+.event-attendance-column .attendance-tab-icon.team > svg { width: 17px; height: 17px; }
+.event-attendance-column .attendance-tab-icon .attendance-tab-status { position: absolute; right: -3px; bottom: -3px; width: 13px; height: 13px; padding: 2px; border-radius: 50%; background: #f7fbf8; color: #53685e; stroke-width: 2.6; box-shadow: 0 1px 4px rgba(0,0,0,.28); }
+.event-attendance-column .attendance-tab-icon.yes .attendance-tab-status { color: #169a43; }
+.event-attendance-column .attendance-tab-icon.open .attendance-tab-status { color: #c58312; }
+.event-attendance-column .attendance-tab-icon.no .attendance-tab-status { color: #df514c; }
 .event-attendance-column .attendance-tabs button.active { border-color: #4dc66d; background: #1c6d37; color: #fff; box-shadow: 0 5px 14px rgba(32,154,70,.2); }
-.event-attendance-column .attendance-tabs button.active::before { background: rgba(255,255,255,.18); color: #fff; }
-.event-attendance-column .attendance-tabs button > span { min-width: 18px; height: 18px; background: rgba(255,255,255,.09); color: inherit; }
+.event-attendance-column .attendance-tabs button.active .attendance-tab-icon { background: rgba(255,255,255,.18); color: #fff; }
+.event-attendance-column .attendance-tabs button > span:not(.attendance-tab-icon) { min-width: 18px; height: 18px; background: rgba(255,255,255,.09); color: inherit; }
 .event-attendance-column .attendee-head { padding-top: 6px; }
 .event-attendance-column .attendee-list article { min-height: 52px; padding: 8px 3px; }
 .event-attendance-column .attendance-admin-actions button { border-radius: 9px; }
@@ -2432,10 +2435,13 @@ html[data-theme="light"] .event-overview-panel .event-facts article + article, h
 html[data-theme="light"] .event-attendance-column .popup-attendees { border-color: #c9ddd0; background: linear-gradient(145deg, #f8fbf9, #eef6f0); }
 html[data-theme="light"] .event-attendance-column .attendance-tabs { background: #e7f0e9; }
 html[data-theme="light"] .event-attendance-column .attendance-tabs button { background: transparent; color: #51685a; }
-html[data-theme="light"] .event-attendance-column .attendance-tabs button::before { background: #d6e5da; color: #52695a; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button .attendance-tab-icon { background: #d5e7da; color: #257a43; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button .attendance-tab-icon.yes { background: #d8f2df; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button .attendance-tab-icon.open { background: #fff0cc; color: #9b6810; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button .attendance-tab-icon.no { background: #ffe0df; color: #b83e3a; }
 html[data-theme="light"] .event-attendance-column .attendance-tabs button.active { border-color: #56bd71; background: #d9f3df; color: #176f33; box-shadow: 0 5px 14px rgba(38,143,65,.12); }
-html[data-theme="light"] .event-attendance-column .attendance-tabs button.active::before { background: #50bd6d; color: white; }
-html[data-theme="light"] .event-attendance-column .attendance-tabs button > span { background: rgba(30,98,49,.08); }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button.active .attendance-tab-icon { background: #50bd6d; color: white; }
+html[data-theme="light"] .event-attendance-column .attendance-tabs button > span:not(.attendance-tab-icon) { background: rgba(30,98,49,.08); }
 
 @media (max-width: 620px) {
   .event-attendance-column { margin-bottom: 8px; }
