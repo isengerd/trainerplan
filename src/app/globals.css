@@ -2359,7 +2359,7 @@ html[data-theme="light"] .event-stepper button{border-color:#c5d8ca;background:r
 
 /* Event summary: attendance and logistics form one compact information surface. */
 .event-overview-panel { margin-top: 2px; overflow: hidden; border: 1px solid #294137; border-radius: 12px; background: #101f1a; }
-.event-attendance-inline { min-height: 60px; display: grid; grid-template-columns: minmax(118px, 1.35fr) repeat(3, minmax(74px, .75fr)) minmax(112px, 1fr); align-items: stretch; }
+.event-attendance-inline { min-height: 60px; display: grid; grid-template-columns: minmax(118px, 1.35fr) repeat(3, minmax(74px, 1fr)); align-items: stretch; }
 .event-attendance-inline > * { min-width: 0; border-right: 1px solid #294137; }
 .event-attendance-inline > *:last-child { border-right: 0; }
 .event-attendance-label { display: flex; flex-direction: column; justify-content: center; padding: 10px 14px; }
@@ -2389,7 +2389,7 @@ html[data-theme="light"] .event-attendance-meter { background: #dfe8e1; }
 html[data-theme="light"] .event-overview-panel .event-facts article + article, html[data-theme="light"] .event-overview-panel .event-facts article + a { border-left-color: #d7e3da; }
 
 @media (max-width: 620px) {
-  .event-attendance-inline { grid-template-columns: repeat(3, 1fr) 46px; }
+  .event-attendance-inline { grid-template-columns: repeat(3, 1fr); }
   .event-attendance-label { grid-column: 1 / -1; min-height: 43px; flex-direction: row; align-items: center; justify-content: space-between; padding: 8px 11px; border-right: 0; border-bottom: 1px solid #294137; }
   .event-attendance-label strong { margin-top: 0; }
   .event-attendance-stat { min-height: 49px; padding: 6px 3px; }

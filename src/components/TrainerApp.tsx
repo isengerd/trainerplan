@@ -712,6 +712,14 @@ export function TrainerApp() {
   );
 
   const plannedDays = days.map((day) => ({ day, exercises: plans[day.key] ?? [] })).filter((entry) => entry.exercises.length > 0);
+  const plannedTrainingDates = [...new Set([
+    ...Object.entries(plans).filter(([, exercises]) => exercises.length > 0).map(([date]) => date),
+    ...Object.keys(planMeta),
+  ])];
+  const plannedCalendarTrainings = plannedTrainingDates.map((date) => {
+    const day = days.find((item) => item.key === date);
+    return { date, title: planMeta[date]?.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" };
+  });
   const nextPlannedDay = plannedDays.find((entry) => entry.day.key >= todayKey) ?? null;
   const upcomingEvents = [...events].filter((event) => event.date >= todayKey).sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`));
   const nextTrainingEvent = upcomingEvents.find((event) => event.type === "training") ?? null;
@@ -813,7 +821,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={Object.entries(planMeta).map(([date, meta]) => { const day = days.find((item) => item.key === date); return { date, title: meta.name ?? day?.theme ?? "Training", startTime: day?.time ?? "17:00" }; })} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} onSelectedEventHandled={() => setCalendarFocusId(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
+    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} users={users} settings={clubSettings} currentUser={currentUser} selectedEventId={calendarFocusId} onSelectedEventHandled={() => setCalendarFocusId(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
     : view === "team"

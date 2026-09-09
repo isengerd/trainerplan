@@ -334,7 +334,6 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onPreviou
             <div className="event-attendance-stat yes"><ThumbsUp /><strong>{counts.yes}</strong><small>Dabei</small></div>
             <div className="event-attendance-stat open"><span>?</span><strong>{counts.maybe + unanswered}</strong><small>Offen</small></div>
             <div className="event-attendance-stat no"><ThumbsDown /><strong>{counts.no}</strong><small>Absagen</small></div>
-            {(settings.showResponsesToPlayers || canManage) && <a className="event-attendance-link" href="#termin-teilnehmer"><Users /><span>Teilnehmer</span><ChevronRight /></a>}
           </div>
           <div className="event-attendance-meter" aria-label={`${counts.yes} dabei, ${counts.maybe + unanswered} offen, ${counts.no} Absagen`}><i className="yes" style={{ width: `${players.length ? counts.yes / players.length * 100 : 0}%` }} /><i className="open" style={{ width: `${players.length ? (counts.maybe + unanswered) / players.length * 100 : 0}%` }} /><i className="no" style={{ width: `${players.length ? counts.no / players.length * 100 : 0}%` }} /></div>
           <div className="event-facts">
