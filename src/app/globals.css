@@ -2404,6 +2404,25 @@ html[data-theme="light"] .event-overview-panel .event-facts article + article, h
   html[data-theme="light"] .event-overview-panel .event-facts a { border-top-color: #d7e3da; }
 }
 
+/* Keep the event hero deliberately shallow; location lives in the route row. */
+.event-popup-hero { padding-bottom: 12px; }
+.event-popup-title { margin-top: 9px; }
+.event-date-tile { flex-basis: 52px; min-height: 55px; }
+.event-date-tile strong { font-size: 22px; }
+.event-date-tile small { margin-top: 3px; font-size: 6px; }
+.event-title-content h2 { font-size: 20px; line-height: 1.05; }
+.event-header-times { margin-top: 6px; }
+.event-popup-title .event-header-times > span { min-width: 70px; }
+
+@media (max-width: 620px) {
+  .event-popup-hero { padding-bottom: 10px; }
+  .event-popup-title { margin-top: 7px; }
+  .event-date-tile { flex-basis: 46px; min-height: 52px; }
+  .event-date-tile strong { font-size: 20px; }
+  .event-title-content h2 { font-size: 17px; }
+  .event-header-times { margin-top: 5px; }
+}
+
 /* Compact event header: date, title and times are read as one hierarchy. */
 .event-popup-title { align-items: stretch; }
 .event-date-tile { flex: 0 0 58px; min-height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; background: rgba(5,25,16,.28); color: #75df8d; font-variant-numeric: tabular-nums; }

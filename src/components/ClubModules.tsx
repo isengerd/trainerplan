@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, Bell, CalendarDays, Camera, Check, ChevronLeft, ChevronRight, Clock3, Cloud, CloudSun, Copy, Edit3,
-  Info, KeyRound, Lock, Mail, MapPin, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
+  Info, KeyRound, Lock, Mail, Megaphone, Navigation, Plus, Search, Shield, Star, Sun,
   ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { defaultPosition, eventLabels, positionOptions, roleLabels, type Attendance, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type EventType, type RepeatFrequency, type Role } from "@/data/club";
@@ -343,7 +343,7 @@ function EventDetail({ event, settings, users, currentUser, onRespond, onPreviou
     <section className="event-popup" role="dialog" aria-modal="true" aria-labelledby="event-popup-title" onMouseDown={(event) => event.stopPropagation()}>
       <header className={`event-popup-hero ${event.type} ${event.cancelledAt ? "cancelled" : ""}`}>
         <div className="event-popup-topline"><span className="event-type-label">{eventLabels[event.type]}</span><div className="event-stepper"><button disabled={!onPrevious} onClick={onPrevious} aria-label="Vorheriger Termin"><ChevronLeft /></button><span>{position.current} / {position.total}</span><button disabled={!onNext} onClick={onNext} aria-label="Nächster Termin"><ChevronRight /></button></div>{event.weather ? <span className="event-weather"><WeatherIcon /><strong>{event.weather.temperature}°</strong><small>{event.weather.label}</small></span> : <span className="event-weather"><Cloud /><small>Vorhersage folgt</small></span>}<button className="event-popup-close" onClick={onClose} aria-label="Termin schließen"><X /></button></div>
-        <div className="event-popup-title"><time className={`event-date-tile ${event.type}`} dateTime={event.date}><strong>{dateDay}</strong><small>{dateMonth}</small></time><div className="event-title-content"><h2 id="event-popup-title">{event.title}</h2><span className="event-header-location"><MapPin /> {event.location}</span><div className="event-header-times"><span><small>Treffen</small><strong>{event.meetingTime}</strong></span><span><small>{event.type === "tournament" ? "Anstoß" : "Beginn"}</small><strong>{event.startTime}</strong></span><span><small>Ende</small><strong>{event.endTime}</strong></span></div></div></div>
+        <div className="event-popup-title"><time className={`event-date-tile ${event.type}`} dateTime={event.date}><strong>{dateDay}</strong><small>{dateMonth}</small></time><div className="event-title-content"><h2 id="event-popup-title">{event.title}</h2><div className="event-header-times"><span><small>Treffen</small><strong>{event.meetingTime}</strong></span><span><small>{event.type === "tournament" ? "Anstoß" : "Beginn"}</small><strong>{event.startTime}</strong></span><span><small>Ende</small><strong>{event.endTime}</strong></span></div></div></div>
       </header>
 
       <div className="event-popup-body">
