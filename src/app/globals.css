@@ -2988,7 +2988,7 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 }
 
 /* Trainer's week: action-first preparation, with the same reading order on mobile. */
-.coach-week { --cw-accent: #8de8a7; --cw-soft: #182d22; --cw-warm: #2c281a; --cw-warning: #f0cd80; --cw-muted: #a6b9ae; max-width: 1180px; margin: 0 auto; padding: 26px 32px 48px; color: var(--text); }
+.coach-week { --cw-accent: #8de8a7; --cw-soft: #182d22; --cw-warm: #2c281a; --cw-warning: #f0cd80; --cw-muted: #a6b9ae; --cw-training: #182c22; --cw-competition: #2c281c; --cw-team-event: #1b2a33; --cw-task: #202920; max-width: 1080px; margin: 0 auto; padding: 26px 32px 48px; color: var(--text); }
 .coach-week button { font: inherit; cursor: pointer; }
 .coach-week button:focus-visible, .coach-week summary:focus-visible, .coach-week a:focus-visible { outline: 3px solid var(--cw-accent); outline-offset: 4px; }
 .coach-week h2:focus { outline: none; }
@@ -3012,9 +3012,11 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 13px; }
 .coach-week-section-heading h2 { margin: 4px 0 0; font-size: 20px; font-weight: 650; line-height: 1.25; letter-spacing: -.025em; }
 .coach-week-section-heading time { color: var(--cw-muted); font-size: 12px; white-space: nowrap; }
-.coach-week-event { position: relative; min-width: 0; padding: 17px 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.coach-week-event { position: relative; min-width: 0; padding: 16px 18px; border: 1px solid var(--line); border-left: 3px solid var(--cw-accent); border-radius: 13px; background: var(--cw-training); }
+.coach-week-event[data-event-type="tournament"], .coach-week-event[data-event-type="match"] { background: var(--cw-competition); border-left-color: var(--cw-warning); }
+.coach-week-event[data-event-type="event"] { background: var(--cw-team-event); border-left-color: #6797b7; }
 .coach-week-event + .coach-week-event { margin-top: 10px; }
-.coach-week-event.featured { padding: 20px 24px; background: linear-gradient(125deg, var(--cw-soft), var(--panel) 85%); border-color: color-mix(in srgb, var(--cw-accent) 38%, var(--line)); }
+.coach-week-event.featured { padding: 20px 22px; border-top-color: color-mix(in srgb, var(--cw-accent) 25%, var(--line)); }
 .coach-week-event-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .coach-week-type { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: var(--cw-accent); font-size: 11px; font-weight: 650; }
 .coach-week-type.tournament, .coach-week-type.match { color: var(--cw-warning); }
@@ -3051,7 +3053,7 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-free-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%; background: var(--cw-soft); color: var(--cw-accent); }
 .coach-week-free h3 { margin: 2px 0 6px; font-size: 16px; }
 .coach-week-free p { margin: 0; max-width: 60ch; color: var(--cw-muted); font-size: 12px; line-height: 1.6; }
-.coach-week-readiness { display: flex; align-items: center; gap: 15px; padding: 20px; margin: 18px 0 28px; border: 1px solid var(--line); border-radius: 15px; background: var(--cw-warm); }
+.coach-week-readiness { display: flex; align-items: center; gap: 15px; padding: 16px 20px; margin: 18px 0 26px; border: 1px solid var(--line); border-radius: 15px; background: var(--cw-warm); }
 .coach-week-readiness.ready { background: var(--cw-soft); }
 .coach-week-readiness-icon { color: var(--cw-warning); }
 .coach-week-readiness.ready .coach-week-readiness-icon { color: var(--cw-accent); }
@@ -3060,12 +3062,13 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-readiness p { margin: 0; color: var(--cw-muted); font-size: 11px; line-height: 1.6; }
 .coach-week-readiness .coach-week-response-note { margin-top: 4px; color: var(--text); }
 .coach-week-readiness > button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 12px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); font-size: 12px; }
-.coach-week-columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr); align-items: start; gap: 22px; }
+.coach-week-columns { display: grid; grid-template-columns: minmax(0, 1fr) 280px; align-items: start; gap: 26px; }
 .coach-week-agenda, .coach-week-sidebar { min-width: 0; }
-.coach-week-tasks { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.coach-week-tasks { padding: 0; border: 0; background: transparent; }
 .coach-week-tasks .coach-week-section-heading h2 { font-size: 18px; }
 .coach-week-count { padding: 4px 9px; border-radius: 8px; background: var(--cw-warm); color: var(--cw-warning); font-size: 12px; }
-.coach-week-task { width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 15px 0; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; }
+.coach-week-task { width: 100%; display: flex; align-items: flex-start; gap: 10px; margin-bottom: 9px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--cw-task); text-align: left; }
+.coach-week-task:hover { border-color: var(--cw-accent); }
 .coach-week-task-dot { flex: 0 0 7px; width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: var(--cw-muted); }
 .coach-week-task-dot.urgent { background: var(--cw-warning); }
 .coach-week-task > span:last-child { min-width: 0; }
@@ -3088,7 +3091,7 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-idea details p { margin-bottom: 8px; }
 .coach-week-idea a { color: var(--cw-accent); font-size: 10px; text-decoration: underline; }
 .coach-week-idea > button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; margin-top: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--cw-accent); font-size: 12px; text-align: left; }
-html[data-theme="light"] .coach-week { --cw-accent: #236c3d; --cw-soft: #edf5ed; --cw-warm: #faf6eb; --cw-warning: #86621c; --cw-muted: #586e61; }
+html[data-theme="light"] .coach-week { --cw-accent: #236c3d; --cw-soft: #e3f1e6; --cw-warm: #f5efdf; --cw-warning: #86621c; --cw-muted: #526759; --cw-training: #edf5ef; --cw-competition: #faf3e5; --cw-team-event: #edf3f7; --cw-task: #f0f3ec; }
 html[data-theme="light"] .coach-week-type.event { color: #2b668d; }
 html[data-theme="light"] .coach-week-state.cancelled, html[data-theme="light"] .coach-week-event-menu button:nth-child(2) { color: #a13d35; }
 @media(max-width: 900px) {
@@ -3143,4 +3146,22 @@ html[data-theme="light"] .coach-week-state.cancelled, html[data-theme="light"] .
   .coach-week-daily-copy { flex-basis: calc(100% - 40px); }
   .coach-week-daily-copy strong { font-size: 18px; }
   .coach-week-daily-cta { margin-left: 36px; }
+}
+
+/* Wide today cards use their width for attendance instead of empty space. */
+@media(min-width: 761px) {
+  .coach-week-event.featured { display: grid; grid-template-columns: minmax(0, 1fr) minmax(185px, .38fr); column-gap: 24px; }
+  .coach-week-event.featured .coach-week-event-top, .coach-week-event.featured .coach-week-event-menu, .coach-week-event.featured .coach-week-event-actions { grid-column: 1 / -1; }
+  .coach-week-event.featured .coach-week-event-title { grid-column: 1; grid-row: 2; }
+  .coach-week-event.featured .coach-week-logistics, .coach-week-event.featured .coach-week-meeting, .coach-week-event.featured .coach-week-state-line { grid-column: 1; }
+  .coach-week-event.featured .coach-week-attendance { grid-column: 2; grid-row: 2 / span 3; align-self: center; margin: 0; padding: 12px 0 12px 20px; border-left: 1px solid var(--line); }
+  .coach-week-event.featured .coach-week-attendance > span:first-child { font-size: 13px; }
+  .coach-week-event.featured .coach-week-attendance strong { font-size: 18px; }
+  .coach-week-event.featured:has(.coach-week-event-menu) .coach-week-event-title, .coach-week-event.featured:has(.coach-week-event-menu) .coach-week-attendance { grid-row: auto; }
+}
+.coach-week-agenda .coach-week-attendance { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 5px 14px; margin-top: 12px; }
+.coach-week-agenda .coach-week-state-line { margin-top: 9px; }
+.coach-week-daily-idea { border-left: 3px solid var(--cw-accent); }
+@media(min-width: 901px) {
+  .coach-week-columns > * > .coach-week-section-heading, .coach-week-tasks > .coach-week-section-heading { min-height: 48px; align-items: flex-start; }
 }

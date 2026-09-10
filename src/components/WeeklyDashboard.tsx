@@ -101,7 +101,7 @@ export function WeeklyDashboard(props: Props) {
     const training = event.type === "training";
     const eventTasks = tasks.filter((task) => task.eventId === event.id && task.kind !== "responses");
     const coaches = (event.trainerIds ?? []).map((id) => users.find((user) => user.id === id)).filter(Boolean);
-    return <article key={event.id} className={`coach-week-event ${featured ? "featured" : ""} ${event.cancelledAt ? "cancelled" : ""}`} onTouchStart={(e) => { const touch = e.touches[0]; swipeStart.current = { id: event.id, x: touch.clientX, y: touch.clientY }; }} onTouchEnd={(e) => {
+    return <article key={event.id} data-event-type={event.type} className={`coach-week-event ${featured ? "featured" : ""} ${event.cancelledAt ? "cancelled" : ""}`} onTouchStart={(e) => { const touch = e.touches[0]; swipeStart.current = { id: event.id, x: touch.clientX, y: touch.clientY }; }} onTouchEnd={(e) => {
       const start = swipeStart.current;
       const touch = e.changedTouches[0];
       swipeStart.current = null;
