@@ -2628,7 +2628,7 @@ html[data-theme="light"] .event-header-times small { color: #63786b; }
 .weekly-section-title > span svg { width: 16px; }
 .weekly-section-title > div { min-width: 0; }
 .weekly-section-title small { display: block; color: #6f877a; font-size: 7px; font-weight: 900; letter-spacing: .12em; }
-.weekly-section-title h2 { margin: 0; color: var(--muted); font-size: 15px; font-weight: 500; letter-spacing: -.015em; }
+.weekly-section-title h2 { margin: 0; color: var(--text); font-size: 15px; font-weight: 400; letter-spacing: -.015em; }
 .weekly-section-title > em { margin-left: auto; color: var(--muted); font-size: 10px; font-style: normal; font-weight: 400; white-space: nowrap; }
 .week-day-strip { display: grid; grid-template-columns: repeat(7, 1fr); padding: 9px 13px; border-bottom: 1px solid var(--line); background: rgba(7,20,14,.35); }
 .week-day-strip > div { position: relative; min-height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: #72887d; }
@@ -2807,7 +2807,7 @@ html[data-theme="light"] .weekly-today-focus { background: #eff9f2; }
 .weekly-event-list .weekly-event-main { grid-template-columns: 42px minmax(0,1fr) 14px; }
 .weekly-event-copy > small, .weekly-event-copy > strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .weekly-event-copy > small { color: var(--muted); font-size: 10px; font-weight: 400; text-transform: none; }
-.weekly-event-copy > strong { margin-top: 4px; font-size: 15px; font-weight: 500; line-height: 1.25; }
+.weekly-event-copy > strong { margin-top: 4px; font-size: 15px; font-weight: 400; line-height: 1.25; }
 .weekly-event-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 9px; }
 .weekly-participant-count, .weekly-plan-state { display: inline-flex; align-items: center; min-width: 0; }
 .weekly-participant-count { gap: 5px; color: #72dc89; }
@@ -2819,21 +2819,23 @@ html[data-theme="light"] .weekly-today-focus { background: #eff9f2; }
 .weekly-plan-state.open i { background: #edbd50; box-shadow: 0 0 0 4px rgba(237,189,80,.11); }
 .weekly-plan-state.cancelled i { background: #ed726c; box-shadow: 0 0 0 4px rgba(237,114,108,.11); }
 .weekly-event-main.is-today { padding-top: 16px; padding-bottom: 16px; }
-.weekly-event-main.is-today .weekly-event-icon { width: 46px; height: 46px; border-radius: 13px; }
-.weekly-event-main.is-today .weekly-event-icon svg { width: 22px; }
+.weekly-event-list .weekly-event-main.is-today { grid-template-columns: minmax(0,1fr) 14px; }
+.weekly-event-main.is-today .weekly-event-icon { display: none; }
 .weekly-event-main.is-today .weekly-event-copy > small { color: var(--muted); font-size: 10px; }
-.weekly-event-main.is-today .weekly-event-copy > strong { margin-top: 5px; font-size: 15px; font-weight: 500; }
+.weekly-event-main.is-today .weekly-event-copy > strong { margin-top: 5px; font-size: 15px; font-weight: 400; }
 .weekly-event-main.is-today .weekly-event-facts { margin-top: 11px; gap: 10px 18px; }
 .weekly-event-main.is-today .weekly-participant-count svg { width: 18px; height: 18px; }
 .weekly-event-main.is-today .weekly-participant-count b { font-size: 22px; }
 .weekly-event-main.is-today .weekly-participant-count em, .weekly-event-main.is-today .weekly-plan-state em { font-size: 10px; font-weight: 400; }
 .weekly-today-title h2 { text-transform: capitalize; }
+.weekly-today-focus small { font-weight: 600; letter-spacing: .08em; }
+.weekly-today-focus strong { font-weight: 400; }
 
 html[data-theme="light"] .weekly-participant-count { color: #218a42; }
 
 @media(max-width:760px){
   .weekly-event-list .weekly-event-main { grid-template-columns: 40px minmax(0,1fr) 12px; gap: 10px; padding: 14px 12px; }
-  .weekly-event-main.is-today { grid-template-columns: 46px minmax(0,1fr) 12px; padding-top: 17px; padding-bottom: 17px; }
+  .weekly-event-list .weekly-event-main.is-today { grid-template-columns: minmax(0,1fr) 12px; padding: 17px 14px; }
   .weekly-event-copy > strong { font-size: 15px; }
   .weekly-event-main.is-today .weekly-event-copy > strong { font-size: 15px; }
   .weekly-participant-count b { font-size: 17px; }
@@ -2841,7 +2843,7 @@ html[data-theme="light"] .weekly-participant-count { color: #218a42; }
 
 @media(max-width:390px){
   .weekly-event-list .weekly-event-main { grid-template-columns: 40px minmax(0,1fr); }
-  .weekly-event-main.is-today { grid-template-columns: 46px minmax(0,1fr); }
+  .weekly-event-list .weekly-event-main.is-today { grid-template-columns: minmax(0,1fr); }
   .weekly-event-main > svg { display: none; }
   .weekly-event-facts { gap: 7px 12px; }
 }
