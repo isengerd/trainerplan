@@ -513,15 +513,6 @@ export function TrainerApp() {
     }
   }
 
-  async function createTournament(event: ClubEvent) {
-    const previous = events;
-    const next = [...events, event];
-    setEvents(next);
-    const saved = await syncEvents(next);
-    if (!saved) setEvents(previous);
-    return saved;
-  }
-
   async function changePassword(currentPassword: string, newPassword: string, confirmation: string) {
     try {
       if (newPassword !== confirmation) return "Die beiden neuen Passwörter stimmen nicht überein.";
@@ -1013,7 +1004,7 @@ export function TrainerApp() {
   const moduleContent = view === "calendar"
     ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} tournamentPlans={tournamentPlans} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} onOpenTournamentPlanning={openTournament} />
     : view === "tournaments"
-      ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
+      ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} />
     : view === "team"
       ? (accessManagementEnabled || currentUser.role === "admin" ? <TeamPage users={users} invitations={invitations} currentUser={currentUser} accessManagementEnabled={accessManagementEnabled} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} smtpConfigured={smtp.configured} onInvited={() => void loadBootstrap()} /> : overview)
       : view === "profile" && profileUser
