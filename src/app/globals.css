@@ -2854,6 +2854,16 @@ html[data-theme="light"] .weekly-participant-count { color: #218a42; }
 .matchday-open-picker span { min-width: 24px; padding: 3px 6px; border-radius: 999px; background: rgba(70,180,94,.15); font-size: 9px; }
 .event-tournament-planning { margin-bottom: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
 .event-tournament-planning .event-section-title { margin-bottom: 10px; }
+.team-planning-mascot { display: block; flex: 0 0 auto; width: 76px; height: 76px; border-radius: 14px; background: #e7f1e9 url("/illustrations/planning/team-planning.png") center / contain no-repeat; }
+.event-tournament-planning .event-section-title > span:last-child { min-width: 0; }
+.squad-board-heading-intro { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.squad-board-heading-intro > div { min-width: 0; }
+.squad-board-heading-intro h1 { overflow-wrap: anywhere; }
+@media(max-width:480px) {
+  .squad-board-heading { flex-wrap: wrap; }
+  .squad-board-heading-intro { gap: 10px; }
+  .team-planning-mascot { width: 64px; height: 64px; }
+}
 .event-tournament-squads { display: flex; flex-wrap: wrap; gap: 7px; }
 .event-tournament-squads > span { display: inline-flex; align-items: center; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); font-size: 9px; font-weight: 650; }
 .event-tournament-squads strong, .event-tournament-squads small { display: block; }

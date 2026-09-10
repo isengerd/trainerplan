@@ -107,7 +107,7 @@ function MatchDayOverview({ event, squads, published, users, settings, busy, onP
   }
 
   return <section className="squad-board">
-    <header className="squad-board-heading"><div><span className="eyebrow">MANNSCHAFTEN ZUSAMMENSTELLEN</span><h1>{event.title}</h1><p>{playerList.length} gemeldete Kinder · {draft.length} {draft.length === 1 ? "Mannschaft" : "Mannschaften"}</p></div><button type="button" onClick={addSquad}><Plus /> Mannschaft</button></header>
+    <header className="squad-board-heading"><div className="squad-board-heading-intro"><span className="team-planning-mascot" aria-hidden="true" /><div><span className="eyebrow">MANNSCHAFTEN ZUSAMMENSTELLEN</span><h1>{event.title}</h1><p>{playerList.length} gemeldete Kinder · {draft.length} {draft.length === 1 ? "Mannschaft" : "Mannschaften"}</p></div></div><button type="button" onClick={addSquad}><Plus /> Mannschaft</button></header>
 
     <div className="squad-board-teams">{draft.map((squad, index) => {
       const validation = validateTournamentSquad(squad, playerAgeGroups, { minFYouth: settings.tournamentMinFYouth, maxTeamSize: settings.tournamentMaxTeamSize, trainerRequired: settings.tournamentTrainerRequired });
