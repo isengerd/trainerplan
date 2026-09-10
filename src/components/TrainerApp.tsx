@@ -17,6 +17,7 @@ import { ExerciseCreator } from "./ExerciseCreator";
 import { ExerciseLibrary } from "./ExerciseBrowser";
 import { TrainingTemplates, type TrainingTemplate } from "./TrainingTemplates";
 import { TournamentPlanningPage } from "./TournamentPlanning";
+import { WeeklyDashboard } from "./WeeklyDashboard";
 import { FirstLoginSetup } from "./FirstLoginSetup";
 import { firebaseChangePassword, firebaseClientAuthEnabled } from "@/lib/firebase-client";
 
@@ -166,14 +167,11 @@ export function TrainerApp() {
   const [toastMessage, setToastMessage] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [swipedWeeklyEventId, setSwipedWeeklyEventId] = useState<string | null>(null);
-  const [weeklyTaskLimit, setWeeklyTaskLimit] = useState(3);
   const calendarRef = useRef<HTMLDivElement>(null);
   const planDataReady = useRef(false);
   const lastPersistedPlan = useRef("");
   const latestPlanSnapshot = useRef("");
   const autoSaveChain = useRef<Promise<void>>(Promise.resolve());
-  const weeklySwipeStart = useRef<{ id: string; x: number; y: number } | null>(null);
 
   function usesMobileExerciseNavigation() {
     return typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches;
@@ -862,95 +860,19 @@ export function TrainerApp() {
       <div className="dashboard-event-times"><span><small>Treffen</small><strong>{event.meetingTime || "–"}</strong></span><span><small>Beginn</small><strong>{event.startTime}</strong></span><span><small>Ende</small><strong>{event.endTime}</strong></span></div>
     </div>
   </button>;
-  const currentDate = new Date(`${todayKey}T12:00:00`);
-  const weekMonday = new Date(currentDate);
-  weekMonday.setDate(currentDate.getDate() - ((currentDate.getDay() + 6) % 7));
-  const weekSunday = new Date(weekMonday);
-  weekSunday.setDate(weekMonday.getDate() + 6);
-  const weekStartKey = weekMonday.toISOString().slice(0, 10);
-  const weekEndKey = weekSunday.toISOString().slice(0, 10);
-  const weekEvents = [...events].filter((event) => event.date >= weekStartKey && event.date <= weekEndKey).sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`));
-  const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(weekMonday);
-    date.setDate(weekMonday.getDate() + index);
-    const key = date.toISOString().slice(0, 10);
-    return { key, date, events: weekEvents.filter((event) => event.date === key) };
-  });
-  const calendarWeek = (() => {
-    const target = new Date(currentDate);
-    target.setDate(target.getDate() + 4 - (target.getDay() || 7));
-    const yearStart = new Date(target.getFullYear(), 0, 1);
-    return Math.ceil((((target.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
-  })();
-  const activeTeamAgeId = organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? "f1";
-  const activeTeamAgeName = ageGroups.find((ageGroup) => ageGroup.id === activeTeamAgeId)?.name ?? activeTeamAgeId.toUpperCase();
-  const isYoungTeam = /^[gfe]/i.test(activeTeamAgeId);
-  const weekTrainingEvents = weekEvents.filter((event) => event.type === "training" && !event.cancelledAt);
-  const remainingWeekTrainingEvents = weekTrainingEvents.filter((event) => event.date >= todayKey);
-  const weekHasCompetition = weekEvents.some((event) => event.date >= todayKey && (event.type === "match" || event.type === "tournament") && !event.cancelledAt);
-  const firstWeekTraining = remainingWeekTrainingEvents[0] ?? null;
-  const previousTraining = [...events].filter((event) => event.type === "training" && event.date < weekStartKey).sort((a, b) => `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`))[0];
-  const previousFocus = previousTraining ? planMeta[previousTraining.date]?.focus?.[0] : undefined;
-  const weekRecommendation = isYoungTeam
-    ? weekHasCompetition
-      ? { title: "Viele Ballaktionen vor dem Spiel", text: "Kurze Dribbelduelle, viele Abschlüsse und ein freies Spiel geben jedem Kind Selbstvertrauen." }
-      : { title: "Ballgefühl & kleine Spiele", text: "Eine spielerische Einheit mit vielen Kontakten, wenig Wartezeit und einfachen Erfolgserlebnissen." }
-    : weekHasCompetition
-      ? { title: "Umschalten unter Gegnerdruck", text: "Spielnahe Formen verbinden Ballgewinn, schnelle Entscheidungen und die Vorbereitung auf den Wettkampf." }
-      : { title: "Entscheiden & zusammenspielen", text: "Kleine Spielformen mit Überzahlmomenten fördern Wahrnehmung, Passoptionen und mutige Lösungen." };
-  const weekTasks = [
-    ...remainingWeekTrainingEvents.filter((event) => (plans[event.date] ?? []).length === 0).map((event) => ({ id: `plan-${event.id}`, tone: "plan", title: `Plan für ${new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} fehlt`, text: `${event.startTime} Uhr · Training zusammenstellen`, action: () => { selectDay(event.date); setView("plan"); }, label: "Planen" })),
-    ...weekEvents.filter((event) => event.date >= todayKey && event.type !== "event" && !event.cancelledAt && (event.trainerIds ?? []).length === 0).map((event) => ({ id: `coach-${event.id}`, tone: "coach", title: `Verantwortliche für ${event.title} offen`, text: `${new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} · ${event.startTime} Uhr`, action: () => openEventDetails(event.id), label: "Festlegen" })),
-    ...weekEvents.filter((event) => event.date >= todayKey && event.type === "tournament" && !event.cancelledAt && !tournamentPlans.some((plan) => plan.eventId === event.id && plan.squads.length > 0)).map((event) => ({ id: `squad-${event.id}`, tone: "squad", title: `Teams für ${event.title} fehlen`, text: `${new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} · Turnier vorbereiten`, action: () => openTournament(event.id), label: "Einteilen" })),
-  ].filter((task, index, all) => all.findIndex((item) => item.id === task.id) === index);
-  const greeting = new Date().getHours() < 11 ? "GUTEN MORGEN" : new Date().getHours() < 18 ? "GUTEN TAG" : "GUTEN ABEND";
-  const todayEvents = weekEvents.filter((event) => event.date === todayKey);
-  const laterWeekEvents = weekEvents.filter((event) => event.date > todayKey);
-  const deleteWeeklyEvent = (event: ClubEvent) => {
-    if (!window.confirm(`„${event.title}“ endgültig löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.`)) return;
-    setSwipedWeeklyEventId(null);
-    updateEvents(events.filter((item) => item.id !== event.id));
-  };
-  const weeklyEventRow = (event: ClubEvent) => {
-    const yes = dashboardPlayers.filter((player) => event.responses[player.id] === "yes").length;
-    const planReady = event.type === "training"
-      ? (plans[event.date] ?? []).length > 0
-      : event.type === "tournament"
-        ? tournamentPlans.some((plan) => plan.eventId === event.id && plan.squads.length > 0)
-        : true;
-    const eventTypeLabel = event.type === "training" ? "Training" : event.type === "tournament" ? "Turnier" : event.type === "match" ? "Spiel" : "Termin";
-    const statusLabel = event.cancelledAt ? "Abgesagt" : event.type === "training" ? (planReady ? "Plan bereit" : "Plan offen") : event.type === "tournament" ? (planReady ? "Teams bereit" : "Einteilung offen") : "Termin bereit";
-    const isRevealed = swipedWeeklyEventId === event.id;
-    return <div
-      key={event.id}
-      className={`weekly-swipe-row ${isRevealed ? "revealed" : ""}`}
-      onTouchStart={(touchEvent) => { const touch = touchEvent.touches[0]; weeklySwipeStart.current = { id: event.id, x: touch.clientX, y: touch.clientY }; }}
-      onTouchEnd={(touchEvent) => {
-        const start = weeklySwipeStart.current;
-        const touch = touchEvent.changedTouches[0];
-        weeklySwipeStart.current = null;
-        if (!start || start.id !== event.id) return;
-        const deltaX = touch.clientX - start.x;
-        const deltaY = touch.clientY - start.y;
-        if (Math.abs(deltaX) < Math.abs(deltaY) || Math.abs(deltaX) < 36) return;
-        setSwipedWeeklyEventId(deltaX < 0 ? event.id : null);
-      }}
-    ><button className={`weekly-event-main ${event.date === todayKey ? "is-today" : ""} ${event.cancelledAt ? "cancelled" : ""}`} aria-expanded={isRevealed} onClick={() => isRevealed ? setSwipedWeeklyEventId(null) : openEventDetails(event.id)}><span className={`weekly-event-icon ${event.type}`}>{event.type === "training" ? <Dumbbell /> : event.type === "tournament" || event.type === "match" ? <Trophy /> : <CalendarDays />}</span><span className="weekly-event-copy"><small>{activeTeamName} · {eventTypeLabel} · {event.startTime} Uhr</small><strong>{dashboardEventTitle(event)}</strong><span className="weekly-event-facts"><span className="weekly-participant-count"><Users /><b>{yes}</b><em>{yes === 1 ? "Kind dabei" : "Kinder dabei"}</em></span><span className={`weekly-plan-state ${event.cancelledAt ? "cancelled" : planReady ? "ready" : "open"}`}><i /><em>{statusLabel}</em></span></span></span><ChevronRight /></button><button className="weekly-swipe-delete" tabIndex={isRevealed ? 0 : -1} onClick={() => deleteWeeklyEvent(event)} aria-label={`${event.title} löschen`}><Trash2 /><span>Löschen</span></button></div>;
-  };
-  const weeklyOverview = <section className={`weekly-dashboard ${isYoungTeam ? "young-team" : "youth-team"}`}>
-    <header className="weekly-dashboard-hero"><div><span className="eyebrow">{greeting}, {firstName.toUpperCase()}</span><h1>Deine Woche im Blick</h1><p>{activeTeamAgeName} · KW {calendarWeek} · {weekEvents.length} {weekEvents.length === 1 ? "Termin" : "Termine"}</p></div><span className="weekly-age-mark">{isYoungTeam ? "SPIEL & FREUDE" : "FOKUS & SPIELIDEE"}</span></header>
-    <div className="week-day-strip weekly-dashboard-days">{weekDays.map((day) => <div key={day.key} className={`${day.key === todayKey ? "today" : ""} ${day.events.length ? "has-event" : ""}`}><span>{day.date.toLocaleDateString("de-DE", { weekday: "short" }).slice(0, 2)}</span><strong>{day.date.getDate()}</strong><i>{day.events.slice(0, 3).map((event) => <b key={event.id} className={event.type} />)}</i></div>)}</div>
-    <section className="week-glance-card weekly-today-card">
-      <div className="weekly-section-title weekly-today-title"><span>{todayEvents.some((event) => event.type === "tournament" || event.type === "match") ? <Trophy /> : <Dumbbell />}</span><div><h2>{todayEvents.length ? `Heute – ${currentDate.toLocaleDateString("de-DE", { weekday: "long" })}` : "Heute ist frei"}</h2></div><em>{currentDate.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</em></div>
-      <div className="weekly-event-list">{todayEvents.map(weeklyEventRow)}{todayEvents.length === 0 && <div className="weekly-empty today"><span className="recommendation-orbit"><Sparkles /></span><span><strong>{weekRecommendation.title}</strong><small>{weekRecommendation.text}</small>{previousFocus && <em>Zuletzt geplant: {previousFocus}</em>}</span></div>}</div>
-      {todayEvents.some((event) => event.type === "training" && !event.cancelledAt) && <div className="weekly-today-focus"><Sparkles /><span><small>{isYoungTeam ? "SPIELIDEE FÜR HEUTE" : "TRAININGSIMPULS"}</small><strong>{weekRecommendation.title}</strong></span>{firstWeekTraining?.date === todayKey && <button onClick={() => { selectDay(todayKey); setView("plan"); }}>Zum Training <ChevronRight /></button>}</div>}
-    </section>
-    <section className="week-glance-card weekly-rest-card">
-      <div className="weekly-section-title"><span><CalendarDays /></span><div><h2>Diese Woche</h2></div><em>{weekMonday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })} – {weekSunday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</em></div>
-      <div className="weekly-event-list">{laterWeekEvents.map(weeklyEventRow)}{laterWeekEvents.length === 0 && <div className="weekly-empty"><CalendarDays /><span><strong>Keine weiteren Termine</strong><small>Für den Rest der Woche ist nichts eingetragen.</small></span></div>}</div>
-    </section>
-    <section className="weekly-tasks-card weekly-tasks-full"><div className="weekly-section-title"><span><AlertTriangle /></span><div><h2>Offene Aufgaben</h2></div><em>{weekTasks.length}</em></div><div className="weekly-task-list">{weekTasks.slice(0, weeklyTaskLimit).map((task) => <button key={task.id} onClick={task.action}><i className={task.tone} /><span><strong>{task.title}</strong><small>{task.text}</small></span><em>{task.label}</em><ChevronRight /></button>)}{weekTasks.length === 0 && <div className="weekly-done"><Check /><span><strong>Alles vorbereitet</strong><small>Für diese Woche ist nichts mehr offen.</small></span></div>}{weekTasks.length > weeklyTaskLimit && <button type="button" className="weekly-more" onClick={() => setWeeklyTaskLimit((limit) => Math.min(limit + 1, weekTasks.length))}>+ {weekTasks.length - weeklyTaskLimit} {weekTasks.length - weeklyTaskLimit === 1 ? "weitere Aufgabe" : "weitere Aufgaben"}</button>}</div></section>
-  </section>;
+  const weeklyOverview = <WeeklyDashboard
+    key={organization?.activeTeamId ?? "active-team"}
+    events={events} users={users} plans={plans} planMeta={planMeta} tournamentPlans={tournamentPlans} settings={clubSettings}
+    firstName={firstName} teamName={activeTeamName}
+    ageGroup={organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? "f1"}
+    onOpenPlan={(date) => { selectDay(date); setView("plan"); }}
+    onOpenEvent={openEventDetails} onOpenSquads={openTournament}
+    onOpenCalendar={() => setView("calendar")} onOpenTeam={() => setView("team")}
+    onBrowseExercises={(date) => { selectDay(date); setView("plan"); openExerciseLibrary("Hauptteil"); }}
+    onDeleteEvent={(event) => {
+      if (window.confirm(`„${event.title}“ endgültig löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.`)) updateEvents(events.filter((item) => item.id !== event.id));
+    }}
+  />;
   const overview = (
     <section className="overview-page">
       <div className="overview-welcome">
