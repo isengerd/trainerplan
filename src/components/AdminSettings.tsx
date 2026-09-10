@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Bell, CalendarDays, Check, Clock3, CreditCard, Download, FileText, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, Users } from "lucide-react";
+import { AlertTriangle, Bell, CalendarDays, CalendarRange, Check, Clock3, CreditCard, Download, FileText, LayoutList, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, Users } from "lucide-react";
 import { defaultPosition, roleLabels, type AgeGroupOption, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
 
 type Props = {
@@ -106,7 +106,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
   const [busy, setBusy] = useState(false);
   const [desktopSection, setDesktopSection] = useState<"general" | "members" | "calendar" | "groups" | "communication">("general");
 
-  useEffect(() => { setForm({ ...settings, theme: settings.theme ?? "light" }); }, [settings]);
+  useEffect(() => { setForm({ ...settings, theme: settings.theme ?? "light", dashboardView: settings.dashboardView ?? "calendar" }); }, [settings]);
   useEffect(() => { setGroupForm(groups); }, [groups]);
   const set = <K extends keyof ClubSettings>(key: K, value: ClubSettings[K]) => setForm((current) => ({ ...current, [key]: value }));
   const activeAgeGroups = ageGroups.filter((ageGroup) => form.ageGroupIds.includes(ageGroup.id));
@@ -181,6 +181,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
   ];
 
   const settingsSections = [
+    { title: "Dashboard-Ansicht", label: "Dashboard" },
     { title: "Kalender exportieren", label: "Kalender" },
     { title: "Farbdesign", label: "Design" },
     { title: "Rollen & Rechte", label: "Mitglieder" },
@@ -214,6 +215,7 @@ export function AdminSettingsPage({ settings, currentUser, users, groups, ageGro
 
     <div className={`settings-layout admin-settings-layout desktop-section-${desktopSection} ${organization?.isClubAdmin ? "account-owner-settings" : "team-admin-settings"}`}>
       <CalendarExportCard />
+      <section className="settings-card settings-wide dashboard-view-settings"><div className="settings-title"><LayoutList /><span><h2>Dashboard-Ansicht</h2><p>Lege fest, womit Trainer und Admins auf dieser Mannschaft starten.</p></span></div><div className="dashboard-view-options"><button type="button" className={(form.dashboardView ?? "calendar") === "calendar" ? "active" : ""} onClick={() => set("dashboardView", "calendar")}><CalendarDays /><span><strong>Kalenderansicht</strong><small>Die nächsten drei Ereignisse als einzelne Karten</small></span>{(form.dashboardView ?? "calendar") === "calendar" && <Check />}</button><button type="button" className={form.dashboardView === "week" ? "active" : ""} onClick={() => set("dashboardView", "week")}><CalendarRange /><span><strong>Wochenansicht</strong><small>Woche, offene Aufgaben und Trainingsimpuls</small></span>{form.dashboardView === "week" && <Check />}</button></div></section>
       <section className="settings-card settings-wide theme-settings"><div className="settings-title"><Palette /><span><h2>Farbdesign</h2><p>Das Design gilt für alle Bereiche der Web-App und wird für das Team gespeichert.</p></span></div><div className="theme-options"><button className={(form.theme ?? "light") === "dark" ? "active" : ""} onClick={() => chooseTheme("dark")}><span className="theme-preview dark"><i /><i /><i /></span><span><Moon /><strong>Dunkelgrün</strong><small>Ruhiges Design für Abend und Flutlicht</small></span>{(form.theme ?? "light") === "dark" && <Check />}</button><button className={(form.theme ?? "light") === "light" ? "active" : ""} onClick={() => chooseTheme("light")}><span className="theme-preview light"><i /><i /><i /></span><span><Sun /><strong>Hell</strong><small>Weißer Hintergrund und klare Kontraste</small></span>{(form.theme ?? "light") === "light" && <Check />}</button></div></section>
 
       <section className="settings-card settings-wide"><div className="settings-title"><Shield /><span><h2>Rollen & Rechte</h2><p>Die Mannschaft bestimmt den sportlichen Kontext. Das Geburtsdatum liefert nur einen Altersklassen-Hinweis.</p></span></div><div className="role-matrix">{(["admin", "trainer", "player", "guardian"] as Role[]).map((role) => <article key={role} className={role}><span className={`role-badge ${role}`}>{roleLabels[role]}</span>{roleDescriptions[role].map((right) => <small key={right}><Check /> {right}</small>)}</article>)}</div><div className="member-rights-table"><div className="member-rights-head"><span>Person</span><span>Mannschaft</span><span>Funktionsgruppe</span><span>Altersklassen-Hinweis</span><span>Rolle</span></div>{users.map((user) => <div key={user.id}><span><strong>{user.name}</strong><small>{user.managedProfile ? "Kinderprofil · kein eigener Login" : user.id === currentUser.id ? `${user.email} · Du selbst` : user.email}</small></span><span className="member-team-name">{form.teamName}</span><select value={user.groupId || ""} onChange={(event) => updateMembership(user.id, { groupId: event.target.value || null })}><option value="">Keine</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select><span className="member-age-group">{user.role === "player" ? user.ageGroup || "Geburtsdatum fehlt" : "—"}</span><select value={user.role} disabled={user.id === currentUser.id || user.managedProfile} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : user.managedProfile ? "Kinderprofile bleiben Spieler." : "Rolle ändern"} onChange={(event) => updateMembership(user.id, { role: event.target.value as Role })}>{(["player", "guardian", "trainer", "admin"] as Role[]).map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></div>)}</div></section>

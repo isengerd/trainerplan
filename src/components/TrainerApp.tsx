@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, CreditCard, Dumbbell, Edit3,
-  Home, Library, LogOut, MapPin, Menu, MessageCircle, MoreVertical, Plus, Settings, Shield,
+  Home, Library, LogOut, Menu, MessageCircle, MoreVertical, Plus, Settings, Shield,
   Sparkles, Target, ThumbsDown, ThumbsUp, Trash2, Trophy, Users, X,
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
@@ -774,7 +774,8 @@ export function TrainerApp() {
     } else grouped.set(key, { event, variants: [event], playerIds: new Set(event.playerIds), teamNames: new Set([event.teamName]) });
     return grouped;
   }, new Map()).values()];
-  const visibleFamilyDashboardEntries = familyDashboardEntries.slice(0, 6);
+  const visibleFamilyDashboardEntries = familyDashboardEntries.slice(0, 3);
+  const mobileUpcomingEvents = upcomingEvents.slice(0, 3);
   const trainingDate = nextTrainingEvent?.date ?? nextPlannedDay?.day.key ?? null;
   const trainingDay = trainingDate ? days.find((day) => day.key === trainingDate) ?? null : null;
   const trainingExercises = trainingDate ? plans[trainingDate] ?? [] : [];
@@ -783,7 +784,6 @@ export function TrainerApp() {
   const otherEventSortKey = nextOtherEvent ? `${nextOtherEvent.date}T${nextOtherEvent.startTime}` : "9999-12-31T23:59";
   const otherEventComesFirst = otherEventSortKey < trainingSortKey;
   const firstName = currentUser?.name.trim().split(/\s+/)[0] || "Coach";
-  const overviewDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "short" });
   const overviewSquadName = (name: string, index: number) => {
     const shortTeam = name.trim().match(/^T\s*(\d+)$/i);
     return shortTeam ? `Team ${shortTeam[1]}` : name.trim() || `Team ${index + 1}`;
@@ -848,6 +848,81 @@ export function TrainerApp() {
       </div>)}
     </div>;
   };
+  const dashboardEventLabel = (event: ClubEvent, index?: number) => event.cancelledAt
+    ? `${event.type === "training" ? "TRAINING" : event.type === "tournament" ? "TURNIER" : event.type === "match" ? "LIGASPIEL" : "EVENT"} ABGESAGT`
+    : `${index === undefined ? "NÄCHSTES " : ""}${event.type === "training" ? "TRAINING" : event.type === "tournament" ? "TURNIER" : event.type === "match" ? "LIGASPIEL" : "EVENT"}`;
+  const dashboardEventTitle = (event: ClubEvent) => event.type === "training" ? planMeta[event.date]?.name ?? event.title : event.title;
+  const dashboardEventHead = (event: ClubEvent, index?: number) => <button
+    type="button"
+    className={`next-session-main dashboard-event-head is-${event.type}`}
+    onClick={() => openEventDetails(event.id)}
+    aria-label={`${event.title} im Kalender öffnen`}
+  >
+    <div className="date-tile"><strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong><span>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</span></div>
+    <div className="next-session-copy">
+      <span className={`session-status ${event.cancelledAt ? "is-cancelled" : ""}`}><i /> {dashboardEventLabel(event, index)}</span>
+      <h3>{dashboardEventTitle(event)}</h3>
+      <div className="dashboard-event-times"><span><small>Treffen</small><strong>{event.meetingTime || "–"}</strong></span><span><small>Beginn</small><strong>{event.startTime}</strong></span><span><small>Ende</small><strong>{event.endTime}</strong></span></div>
+    </div>
+  </button>;
+  const currentDate = new Date(`${todayKey}T12:00:00`);
+  const weekMonday = new Date(currentDate);
+  weekMonday.setDate(currentDate.getDate() - ((currentDate.getDay() + 6) % 7));
+  const weekSunday = new Date(weekMonday);
+  weekSunday.setDate(weekMonday.getDate() + 6);
+  const weekStartKey = weekMonday.toISOString().slice(0, 10);
+  const weekEndKey = weekSunday.toISOString().slice(0, 10);
+  const weekEvents = [...events].filter((event) => event.date >= weekStartKey && event.date <= weekEndKey).sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`));
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekMonday);
+    date.setDate(weekMonday.getDate() + index);
+    const key = date.toISOString().slice(0, 10);
+    return { key, date, events: weekEvents.filter((event) => event.date === key) };
+  });
+  const calendarWeek = (() => {
+    const target = new Date(currentDate);
+    target.setDate(target.getDate() + 4 - (target.getDay() || 7));
+    const yearStart = new Date(target.getFullYear(), 0, 1);
+    return Math.ceil((((target.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
+  })();
+  const activeTeamAgeId = organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? "f1";
+  const activeTeamAgeName = ageGroups.find((ageGroup) => ageGroup.id === activeTeamAgeId)?.name ?? activeTeamAgeId.toUpperCase();
+  const isYoungTeam = /^[gfe]/i.test(activeTeamAgeId);
+  const weekTrainingEvents = weekEvents.filter((event) => event.type === "training" && !event.cancelledAt);
+  const remainingWeekTrainingEvents = weekTrainingEvents.filter((event) => event.date >= todayKey);
+  const weekHasCompetition = weekEvents.some((event) => (event.type === "match" || event.type === "tournament") && !event.cancelledAt);
+  const firstWeekTraining = remainingWeekTrainingEvents[0] ?? null;
+  const previousTraining = [...events].filter((event) => event.type === "training" && event.date < weekStartKey).sort((a, b) => `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`))[0];
+  const previousFocus = previousTraining ? planMeta[previousTraining.date]?.focus?.[0] : undefined;
+  const weekRecommendation = isYoungTeam
+    ? weekHasCompetition
+      ? { title: "Viele Ballaktionen vor dem Spiel", text: "Kurze Dribbelduelle, viele Abschlüsse und ein freies Spiel geben jedem Kind Selbstvertrauen." }
+      : { title: "Ballgefühl & kleine Spiele", text: "Eine spielerische Einheit mit vielen Kontakten, wenig Wartezeit und einfachen Erfolgserlebnissen." }
+    : weekHasCompetition
+      ? { title: "Umschalten unter Gegnerdruck", text: "Spielnahe Formen verbinden Ballgewinn, schnelle Entscheidungen und die Vorbereitung auf den Wettkampf." }
+      : { title: "Entscheiden & zusammenspielen", text: "Kleine Spielformen mit Überzahlmomenten fördern Wahrnehmung, Passoptionen und mutige Lösungen." };
+  const weekTasks = [
+    ...remainingWeekTrainingEvents.filter((event) => (plans[event.date] ?? []).length === 0).map((event) => ({ id: `plan-${event.id}`, tone: "plan", title: `Plan für ${new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} fehlt`, text: `${event.startTime} Uhr · Training zusammenstellen`, action: () => { selectDay(event.date); setView("plan"); }, label: "Planen" })),
+    ...weekEvents.filter((event) => event.date >= todayKey && event.type !== "event" && !event.cancelledAt && (event.trainerIds ?? []).length === 0).map((event) => ({ id: `coach-${event.id}`, tone: "coach", title: `Verantwortliche für ${event.title} offen`, text: `${new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} · ${event.startTime} Uhr`, action: () => openEventDetails(event.id), label: "Festlegen" })),
+    ...weekEvents.filter((event) => event.date >= todayKey && event.type === "tournament" && !event.cancelledAt && !tournamentPlans.some((plan) => plan.eventId === event.id && plan.squads.length > 0)).map((event) => ({ id: `squad-${event.id}`, tone: "squad", title: `Teams für ${event.title} fehlen`, text: `${new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} · Turnier vorbereiten`, action: () => openTournament(event.id), label: "Einteilen" })),
+  ].filter((task, index, all) => all.findIndex((item) => item.id === task.id) === index);
+  const greeting = new Date().getHours() < 11 ? "GUTEN MORGEN" : new Date().getHours() < 18 ? "GUTEN TAG" : "GUTEN ABEND";
+  const weeklyOverview = <section className={`weekly-dashboard ${isYoungTeam ? "young-team" : "youth-team"}`}>
+    <header className="weekly-dashboard-hero"><div><span className="eyebrow">{greeting}, {firstName.toUpperCase()}</span><h1>Deine Woche im Blick</h1><p>{activeTeamAgeName} · KW {calendarWeek} · {weekEvents.length} {weekEvents.length === 1 ? "Termin" : "Termine"}</p></div><span className="weekly-age-mark">{isYoungTeam ? "SPIEL & FREUDE" : "FOKUS & SPIELIDEE"}</span></header>
+    <section className="week-glance-card">
+      <div className="weekly-section-title"><span><CalendarDays /></span><div><small>1 · WAS PASSIERT?</small><h2>Diese Woche</h2></div><em>{weekMonday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })} – {weekSunday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</em></div>
+      <div className="week-day-strip">{weekDays.map((day) => <div key={day.key} className={`${day.key === todayKey ? "today" : ""} ${day.events.length ? "has-event" : ""}`}><span>{day.date.toLocaleDateString("de-DE", { weekday: "short" }).slice(0, 2)}</span><strong>{day.date.getDate()}</strong><i>{day.events.slice(0, 3).map((event) => <b key={event.id} className={event.type} />)}</i></div>)}</div>
+      <div className="weekly-event-list">{weekEvents.map((event) => {
+        const yes = dashboardPlayers.filter((player) => event.responses[player.id] === "yes").length;
+        const planReady = event.type !== "training" || (plans[event.date] ?? []).length > 0;
+        return <button key={event.id} className={`${event.cancelledAt ? "cancelled" : ""} ${event.date < todayKey ? "past" : ""}`} onClick={() => openEventDetails(event.id)}><span className={`weekly-event-icon ${event.type}`}>{event.type === "training" ? <Dumbbell /> : event.type === "tournament" || event.type === "match" ? <Trophy /> : <CalendarDays />}</span><span className="weekly-event-copy"><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} · {event.startTime} Uhr</small><strong>{dashboardEventTitle(event)}</strong><em>{event.cancelledAt ? "Termin abgesagt" : event.type === "training" ? `${yes} dabei · ${planReady ? "Plan bereit" : "Plan offen"}` : `${yes} dabei · ${event.location || "Ort offen"}`}</em></span><span className={`weekly-event-state ${event.cancelledAt ? "cancelled" : planReady ? "ready" : "open"}`}><i />{event.cancelledAt ? "Abgesagt" : event.date < todayKey ? "Erledigt" : planReady ? "Bereit" : "Planen"}</span><ChevronRight /></button>;
+      })}{weekEvents.length === 0 && <div className="weekly-empty"><CalendarDays /><span><strong>Diese Woche ist noch frei</strong><small>Neue Trainings und Termine erscheinen automatisch hier.</small></span></div>}</div>
+    </section>
+    <div className="weekly-action-grid">
+      <section className="weekly-tasks-card"><div className="weekly-section-title"><span><AlertTriangle /></span><div><small>2 · WAS MUSS ICH TUN?</small><h2>Offene Aufgaben</h2></div><em>{weekTasks.length}</em></div><div className="weekly-task-list">{weekTasks.slice(0, 3).map((task) => <button key={task.id} onClick={task.action}><i className={task.tone} /><span><strong>{task.title}</strong><small>{task.text}</small></span><em>{task.label}</em><ChevronRight /></button>)}{weekTasks.length === 0 && <div className="weekly-done"><Check /><span><strong>Alles vorbereitet</strong><small>Für diese Woche ist nichts mehr offen.</small></span></div>}{weekTasks.length > 3 && <small className="weekly-more">+ {weekTasks.length - 3} weitere Aufgaben</small>}</div></section>
+      <section className="weekly-recommendation-card"><div className="weekly-section-title"><span><Sparkles /></span><div><small>3 · WAS SOLL ICH TRAINIEREN?</small><h2>{isYoungTeam ? "Spielidee der Woche" : "Trainingsimpuls"}</h2></div></div><div className="weekly-recommendation"><span className="recommendation-orbit"><Target /></span><div><small>{isYoungTeam ? `SPIELERISCH FÜR ${activeTeamAgeName.toUpperCase()}` : `PASSEND FÜR ${activeTeamAgeName.toUpperCase()}`}</small><h3>{weekRecommendation.title}</h3><p>{weekRecommendation.text}</p>{previousFocus && <em>Zuletzt geplant: {previousFocus}</em>}</div></div>{firstWeekTraining && <button className="weekly-recommendation-action" onClick={() => { selectDay(firstWeekTraining.date); setView("plan"); }}>{(plans[firstWeekTraining.date] ?? []).length ? "Training öffnen" : "Vorschlag verwenden"}<ChevronRight /></button>}</section>
+    </div>
+  </section>;
   const overview = (
     <section className="overview-page">
       <div className="overview-welcome">
@@ -857,6 +932,15 @@ export function TrainerApp() {
         const playerNames = [...entry.playerIds].map((id) => organization?.managedPlayers.find((player) => player.id === id)?.name).filter((name): name is string => Boolean(name));
         return <button key={`${entry.event.id}:${entry.variants.length}`} className="family-dashboard-event" onClick={() => void openFamilyEventDetails(entry)}><span className="overview-next-date"><strong>{new Date(`${entry.event.date}T12:00:00`).getDate()}</strong><small>{new Date(`${entry.event.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span className="family-event-copy"><em>{entry.event.cancelledAt ? "Abgesagt" : entry.event.type === "training" ? "Training" : entry.event.type === "tournament" ? "Turnier" : entry.event.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{entry.event.title}</strong><small>{entry.event.meetingTime && entry.event.meetingTime !== entry.event.startTime ? `Treffen ${entry.event.meetingTime} · ` : ""}{entry.event.startTime}–{entry.event.endTime} Uhr</small><span className="family-event-context">{playerNames.map((name) => <i key={name}>{name}</i>)}{[...entry.teamNames].map((name) => <i key={name} className="team">{name}</i>)}</span></span><ChevronRight /></button>;
       })}{familyDashboardEntries.length === 0 && <div className="family-dashboard-empty"><CalendarDays /><span><strong>Nichts eingetragen</strong><small>Für die ausgewählten Kinder stehen keine kommenden Termine an.</small></span></div>}{familyDashboardEntries.length > visibleFamilyDashboardEntries.length && <p className="family-dashboard-more">+ {familyDashboardEntries.length - visibleFamilyDashboardEntries.length} weitere Termine</p>}</div></section>}
+      {currentUser?.role !== "guardian" && <div className="overview-mobile-upcoming" aria-label="Die nächsten drei Ereignisse">
+        {mobileUpcomingEvents.map((event, index) => <section key={event.id} className={`overview-card overview-mobile-event ${event.cancelledAt ? "cancelled-event" : ""}`}>
+          <div className="dashboard-event-combined">
+            {dashboardEventHead(event, index)}
+            {canManageClub ? attendanceOverview(event) : compactDashboardRsvp(event)}
+          </div>
+        </section>)}
+        {mobileUpcomingEvents.length === 0 && <section className="overview-card"><div className="overview-empty"><CalendarDays /><div><strong>Noch nichts eingetragen</strong><p>Die nächsten Ereignisse erscheinen hier.</p></div></div></section>}
+      </div>}
       <section style={{ order: otherEventComesFirst ? 2 : 1 }} className={`overview-card next-session overview-primary ${currentUser?.role === "guardian" ? "family-dashboard-suppressed" : ""} ${trainingDate ? "has-session" : "empty-session"} ${nextTrainingEvent?.cancelledAt ? "cancelled-event" : ""}`}>
         {!trainingDate && <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TRAINING</span><h2>Noch kein Training eingetragen</h2></div></div>}
         {trainingDate ? <>
@@ -872,8 +956,7 @@ export function TrainerApp() {
 
       <div style={{ order: otherEventComesFirst ? 1 : 2 }} className={`overview-next-grid ${currentUser?.role === "guardian" ? "family-dashboard-suppressed" : ""}`}>
         <section className={`overview-card overview-next-event ${nextOtherEvent?.cancelledAt ? "cancelled-event" : ""}`}>
-          <div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TURNIER / EVENT</span><h2>{nextOtherEvent ? nextOtherEvent.title : "Nichts eingetragen"}</h2></div>{nextOtherEvent && <button onClick={() => openEventDetails(nextOtherEvent.id)}>Details <ChevronRight /></button>}</div>
-          {nextOtherEvent ? <><button className="overview-next-event-main" onClick={() => openEventDetails(nextOtherEvent.id)}><span className="overview-next-date"><strong>{new Date(`${nextOtherEvent.date}T12:00:00`).getDate()}</strong><small>{new Date(`${nextOtherEvent.date}T12:00:00`).toLocaleDateString("de-DE", { month: "short" })}</small></span><span><em>{nextOtherEvent.cancelledAt ? "Abgesagt" : nextOtherEvent.type === "tournament" ? "Turnier" : nextOtherEvent.type === "match" ? "Ligaspiel" : "Event"}</em><strong>{overviewDate(nextOtherEvent.date)} · {nextOtherEvent.startTime} Uhr</strong><small>{nextOtherEvent.cancelledAt ? <><AlertTriangle /> Termin abgesagt</> : <><MapPin /> {nextOtherEvent.location || "Ort noch offen"}</>}</small></span><ChevronRight /></button>{attendanceOverview(nextOtherEvent)}</> : <p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p>}
+          {nextOtherEvent ? <><div className="dashboard-event-combined">{dashboardEventHead(nextOtherEvent)}{attendanceOverview(nextOtherEvent)}</div></> : <><div className="overview-card-title"><div><span className="eyebrow">NÄCHSTES TURNIER / EVENT</span><h2>Nichts eingetragen</h2></div></div><p className="overview-no-events">Derzeit ist kein Turnier, Ligaspiel oder Event geplant.</p></>}
           {nextOtherEvent?.id === nextTournament?.id && nextTournamentSquads.length > 0 && <div className="overview-event-squads"><div className="overview-squad-list">{nextTournamentSquads.slice(0, 4).map((squad, index) => {
             const trainer = users.find((user) => user.id === squad.trainerId);
             const teamName = overviewSquadName(squad.name, index);
@@ -989,7 +1072,7 @@ export function TrainerApp() {
         </div></>}
 
         {organization?.isClubAdmin && licenseDaysLeft !== null && licenseDaysLeft >= 0 && licenseDaysLeft <= 14 && <div className="global-license-warning"><AlertTriangle /><span><strong>Deine Lizenz endet {licenseDaysLeft === 0 ? "heute" : `in ${licenseDaysLeft} Tagen`}.</strong><small>Danach wird EM Free aktiv. Daten bleiben erhalten, Zugänge und Pro-Funktionen werden gesperrt.</small></span><button onClick={() => setView("license")}>Lizenz prüfen</button></div>}
-        {moduleContent ?? (view === "overview" ? overview : view === "plan" && canManageClub ? <div className="content-grid plan-only-layout">
+        {moduleContent ?? (view === "overview" ? (canManageClub && (clubSettings.dashboardView ?? "calendar") === "week" ? weeklyOverview : overview) : view === "plan" && canManageClub ? <div className="content-grid plan-only-layout">
           <section className="plan-panel card">
             {canManageClub && <div className="plan-template-tools">
               <button onClick={() => { setTemplateMode("browse"); setTemplateOpen(true); }}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>

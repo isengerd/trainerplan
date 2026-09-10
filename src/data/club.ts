@@ -123,6 +123,7 @@ export type FamilyDashboardEvent = ClubEvent & {
 
 export type ClubSettings = {
   theme: "dark" | "light";
+  dashboardView: "calendar" | "week";
   teamFeatureEnabled: boolean;
   attendanceEnabled: boolean;
   waitlistEnabled: boolean;
@@ -147,6 +148,7 @@ export type ClubSettings = {
 
 export const initialSettings: ClubSettings = {
   theme: "light",
+  dashboardView: "calendar",
   teamFeatureEnabled: true,
   attendanceEnabled: true,
   waitlistEnabled: true,

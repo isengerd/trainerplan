@@ -169,6 +169,7 @@ export function validateSettings(value: unknown): ClubSettings {
   if (!ageGroupIds.length || new Set(ageGroupIds).size !== ageGroupIds.length) throw new ApiInputError("Mindestens eine eindeutige Altersklasse muss aktiviert sein.");
   return {
     theme: enumValue(input.theme, ["dark", "light"] as const, "Farbdesign"),
+    dashboardView: input.dashboardView === undefined ? "calendar" : enumValue(input.dashboardView, ["calendar", "week"] as const, "Dashboard-Ansicht"),
     teamFeatureEnabled: boolean("teamFeatureEnabled"), attendanceEnabled: boolean("attendanceEnabled"), waitlistEnabled: boolean("waitlistEnabled"),
     showResponsesToPlayers: boolean("showResponsesToPlayers"), automaticReminders: boolean("automaticReminders"), splitTeamsEnabled: boolean("splitTeamsEnabled"),
     leagueMatchesEnabled: boolean("leagueMatchesEnabled"),

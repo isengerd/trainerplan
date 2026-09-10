@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { initialSettings } from "../data/club";
 import { library } from "../data/demo";
 import { rateLimit } from "./api-security";
-import { validateEvents, validateExercises, validatePlans, validateUsers } from "./validators";
+import { validateEvents, validateExercises, validatePlans, validateSettings, validateUsers } from "./validators";
 
 test("die mitgelieferte Übungsbibliothek erfüllt das API-Schema", () => {
   assert.equal(validateExercises(library).length, library.length);
@@ -37,6 +38,13 @@ test("Teilnehmerlimit 0 wird als unbegrenzt akzeptiert", () => {
     description: "Test", maxParticipants: 0, responses: {},
   };
   assert.equal(validateEvents([event])[0].maxParticipants, 0);
+});
+
+test("Dashboard-Ansicht wird gespeichert und bestehende Einstellungen bleiben kompatibel", () => {
+  assert.equal(validateSettings({ ...initialSettings, dashboardView: "week" }).dashboardView, "week");
+  const { dashboardView: _dashboardView, ...legacySettings } = initialSettings;
+  assert.equal(validateSettings(legacySettings).dashboardView, "calendar");
+  assert.throws(() => validateSettings({ ...initialSettings, dashboardView: "timeline" }), /Dashboard-Ansicht/);
 });
 
 test("Spielerbewertungen akzeptieren nur null bis fünf Sterne und Team A oder B", () => {
