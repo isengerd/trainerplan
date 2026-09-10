@@ -124,7 +124,7 @@ export function trainingIdea(event: ClubEvent | undefined, events: ClubEvent[], 
   const focus = meta?.focus.filter(Boolean).slice(0, 2).join(" & ");
   if (focus) return { title: focus, text: young ? "Greife deinen Schwerpunkt in kleinen Spielen auf. Kurze Erklärungen und wenig Wartezeit lassen allen Kindern Raum zum Ausprobieren." : "Verbinde deinen Schwerpunkt mit einer spielnahen Aufgabe und einer klaren Beobachtungsfrage.", reason: "Aus deinem Trainingsplan", planned: true };
   return {
-    title: young ? competition ? "Mutig zum Tor" : "Ballgefühl & kleine Spiele" : competition ? "Ballgewinn & Zusammenspiel" : "Wahrnehmen & entscheiden",
+    title: young ? competition ? "Viele Ballaktionen vor dem Spiel" : "Ballgefühl & kleine Spiele" : competition ? "Ballgewinn & Zusammenspiel" : "Wahrnehmen & entscheiden",
     text: young ? competition ? "Kurze 1-gegen-1-Duelle und ein freies Spiel auf Minitore: viele eigene Aktionen, mutige Abschlüsse und wenig Wartezeit." : "Jedes Kind mit Ball starten lassen, dann in kleinen Teams auf Tore spielen. Halte die Regeln einfach und die Pausen kurz." : "Kleine Spielformen mit wechselnder Überzahl schaffen Passoptionen und Entscheidungen unter Gegnerdruck.",
     reason: competition ? `Am ${new Date(`${competition.date}T12:00:00Z`).toLocaleDateString("de-DE", { weekday: "long", timeZone: "UTC" })} steht „${competition.title}“ an. Darauf kann diese Spielidee vorbereiten.` : young ? "Für Kinderteams: viele Ballaktionen und eigene Erfolgserlebnisse." : "Für Jugendteams: spielnahe Situationen und selbstständige Entscheidungen.",
     planned: false,

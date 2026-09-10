@@ -3016,7 +3016,7 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-event + .coach-week-event { margin-top: 10px; }
 .coach-week-event.featured { padding: 20px 24px; background: linear-gradient(125deg, var(--cw-soft), var(--panel) 85%); border-color: color-mix(in srgb, var(--cw-accent) 38%, var(--line)); }
 .coach-week-event-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.coach-week-type { display: inline-flex; align-items: center; gap: 7px; color: var(--cw-accent); font-size: 11px; font-weight: 650; }
+.coach-week-type { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: var(--cw-accent); font-size: 11px; font-weight: 650; }
 .coach-week-type.tournament, .coach-week-type.match { color: var(--cw-warning); }
 .coach-week-type.event { color: #8cbde5; }
 .coach-week-menu-toggle { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; margin: -10px -10px -10px 0; border: 0; border-radius: 9px; background: transparent; color: var(--cw-muted); }
@@ -3121,10 +3121,26 @@ html[data-theme="light"] .coach-week-state.cancelled, html[data-theme="light"] .
 @media(prefers-reduced-motion: reduce) {
   .coach-week * { scroll-behavior: auto !important; transition: none !important; }
 }
-.coach-week-today-idea { margin-top: 15px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-.coach-week-today-idea summary { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--cw-accent); font-size: 12px; line-height: 1.6; }
-.coach-week-today-idea summary::after { content: "+"; margin-left: auto; font-size: 18px; }
-.coach-week-today-idea[open] summary::after { content: "−"; }
-.coach-week-today-idea summary > svg { flex-shrink: 0; }
-.coach-week-today-idea p { margin: 10px 0 7px; color: var(--cw-muted); font-size: 12px; line-height: 1.7; }
-.coach-week-today-idea small { display: block; color: var(--cw-muted); font-size: 11px; line-height: 1.6; }
+/* Full-card hit targets remain native buttons; secondary controls stay above them. */
+.coach-week-linked-card { position: relative; }
+.coach-week-card-link::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 16px; cursor: pointer; }
+.coach-week-card-link:focus-visible { outline: none !important; }
+.coach-week-card-link:focus-visible::after { outline: 3px solid var(--cw-accent); outline-offset: 3px; }
+.coach-week-event:has(.coach-week-card-link:hover), .coach-week-linked-card:has(.coach-week-card-link:hover) { border-color: var(--cw-accent); box-shadow: 0 4px 18px rgb(25 86 48 / 9%); }
+.coach-week-event .coach-week-menu-toggle, .coach-week-event-menu, .coach-week-event-actions > button, .coach-week-idea details { position: relative; z-index: 2; }
+.coach-week-daily-idea { width: 100%; display: flex; align-items: center; gap: 18px; margin-top: 12px; padding: 20px 24px; border: 1px solid color-mix(in srgb, var(--cw-accent) 28%, var(--line)); border-radius: 16px; background: var(--cw-soft); color: var(--text); text-align: left; }
+.coach-week-daily-idea:hover { border-color: var(--cw-accent); box-shadow: 0 4px 18px rgb(25 86 48 / 9%); }
+.coach-week-daily-spark { flex: 0 0 29px; width: 29px; height: 29px; color: var(--cw-accent); }
+.coach-week-daily-copy { flex: 1; min-width: 0; }
+.coach-week-daily-copy > span { display: block; color: var(--cw-accent); font-size: 10px; font-weight: 750; letter-spacing: .12em; }
+.coach-week-daily-copy strong { display: block; margin-top: 6px; font-size: 19px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.coach-week-daily-copy small { display: block; max-width: 70ch; margin-top: 7px; color: var(--cw-muted); font-size: 12px; line-height: 1.65; }
+.coach-week-daily-copy em { display: block; margin-top: 7px; color: var(--cw-muted); font-size: 11px; font-style: normal; }
+.coach-week-daily-cta { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex-shrink: 0; min-height: 46px; padding: 12px 17px; border-radius: 11px; background: #267644; color: white; font-size: 12px; font-weight: 700; }
+@media(max-width: 600px) {
+  .coach-week-daily-idea { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 18px; }
+  .coach-week-daily-spark { flex-basis: 24px; width: 24px; height: 24px; }
+  .coach-week-daily-copy { flex-basis: calc(100% - 40px); }
+  .coach-week-daily-copy strong { font-size: 18px; }
+  .coach-week-daily-cta { margin-left: 36px; }
+}
