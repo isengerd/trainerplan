@@ -1011,7 +1011,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} />
+    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} tournamentPlans={tournamentPlans} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} onOpenTournamentPlanning={openTournament} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} ageGroups={ageGroups} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} onCreateTournament={createTournament} />
     : view === "team"
@@ -1034,7 +1034,7 @@ export function TrainerApp() {
         <nav>
           <a className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}><Home /> Übersicht</a>
           <a className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /> Kalender</a>
-          <a className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /> {canManageClub ? "Mannschaftsplanung" : "Turniermannschaften"}</a>
+          {!canManageClub && <a className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /> Turniermannschaften</a>}
           {canManageClub && <a className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}><CalendarDays /> Trainingsplan</a>}
           {canManageClub && <a className={view === "exercises" ? "active" : ""} onClick={() => setView("exercises")}><Library /> Übungen</a>}
           {(accessManagementEnabled || currentUser.role === "admin") && <a className={view === "team" ? "active" : ""} onClick={() => setView("team")}><Dumbbell /> {accessManagementEnabled ? "Mannschaft" : "Spieler"}</a>}
@@ -1077,7 +1077,7 @@ export function TrainerApp() {
           <div>
             <button className={view === "overview" ? "active" : ""} onClick={() => mobileNavigate("overview")}><Home /><span><strong>Übersicht</strong><small>Dashboard und nächste Termine</small></span><ChevronRight /></button>
             <button className={view === "calendar" ? "active" : ""} onClick={() => mobileNavigate("calendar")}><CalendarDays /><span><strong>Kalender</strong><small>Training, Turniere und Ereignisse</small></span><ChevronRight /></button>
-            <button className={view === "tournaments" ? "active" : ""} onClick={() => mobileNavigate("tournaments")}><Trophy /><span><strong>{canManageClub ? "Mannschaftsplanung" : "Turniermannschaften"}</strong><small>{canManageClub ? "Turnierteams und Trainer zuordnen" : "Freigegebene Teams ansehen"}</small></span><ChevronRight /></button>
+            {!canManageClub && <button className={view === "tournaments" ? "active" : ""} onClick={() => mobileNavigate("tournaments")}><Trophy /><span><strong>Turniermannschaften</strong><small>Freigegebene Teams ansehen</small></span><ChevronRight /></button>}
             {canManageClub && <button className={view === "plan" ? "active" : ""} onClick={() => mobileNavigate("plan")}><CalendarDays /><span><strong>Trainingsplan</strong><small>Einheiten planen und bearbeiten</small></span><ChevronRight /></button>}
             {canManageClub && <button className={view === "exercises" ? "active" : ""} onClick={() => mobileNavigate("exercises")}><Library /><span><strong>Übungen</strong><small>Übungsbibliothek durchsuchen</small></span><ChevronRight /></button>}
             {(accessManagementEnabled || currentUser.role === "admin") && <button className={view === "team" ? "active" : ""} onClick={() => mobileNavigate("team")}><Users /><span><strong>{accessManagementEnabled ? "Mannschaft" : "Spieler"}</strong><small>{accessManagementEnabled ? "Kader und Rollen verwalten" : "Spielerprofile verwalten"}</small></span><ChevronRight /></button>}
@@ -1155,7 +1155,7 @@ export function TrainerApp() {
           <button className={view === "calendar" ? "active" : ""} onClick={() => setView("calendar")}><CalendarDays /><span>Kalender</span></button>
           {canManageClub && <button className={view === "plan" ? "active" : ""} onClick={openPlan} aria-label="Trainingsplanung öffnen"><Dumbbell /><span>Training</span></button>}
           <button className={view === "team" ? "active" : ""} onClick={() => setView(accessManagementEnabled || currentUser.role === "admin" ? "team" : "profile")}><Users /><span>Team</span></button>
-          <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>{canManageClub ? "Mannschaftsplanung" : "Turnierteams"}</span></button>
+          {!canManageClub && <button className={view === "tournaments" ? "active" : ""} onClick={() => setView("tournaments")}><Trophy /><span>Turnierteams</span></button>}
         </nav>
       </section>
 

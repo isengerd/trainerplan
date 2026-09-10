@@ -2847,3 +2847,28 @@ html[data-theme="light"] .weekly-participant-count { color: #218a42; }
   .weekly-event-main > svg { display: none; }
   .weekly-event-facts { gap: 7px 12px; }
 }
+
+/* Tournament squads are created from a tap-to-select roster, directly from the event. */
+.matchday-open-picker { width: calc(100% - 24px); min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; margin: 10px 12px 2px; border: 1px solid #48b864; border-radius: 10px; background: rgba(53,168,80,.09); color: #69d982; font-size: 10px; font-weight: 750; }
+.matchday-open-picker svg { width: 17px; }
+.matchday-open-picker span { min-width: 24px; padding: 3px 6px; border-radius: 999px; background: rgba(70,180,94,.15); font-size: 9px; }
+.event-tournament-planning { margin-bottom: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
+.event-tournament-planning .event-section-title { margin-bottom: 10px; }
+.event-tournament-squads { display: flex; flex-wrap: wrap; gap: 7px; }
+.event-tournament-squads > span { display: inline-flex; align-items: center; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); font-size: 9px; font-weight: 650; }
+.event-tournament-squads strong, .event-tournament-squads small { display: block; }
+.event-tournament-squads > span { display: grid; gap: 2px; }
+.event-tournament-squads small { color: var(--muted); font-size: 8px; font-weight: 400; }
+.event-tournament-planning > button { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 10px; border: 1px solid #45b962; border-radius: 10px; background: rgba(52,169,79,.1); color: #64d47d; font-size: 10px; font-weight: 750; }
+.event-tournament-planning > button svg { width: 16px; }
+html[data-theme="light"] .event-tournament-planning { background: #f5f9f6; }
+html[data-theme="light"] .event-tournament-squads > span { background: #fff; }
+
+@media(max-width:760px){
+  .matchday-open-picker { min-height: 48px; font-size: 12px; }
+  .event-tournament-planning { padding: 12px; }
+  .event-tournament-planning > button { min-height: 48px; font-size: 12px; }
+  .player-picker-list > button { min-height: 58px; }
+  .player-picker-list strong { font-size: 12px; }
+  .player-picker-list small { font-size: 10px; }
+}
