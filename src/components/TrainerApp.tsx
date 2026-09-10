@@ -167,6 +167,7 @@ export function TrainerApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [swipedWeeklyEventId, setSwipedWeeklyEventId] = useState<string | null>(null);
+  const [weeklyTaskLimit, setWeeklyTaskLimit] = useState(3);
   const calendarRef = useRef<HTMLDivElement>(null);
   const planDataReady = useRef(false);
   const lastPersistedPlan = useRef("");
@@ -918,7 +919,13 @@ export function TrainerApp() {
   };
   const weeklyEventRow = (event: ClubEvent) => {
     const yes = dashboardPlayers.filter((player) => event.responses[player.id] === "yes").length;
-    const planReady = event.type !== "training" || (plans[event.date] ?? []).length > 0;
+    const planReady = event.type === "training"
+      ? (plans[event.date] ?? []).length > 0
+      : event.type === "tournament"
+        ? tournamentPlans.some((plan) => plan.eventId === event.id && plan.squads.length > 0)
+        : true;
+    const eventTypeLabel = event.type === "training" ? "Training" : event.type === "tournament" ? "Turnier" : event.type === "match" ? "Spiel" : "Termin";
+    const statusLabel = event.cancelledAt ? "Abgesagt" : event.type === "training" ? (planReady ? "Plan bereit" : "Plan offen") : event.type === "tournament" ? (planReady ? "Teams bereit" : "Einteilung offen") : "Termin bereit";
     const isRevealed = swipedWeeklyEventId === event.id;
     return <div
       key={event.id}
@@ -934,22 +941,21 @@ export function TrainerApp() {
         if (Math.abs(deltaX) < Math.abs(deltaY) || Math.abs(deltaX) < 36) return;
         setSwipedWeeklyEventId(deltaX < 0 ? event.id : null);
       }}
-    ><button className={`weekly-event-main ${event.cancelledAt ? "cancelled" : ""}`} aria-expanded={isRevealed} onClick={() => isRevealed ? setSwipedWeeklyEventId(null) : openEventDetails(event.id)}><span className={`weekly-event-icon ${event.type}`}>{event.type === "training" ? <Dumbbell /> : event.type === "tournament" || event.type === "match" ? <Trophy /> : <CalendarDays />}</span><span className="weekly-event-copy"><small>{new Date(`${event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long" })} · {event.startTime} Uhr</small><strong>{dashboardEventTitle(event)}</strong><em>{event.cancelledAt ? "Termin abgesagt" : event.type === "training" ? `${yes} dabei · ${planReady ? "Plan bereit" : "Plan offen"}` : `${yes} dabei · ${event.location || "Ort offen"}`}</em></span><span className={`weekly-event-state ${event.cancelledAt ? "cancelled" : planReady ? "ready" : "open"}`}><i />{event.cancelledAt ? "Abgesagt" : planReady ? "Bereit" : "Planen"}</span><ChevronRight /></button><button className="weekly-swipe-delete" tabIndex={isRevealed ? 0 : -1} onClick={() => deleteWeeklyEvent(event)} aria-label={`${event.title} löschen`}><Trash2 /><span>Löschen</span></button></div>;
+    ><button className={`weekly-event-main ${event.date === todayKey ? "is-today" : ""} ${event.cancelledAt ? "cancelled" : ""}`} aria-expanded={isRevealed} onClick={() => isRevealed ? setSwipedWeeklyEventId(null) : openEventDetails(event.id)}><span className={`weekly-event-icon ${event.type}`}>{event.type === "training" ? <Dumbbell /> : event.type === "tournament" || event.type === "match" ? <Trophy /> : <CalendarDays />}</span><span className="weekly-event-copy"><small>{activeTeamName} · {eventTypeLabel} · {event.startTime} Uhr</small><strong>{dashboardEventTitle(event)}</strong><span className="weekly-event-facts"><span className="weekly-participant-count"><Users /><b>{yes}</b><em>{yes === 1 ? "Kind dabei" : "Kinder dabei"}</em></span><span className={`weekly-plan-state ${event.cancelledAt ? "cancelled" : planReady ? "ready" : "open"}`}><i /><em>{statusLabel}</em></span></span></span><ChevronRight /></button><button className="weekly-swipe-delete" tabIndex={isRevealed ? 0 : -1} onClick={() => deleteWeeklyEvent(event)} aria-label={`${event.title} löschen`}><Trash2 /><span>Löschen</span></button></div>;
   };
   const weeklyOverview = <section className={`weekly-dashboard ${isYoungTeam ? "young-team" : "youth-team"}`}>
     <header className="weekly-dashboard-hero"><div><span className="eyebrow">{greeting}, {firstName.toUpperCase()}</span><h1>Deine Woche im Blick</h1><p>{activeTeamAgeName} · KW {calendarWeek} · {weekEvents.length} {weekEvents.length === 1 ? "Termin" : "Termine"}</p></div><span className="weekly-age-mark">{isYoungTeam ? "SPIEL & FREUDE" : "FOKUS & SPIELIDEE"}</span></header>
     <div className="week-day-strip weekly-dashboard-days">{weekDays.map((day) => <div key={day.key} className={`${day.key === todayKey ? "today" : ""} ${day.events.length ? "has-event" : ""}`}><span>{day.date.toLocaleDateString("de-DE", { weekday: "short" }).slice(0, 2)}</span><strong>{day.date.getDate()}</strong><i>{day.events.slice(0, 3).map((event) => <b key={event.id} className={event.type} />)}</i></div>)}</div>
     <section className="week-glance-card weekly-today-card">
-      <div className="weekly-section-title"><span><Target /></span><div><small>1 · WAS IST HEUTE?</small><h2>{todayEvents.length ? `${todayEvents.length} ${todayEvents.length === 1 ? "Termin" : "Termine"}` : "Heute ist frei"}</h2></div><em>{currentDate.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "short" })}</em></div>
+      <div className="weekly-section-title weekly-today-title"><span>{todayEvents.some((event) => event.type === "tournament" || event.type === "match") ? <Trophy /> : <Dumbbell />}</span><div><h2>{todayEvents.length ? `Heute – ${currentDate.toLocaleDateString("de-DE", { weekday: "long" })}` : "Heute ist frei"}</h2></div><em>{currentDate.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</em></div>
       <div className="weekly-event-list">{todayEvents.map(weeklyEventRow)}{todayEvents.length === 0 && <div className="weekly-empty today"><span className="recommendation-orbit"><Sparkles /></span><span><strong>{weekRecommendation.title}</strong><small>{weekRecommendation.text}</small>{previousFocus && <em>Zuletzt geplant: {previousFocus}</em>}</span></div>}</div>
       {todayEvents.some((event) => event.type === "training" && !event.cancelledAt) && <div className="weekly-today-focus"><Sparkles /><span><small>{isYoungTeam ? "SPIELIDEE FÜR HEUTE" : "TRAININGSIMPULS"}</small><strong>{weekRecommendation.title}</strong></span>{firstWeekTraining?.date === todayKey && <button onClick={() => { selectDay(todayKey); setView("plan"); }}>Zum Training <ChevronRight /></button>}</div>}
     </section>
     <section className="week-glance-card weekly-rest-card">
-      <div className="weekly-section-title"><span><CalendarDays /></span><div><small>2 · WAS PASSIERT DIESE WOCHE?</small><h2>Als Nächstes</h2></div><em>{weekMonday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })} – {weekSunday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</em></div>
+      <div className="weekly-section-title"><span><CalendarDays /></span><div><h2>Diese Woche</h2></div><em>{weekMonday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })} – {weekSunday.toLocaleDateString("de-DE", { day: "2-digit", month: "short" })}</em></div>
       <div className="weekly-event-list">{laterWeekEvents.map(weeklyEventRow)}{laterWeekEvents.length === 0 && <div className="weekly-empty"><CalendarDays /><span><strong>Keine weiteren Termine</strong><small>Für den Rest der Woche ist nichts eingetragen.</small></span></div>}</div>
-      {laterWeekEvents.length > 0 && <p className="weekly-swipe-hint"><span>Nach links wischen</span><Trash2 /> zum Löschen</p>}
     </section>
-    <section className="weekly-tasks-card weekly-tasks-full"><div className="weekly-section-title"><span><AlertTriangle /></span><div><small>3 · WAS MUSS ICH NOCH TUN?</small><h2>Offene Aufgaben</h2></div><em>{weekTasks.length}</em></div><div className="weekly-task-list">{weekTasks.slice(0, 3).map((task) => <button key={task.id} onClick={task.action}><i className={task.tone} /><span><strong>{task.title}</strong><small>{task.text}</small></span><em>{task.label}</em><ChevronRight /></button>)}{weekTasks.length === 0 && <div className="weekly-done"><Check /><span><strong>Alles vorbereitet</strong><small>Für diese Woche ist nichts mehr offen.</small></span></div>}{weekTasks.length > 3 && <small className="weekly-more">+ {weekTasks.length - 3} weitere Aufgaben</small>}</div></section>
+    <section className="weekly-tasks-card weekly-tasks-full"><div className="weekly-section-title"><span><AlertTriangle /></span><div><h2>Offene Aufgaben</h2></div><em>{weekTasks.length}</em></div><div className="weekly-task-list">{weekTasks.slice(0, weeklyTaskLimit).map((task) => <button key={task.id} onClick={task.action}><i className={task.tone} /><span><strong>{task.title}</strong><small>{task.text}</small></span><em>{task.label}</em><ChevronRight /></button>)}{weekTasks.length === 0 && <div className="weekly-done"><Check /><span><strong>Alles vorbereitet</strong><small>Für diese Woche ist nichts mehr offen.</small></span></div>}{weekTasks.length > weeklyTaskLimit && <button type="button" className="weekly-more" onClick={() => setWeeklyTaskLimit((limit) => Math.min(limit + 1, weekTasks.length))}>+ {weekTasks.length - weeklyTaskLimit} {weekTasks.length - weeklyTaskLimit === 1 ? "weitere Aufgabe" : "weitere Aufgaben"}</button>}</div></section>
   </section>;
   const overview = (
     <section className="overview-page">

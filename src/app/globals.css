@@ -2679,7 +2679,7 @@ html[data-theme="light"] .event-header-times small { color: #63786b; }
 .weekly-done > svg { width: 23px; }
 .weekly-done strong, .weekly-done small { display: block; }
 .weekly-done strong { font-size: 11px; }.weekly-done small { margin-top: 3px; color: var(--muted); font-size: 8px; }
-.weekly-more { display: block; padding: 7px 0 2px; color: var(--muted); font-size: 7px; text-align: center; }
+.weekly-more { width: 100%; min-height: 36px; display: flex; align-items: center; justify-content: center; margin-top: 5px; padding: 7px; border: 1px dashed #365243; border-radius: 8px; background: rgba(44,118,65,.08); color: #72d989; font-size: 8px; font-weight: 800; text-align: center; }
 .weekly-recommendation { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 14px; align-items: center; padding: 17px; }
 .recommendation-orbit { width: 62px; height: 62px; display: grid; place-items: center; border-radius: 20px; background: radial-gradient(circle at 30% 25%, #6fe18a, #258e46); color: white; box-shadow: 0 10px 24px rgba(34,153,70,.22); transform: rotate(-3deg); }
 .recommendation-orbit svg { width: 27px; transform: rotate(3deg); }
@@ -2764,8 +2764,6 @@ html[data-theme="light"] .dashboard-view-options > button.active { border-color:
 .weekly-swipe-row.revealed .weekly-event-main { transform: translateX(-92px); }
 .weekly-swipe-delete { position: absolute; z-index: 1; top: 0; right: 0; bottom: 0; width: 92px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 0; background: #be3f38; color: white; font-size: 8px; font-weight: 850; }
 .weekly-swipe-delete svg { width: 18px; }
-.weekly-swipe-hint { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin: 0; padding: 7px 13px; border-top: 1px solid var(--line); color: #73887d; font-size: 7px; }
-.weekly-swipe-hint svg { width: 11px; color: #d7645e; }
 .weekly-today-focus { display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-top: 1px solid var(--line); background: rgba(39,147,70,.08); }
 .weekly-today-focus > svg { width: 17px; color: #66d882; }
 .weekly-today-focus > span { min-width: 0; }
@@ -2794,7 +2792,6 @@ html[data-theme="light"] .weekly-today-focus { background: #eff9f2; }
   .weekly-dashboard-days { margin-bottom: 10px; border-radius: 13px; }
   .weekly-event-list .weekly-event-main { grid-template-columns: 39px minmax(0,1fr) auto; gap: 9px; padding: 12px 11px; }
   .weekly-event-list .weekly-event-main > svg { display: none; }
-  .weekly-swipe-hint { padding-block: 8px; font-size: 8px; }
   .weekly-today-focus { padding: 10px 11px; }
 }
 
@@ -2804,4 +2801,47 @@ html[data-theme="light"] .weekly-today-focus { background: #eff9f2; }
   .weekly-event-list .weekly-event-state i { width: 8px; height: 8px; }
   .weekly-today-focus button { font-size: 0; }
   .weekly-today-focus button svg { width: 15px; }
+}
+
+/* Attendance is a primary coaching signal, not secondary event metadata. */
+.weekly-event-list .weekly-event-main { grid-template-columns: 42px minmax(0,1fr) 14px; }
+.weekly-event-copy > small, .weekly-event-copy > strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weekly-event-copy > small { color: #789084; font-size: 8px; font-weight: 850; text-transform: none; }
+.weekly-event-copy > strong { margin-top: 4px; font-size: 14px; line-height: 1.2; }
+.weekly-event-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 9px; }
+.weekly-participant-count, .weekly-plan-state { display: inline-flex; align-items: center; min-width: 0; }
+.weekly-participant-count { gap: 5px; color: #72dc89; }
+.weekly-participant-count svg { width: 15px; height: 15px; stroke-width: 2.2; }
+.weekly-participant-count b { color: var(--text); font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+.weekly-participant-count em, .weekly-plan-state em { overflow: visible; margin: 0; color: var(--muted); font-size: 9px; font-style: normal; white-space: nowrap; }
+.weekly-plan-state { gap: 6px; }
+.weekly-plan-state i { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #62d77e; box-shadow: 0 0 0 4px rgba(98,215,126,.1); }
+.weekly-plan-state.open i { background: #edbd50; box-shadow: 0 0 0 4px rgba(237,189,80,.11); }
+.weekly-plan-state.cancelled i { background: #ed726c; box-shadow: 0 0 0 4px rgba(237,114,108,.11); }
+.weekly-event-main.is-today { padding-top: 16px; padding-bottom: 16px; }
+.weekly-event-main.is-today .weekly-event-icon { width: 46px; height: 46px; border-radius: 13px; }
+.weekly-event-main.is-today .weekly-event-icon svg { width: 22px; }
+.weekly-event-main.is-today .weekly-event-copy > small { color: #70cf85; font-size: 9px; }
+.weekly-event-main.is-today .weekly-event-copy > strong { margin-top: 5px; font-size: 17px; }
+.weekly-event-main.is-today .weekly-event-facts { margin-top: 11px; gap: 10px 18px; }
+.weekly-event-main.is-today .weekly-participant-count svg { width: 18px; height: 18px; }
+.weekly-event-main.is-today .weekly-participant-count b { font-size: 22px; }
+.weekly-event-main.is-today .weekly-participant-count em, .weekly-event-main.is-today .weekly-plan-state em { font-size: 10px; font-weight: 700; }
+.weekly-today-title h2 { text-transform: capitalize; }
+
+html[data-theme="light"] .weekly-participant-count { color: #218a42; }
+
+@media(max-width:760px){
+  .weekly-event-list .weekly-event-main { grid-template-columns: 40px minmax(0,1fr) 12px; gap: 10px; padding: 14px 12px; }
+  .weekly-event-main.is-today { grid-template-columns: 46px minmax(0,1fr) 12px; padding-top: 17px; padding-bottom: 17px; }
+  .weekly-event-copy > strong { font-size: 14px; }
+  .weekly-event-main.is-today .weekly-event-copy > strong { font-size: 17px; }
+  .weekly-participant-count b { font-size: 17px; }
+}
+
+@media(max-width:390px){
+  .weekly-event-list .weekly-event-main { grid-template-columns: 40px minmax(0,1fr); }
+  .weekly-event-main.is-today { grid-template-columns: 46px minmax(0,1fr); }
+  .weekly-event-main > svg { display: none; }
+  .weekly-event-facts { gap: 7px 12px; }
 }
