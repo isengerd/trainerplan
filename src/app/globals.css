@@ -2623,13 +2623,13 @@ html[data-theme="light"] .event-header-times small { color: #63786b; }
 .weekly-age-mark { flex: 0 0 auto; padding: 7px 10px; border: 1px solid #3b6d49; border-radius: 999px; background: #143221; color: #70dc89; font-size: 7px; font-weight: 900; letter-spacing: .11em; }
 .weekly-dashboard.youth-team .weekly-age-mark { border-color: #526b83; background: #172737; color: #83bde7; }
 .week-glance-card, .weekly-tasks-card, .weekly-recommendation-card { overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(145deg, #12231e, #0c1915); box-shadow: 0 14px 36px rgba(0,0,0,.12); }
-.weekly-section-title { min-height: 62px; display: flex; align-items: center; gap: 10px; padding: 12px 15px; border-bottom: 1px solid var(--line); }
-.weekly-section-title > span { width: 35px; height: 35px; flex: 0 0 35px; display: grid; place-items: center; border-radius: 10px; background: #193c27; color: #69dc85; }
-.weekly-section-title > span svg { width: 18px; }
+.weekly-section-title { min-height: 54px; display: flex; align-items: center; gap: 9px; padding: 10px 15px; border-bottom: 1px solid var(--line); }
+.weekly-section-title > span { width: 27px; height: 27px; flex: 0 0 27px; display: grid; place-items: center; border-radius: 8px; background: transparent; color: #69b97b; }
+.weekly-section-title > span svg { width: 16px; }
 .weekly-section-title > div { min-width: 0; }
 .weekly-section-title small { display: block; color: #6f877a; font-size: 7px; font-weight: 900; letter-spacing: .12em; }
-.weekly-section-title h2 { margin: 3px 0 0; font-size: 16px; letter-spacing: -.025em; }
-.weekly-section-title > em { margin-left: auto; color: var(--muted); font-size: 9px; font-style: normal; white-space: nowrap; }
+.weekly-section-title h2 { margin: 0; color: var(--muted); font-size: 15px; font-weight: 500; letter-spacing: -.015em; }
+.weekly-section-title > em { margin-left: auto; color: var(--muted); font-size: 10px; font-style: normal; font-weight: 400; white-space: nowrap; }
 .week-day-strip { display: grid; grid-template-columns: repeat(7, 1fr); padding: 9px 13px; border-bottom: 1px solid var(--line); background: rgba(7,20,14,.35); }
 .week-day-strip > div { position: relative; min-height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; color: #72887d; }
 .week-day-strip span { font-size: 7px; font-weight: 900; text-transform: uppercase; }
@@ -2705,7 +2705,7 @@ html[data-theme="light"] .event-header-times small { color: #63786b; }
 html[data-theme="light"] .week-glance-card, html[data-theme="light"] .weekly-tasks-card, html[data-theme="light"] .weekly-recommendation-card { border-color: #d4e1d7; background: #fff; box-shadow: 0 12px 34px rgba(32,75,44,.08); }
 html[data-theme="light"] .weekly-age-mark { border-color: #a8d7b3; background: #e7f6eb; color: #18753a; }
 html[data-theme="light"] .weekly-dashboard.youth-team .weekly-age-mark { border-color: #bad5e6; background: #eaf5fb; color: #2c6d96; }
-html[data-theme="light"] .weekly-section-title > span { background: #dff3e4; color: #1d8840; }
+html[data-theme="light"] .weekly-section-title > span { background: transparent; color: #3f8b54; }
 html[data-theme="light"] .week-day-strip { background: #f5f9f6; }
 html[data-theme="light"] .week-day-strip strong { color: #354a3c; }
 html[data-theme="light"] .week-day-strip .today { background: #d9f2df; color: #177338; box-shadow: inset 0 0 0 1px #7dcc8f; }
@@ -2726,10 +2726,10 @@ html[data-theme="light"] .dashboard-view-options > button.active { border-color:
   .weekly-dashboard-hero p { font-size: 10px; }
   .weekly-age-mark { margin-top: 2px; padding: 6px 8px; font-size: 6px; }
   .week-glance-card, .weekly-tasks-card, .weekly-recommendation-card { border-radius: 14px; }
-  .weekly-section-title { min-height: 58px; padding: 10px 11px; }
-  .weekly-section-title > span { width: 33px; height: 33px; flex-basis: 33px; }
+  .weekly-section-title { min-height: 52px; padding: 10px 12px; }
+  .weekly-section-title > span { width: 26px; height: 26px; flex-basis: 26px; }
   .weekly-section-title h2 { font-size: 15px; }
-  .weekly-section-title > em { font-size: 8px; }
+  .weekly-section-title > em { font-size: 10px; }
   .week-day-strip { padding: 7px 6px; }
   .week-day-strip > div { min-height: 52px; }
   .weekly-event-list > button { grid-template-columns: 39px minmax(0,1fr) auto; gap: 9px; padding: 12px 11px; }
@@ -2806,14 +2806,14 @@ html[data-theme="light"] .weekly-today-focus { background: #eff9f2; }
 /* Attendance is a primary coaching signal, not secondary event metadata. */
 .weekly-event-list .weekly-event-main { grid-template-columns: 42px minmax(0,1fr) 14px; }
 .weekly-event-copy > small, .weekly-event-copy > strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.weekly-event-copy > small { color: #789084; font-size: 8px; font-weight: 850; text-transform: none; }
-.weekly-event-copy > strong { margin-top: 4px; font-size: 14px; line-height: 1.2; }
+.weekly-event-copy > small { color: var(--muted); font-size: 10px; font-weight: 400; text-transform: none; }
+.weekly-event-copy > strong { margin-top: 4px; font-size: 15px; font-weight: 500; line-height: 1.25; }
 .weekly-event-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 9px; }
 .weekly-participant-count, .weekly-plan-state { display: inline-flex; align-items: center; min-width: 0; }
 .weekly-participant-count { gap: 5px; color: #72dc89; }
 .weekly-participant-count svg { width: 15px; height: 15px; stroke-width: 2.2; }
 .weekly-participant-count b { color: var(--text); font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
-.weekly-participant-count em, .weekly-plan-state em { overflow: visible; margin: 0; color: var(--muted); font-size: 9px; font-style: normal; white-space: nowrap; }
+.weekly-participant-count em, .weekly-plan-state em { overflow: visible; margin: 0; color: var(--muted); font-size: 10px; font-style: normal; font-weight: 400; white-space: nowrap; }
 .weekly-plan-state { gap: 6px; }
 .weekly-plan-state i { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #62d77e; box-shadow: 0 0 0 4px rgba(98,215,126,.1); }
 .weekly-plan-state.open i { background: #edbd50; box-shadow: 0 0 0 4px rgba(237,189,80,.11); }
@@ -2821,12 +2821,12 @@ html[data-theme="light"] .weekly-today-focus { background: #eff9f2; }
 .weekly-event-main.is-today { padding-top: 16px; padding-bottom: 16px; }
 .weekly-event-main.is-today .weekly-event-icon { width: 46px; height: 46px; border-radius: 13px; }
 .weekly-event-main.is-today .weekly-event-icon svg { width: 22px; }
-.weekly-event-main.is-today .weekly-event-copy > small { color: #70cf85; font-size: 9px; }
-.weekly-event-main.is-today .weekly-event-copy > strong { margin-top: 5px; font-size: 17px; }
+.weekly-event-main.is-today .weekly-event-copy > small { color: var(--muted); font-size: 10px; }
+.weekly-event-main.is-today .weekly-event-copy > strong { margin-top: 5px; font-size: 15px; font-weight: 500; }
 .weekly-event-main.is-today .weekly-event-facts { margin-top: 11px; gap: 10px 18px; }
 .weekly-event-main.is-today .weekly-participant-count svg { width: 18px; height: 18px; }
 .weekly-event-main.is-today .weekly-participant-count b { font-size: 22px; }
-.weekly-event-main.is-today .weekly-participant-count em, .weekly-event-main.is-today .weekly-plan-state em { font-size: 10px; font-weight: 700; }
+.weekly-event-main.is-today .weekly-participant-count em, .weekly-event-main.is-today .weekly-plan-state em { font-size: 10px; font-weight: 400; }
 .weekly-today-title h2 { text-transform: capitalize; }
 
 html[data-theme="light"] .weekly-participant-count { color: #218a42; }
@@ -2834,8 +2834,8 @@ html[data-theme="light"] .weekly-participant-count { color: #218a42; }
 @media(max-width:760px){
   .weekly-event-list .weekly-event-main { grid-template-columns: 40px minmax(0,1fr) 12px; gap: 10px; padding: 14px 12px; }
   .weekly-event-main.is-today { grid-template-columns: 46px minmax(0,1fr) 12px; padding-top: 17px; padding-bottom: 17px; }
-  .weekly-event-copy > strong { font-size: 14px; }
-  .weekly-event-main.is-today .weekly-event-copy > strong { font-size: 17px; }
+  .weekly-event-copy > strong { font-size: 15px; }
+  .weekly-event-main.is-today .weekly-event-copy > strong { font-size: 15px; }
   .weekly-participant-count b { font-size: 17px; }
 }
 
