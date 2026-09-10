@@ -215,13 +215,8 @@ export function CalendarPage({ events, plannedTrainings = [], tournamentPlans = 
   }
 
   function openTournamentPlanningFromDetail(eventId: string) {
-    if (usesMobileEventNavigation() && window.history.state?.nextSessionEventDialog) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("termin");
-      const state = { ...window.history.state };
-      delete state.nextSessionEventDialog;
-      window.history.replaceState(state, "", url);
-    }
+    // Keep the event dialog as the previous history entry. The planning view
+    // creates its own entry, so an iOS back swipe can restore this exact event.
     setSelected(null);
     onOpenTournamentPlanning?.(eventId);
   }

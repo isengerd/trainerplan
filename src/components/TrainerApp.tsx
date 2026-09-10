@@ -222,7 +222,10 @@ export function TrainerApp() {
 
   useEffect(() => {
     const syncViewFromHistory = () => {
-      setViewState(viewFromLocation());
+      const nextView = viewFromLocation();
+      setViewState(nextView);
+      const returnEventId = window.history.state?.nextSessionEventDialog as string | undefined;
+      if (nextView === "calendar" && returnEventId) setCalendarFocusId(returnEventId);
       setAccountMenuOpen(false);
       setMobileMenuOpen(false);
       if (!window.history.state?.nextSessionExerciseDialog) {
