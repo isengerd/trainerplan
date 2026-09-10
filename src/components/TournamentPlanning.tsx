@@ -23,6 +23,7 @@ type Props = {
 
 const today = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
 const eventDate = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "long", year: "numeric" });
+const EMPTY_TOURNAMENT_SQUADS: TournamentSquad[] = [];
 
 export function TournamentPlanningPage(props: Props) {
   const { events, users, plans, settings, ageGroups, currentUser, selectedEventId, onPlansChange, onPublicationChange, onCreateTournament } = props;
@@ -47,7 +48,7 @@ export function TournamentPlanningPage(props: Props) {
 
   const selected = tournaments.find((event) => event.id === selectedId) ?? null;
   const selectedPlan = plans.find((plan) => plan.eventId === selectedId);
-  const squads = selectedPlan?.squads ?? [];
+  const squads = selectedPlan?.squads ?? EMPTY_TOURNAMENT_SQUADS;
 
   if (!canManage) return <PlayerTournamentTeams tournaments={tournaments} plans={plans} users={users} currentUser={currentUser} />;
 
