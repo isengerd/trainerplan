@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       playerIds: organization?.managedPlayers.filter((player) => player.teamId === event.teamId).map((player) => player.id) ?? [],
     })),
     exercises: managesSportingContent ? exercises.map((exercise) => exercise.data) : [],
-    settings: config.settings,
+    settings: { ...(config.settings as Record<string, unknown>), teamAgeGroup: organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup },
     plans: managesSportingContent ? config.plans : {},
     templates: managesSportingContent ? config.templates : [],
     planMeta: managesSportingContent ? config.planMeta : Object.fromEntries(Object.entries(config.planMeta as Record<string, { name?: string }>).map(([date, meta]) => [date, { name: meta?.name ?? "Training", focus: [] }])),

@@ -555,7 +555,17 @@ export function TrainerApp() {
   }
 
   function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
-  function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next); }
+  function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next).then(() => loadBootstrap()); }
+
+  async function removePlayerFromTeam(player: ClubUser) {
+    if (currentUser?.role !== "admin" || !window.confirm(`„${player.name}“ aus dieser Mannschaft entfernen? Künftige Zusagen und Einteilungen werden entfernt. Elternkonten, andere Mannschaften und bisherige Daten bleiben erhalten.`)) return;
+    const response = await fetch(`/api/v1/players/${encodeURIComponent(player.id)}`, { method: "DELETE", credentials: "include" });
+    const result = await response.json().catch(() => ({})) as { error?: string };
+    if (!response.ok) throw new Error(result.error ?? "Spieler konnte nicht entfernt werden.");
+    setView("team");
+    await loadBootstrap();
+    showToast("Spieler aus Mannschaft entfernt");
+  }
 
   function deletePlannedTraining(date: string) {
     setPlans((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key !== date)));
@@ -1004,14 +1014,14 @@ export function TrainerApp() {
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} />
     : view === "team"
-      ? (accessManagementEnabled || currentUser.role === "admin" ? <TeamPage users={users} invitations={invitations} currentUser={currentUser} accessManagementEnabled={accessManagementEnabled} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} smtpConfigured={smtp.configured} onInvited={() => void loadBootstrap()} /> : overview)
+      ? (accessManagementEnabled || currentUser.role === "admin" ? <TeamPage teamAgeGroup={organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? clubSettings.teamAgeGroup} users={users} invitations={invitations} currentUser={currentUser} accessManagementEnabled={accessManagementEnabled} onUsersChange={updateUsers} onProfile={(user) => { setProfileUserId(user.id); setView("profile"); }} smtpConfigured={smtp.configured} onInvited={() => void loadBootstrap()} /> : overview)
       : view === "profile" && profileUser
-        ? <ProfilePage user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={!profileUser.managedProfile && profileUser.id === currentUser.id} canRequestEmailChange={!profileUser.managedProfile && (profileUser.id === currentUser.id || currentUser.role === "admin")} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageAccess={currentUser.role === "admin" && accessManagementEnabled} canManageDevelopment={canManageClub} canManagePlayerEquipment={Boolean(canManageClub && profileUser.role === "player")} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
+        ? <ProfilePage teamAgeGroup={organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? clubSettings.teamAgeGroup} onRemove={currentUser.role === "admin" && profileUser.role === "player" && profileUser.id !== currentUser.id ? () => removePlayerFromTeam(profileUser) : undefined} user={profileUser} editable={profileUser.id === currentUser.id || currentUser.role === "admin"} canChangePassword={!profileUser.managedProfile && profileUser.id === currentUser.id} canRequestEmailChange={!profileUser.managedProfile && (profileUser.id === currentUser.id || currentUser.role === "admin")} emailChangeByAdmin={currentUser.role === "admin" && profileUser.id !== currentUser.id} canManageAccess={currentUser.role === "admin" && accessManagementEnabled} canManageDevelopment={canManageClub} canManagePlayerEquipment={Boolean(canManageClub && profileUser.role === "player")} splitTeamsEnabled={clubSettings.splitTeamsEnabled} onSave={updateUser} onChangePassword={changePassword} onBack={profileUser.id !== currentUser.id ? () => setView("team") : undefined} />
         : view === "license" && organization?.isClubAdmin
           ? <LicensePage organization={organization} ageGroups={ageGroups} onReload={() => void loadBootstrap()} />
         : view === "settings"
           ? currentUser.role === "admin"
-            ? <AdminSettingsPage settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} smtp={smtp} push={push} organization={organization} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
+            ? <AdminSettingsPage onOpenTeam={() => setView("team")} settings={clubSettings} currentUser={currentUser} users={users} groups={groups} ageGroups={ageGroups} smtp={smtp} push={push} organization={organization} onSave={updateSettings} onUsersChange={updateUsers} onReload={() => void loadBootstrap()} />
             : <UserSettingsPage currentUser={currentUser} onSave={updateUser} />
           : null;
 

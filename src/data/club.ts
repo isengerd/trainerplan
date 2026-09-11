@@ -124,6 +124,7 @@ export type FamilyDashboardEvent = ClubEvent & {
 };
 
 export type ClubSettings = {
+  teamAgeGroup?: string;
   theme: "dark" | "light";
   dashboardView: "calendar" | "week";
   teamFeatureEnabled: boolean;

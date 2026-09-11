@@ -13,26 +13,27 @@ import { hasAccessManagement } from "@/lib/license";
 
 export async function POST(request: NextRequest) {
   const user = await sensitiveAuthenticatedUser(request);
-  if (!user || user.role !== "admin") return NextResponse.json({ error: "Nur Admins dürfen Kinderprofile anlegen." }, { status: user ? 403 : 401 });
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Nur Admins dürfen Spielerprofile anlegen." }, { status: user ? 403 : 401 });
   try {
     const body = await readJson<{ name?: unknown; birthday?: unknown; guardianName?: unknown; guardianEmail?: unknown; sendEmail?: boolean }>(request, 32_000);
-    const name = textValue(body.name, "Name des Kindes", 100, 2);
-    const birthday = textValue(body.birthday, "Geburtsdatum", 10, 10);
-    const parsedBirthday = new Date(`${birthday}T12:00:00Z`);
-    if (Number.isNaN(parsedBirthday.getTime()) || parsedBirthday.toISOString().slice(0, 10) !== birthday || parsedBirthday >= new Date()) throw new ApiInputError("Bitte gib ein gültiges Geburtsdatum an.");
+    const name = textValue(body.name, "Name des Spielers", 100, 2);
+    const birthday = body.birthday == null || body.birthday === "" ? "" : textValue(body.birthday, "Geburtsdatum", 10, 10);
+    const parsedBirthday = birthday ? new Date(`${birthday}T12:00:00Z`) : null;
+    if (parsedBirthday && (Number.isNaN(parsedBirthday.getTime()) || parsedBirthday.toISOString().slice(0, 10) !== birthday || parsedBirthday >= new Date())) throw new ApiInputError("Bitte gib ein gültiges Geburtsdatum an.");
     const guardianEmail = body.guardianEmail ? emailValue(body.guardianEmail) : null;
     const guardianName = typeof body.guardianName === "string" ? body.guardianName.trim().slice(0, 100) : "";
     const scope = await activeClubScope(user);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
     const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
     const accessEnabled = hasAccessManagement(club.licenseType, club.licenseExpiresAt);
+    const team = await prisma.team.findFirstOrThrow({ where: { id: scope.teamId, clubId: scope.clubId }, select: { ageGroup: true } });
     const existingGuardian = guardianEmail ? await prisma.user.findUnique({ where: { email: guardianEmail } }) : null;
     if (existingGuardian?.managedProfile) throw new ApiInputError("Diese Adresse gehört zu einem Spielerprofil.");
     const tokenData = accessEnabled && !existingGuardian ? createInvitationToken() : null;
     const baseUrl = tokenData ? applicationUrl(request) : null;
     const playerId = `player-${randomUUID()}`;
     const result = await prisma.$transaction(async (tx) => {
-      const player = await tx.user.create({ data: { id: playerId, name, email: `${playerId}@profiles.invalid`, passwordHash: await bcrypt.hash(randomUUID(), 12), role: "player", position: "Allrounder", birthday: parsedBirthday, ageGroup: ageGroupForBirthday(parsedBirthday) ?? "", activeTeamId: scope.teamId, managedProfile: true, loginEnabled: false } });
+      const player = await tx.user.create({ data: { id: playerId, name, email: `${playerId}@profiles.invalid`, passwordHash: await bcrypt.hash(randomUUID(), 12), role: "player", position: "Allrounder", birthday: parsedBirthday, ageGroup: ageGroupForBirthday(parsedBirthday) ?? team.ageGroup.toUpperCase(), activeTeamId: scope.teamId, managedProfile: true, loginEnabled: false } });
       await tx.membership.create({ data: { userId: player.id, clubId: scope.clubId, teamId: scope.teamId, role: "player" } });
       if (accessEnabled && existingGuardian) {
         await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: existingGuardian.id, playerId: player.id } }, update: {}, create: { guardianId: existingGuardian.id, playerId: player.id } });

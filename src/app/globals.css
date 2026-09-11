@@ -3348,3 +3348,42 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .event-delete-dialog .event-delete-confirm { background: #a9312b; border-color: #a9312b; color: white; }
 .event-delete-dialog button:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 480px) { .event-delete-dialog { padding: 20px; }.event-delete-dialog footer { flex-direction: column; } }
+
+/* Profile fields and access settings must fit desktop columns and narrow phones. */
+.profile-card, .profile-card .form-row > *, .settings-fields > * { min-width: 0; }
+.profile-card .form-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-card input, .profile-card select { width: 100%; max-width: 100%; font-size: 16px; }
+.profile-card label > span { font-size: 14px; line-height: 1.45; }
+.profile-access-summary, .profile-email-field {
+  display: grid; align-content: start; gap: 8px; min-width: 0;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--panel); overflow-wrap: anywhere;
+}
+.profile-access-summary > span, .profile-email-field > span { color: var(--muted); font-size: 14px; font-weight: 700; }
+.profile-access-summary strong, .profile-email-field p { margin: 0; font-size: 16px; line-height: 1.5; }
+.profile-access-summary small, .profile-email-field > small { color: var(--muted); font-size: 14px; line-height: 1.5; }
+.profile-email-field > button { display: inline-flex; align-items: center; gap: 8px; justify-self: start; min-height: 44px; font-size: 14px; }
+.profile-email-field > button svg { width: 18px; }
+.profile-remove-card { margin-top: 20px; }
+.profile-remove-card p { font-size: 16px; line-height: 1.5; }
+.profile-remove-card button { min-height: 44px; }
+.member-access-table .member-rights-head,
+.member-access-table > div:not(.member-rights-head) { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .85fr); gap: 16px; padding: 16px; }
+.member-access-table > div > * { min-width: 0; overflow-wrap: anywhere; }
+.member-access-table strong { font-size: 16px; line-height: 1.5; }
+.member-access-table small { font-size: 14px; line-height: 1.5; }
+.member-access-table select { min-width: 0; min-height: 44px; font-size: 16px; }
+.member-access-table .member-age-group { font-size: 14px; line-height: 1.5; }
+.member-access-table .member-field-label { display: none; }
+.team-standards-card .settings-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.team-standards-card .settings-fields input, .team-standards-card .settings-fields select { width: 100%; min-width: 0; min-height: 44px; font-size: 16px; }
+@media (max-width: 1050px) {
+  .member-access-table .member-rights-head { display: none; }
+  .member-access-table > div:not(.member-rights-head) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .member-access-table > div:not(.member-rights-head) > span { grid-column: 1 / -1; }
+  .member-access-table .member-field-label { display: block; margin-bottom: 6px; font-size: 14px; color: var(--muted); }
+  .member-access-table .member-age-group { grid-row: auto; }
+}
+@media (max-width: 700px) {
+  .profile-card .form-row, .team-standards-card .settings-fields { grid-template-columns: minmax(0, 1fr); }
+}

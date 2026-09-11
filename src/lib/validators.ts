@@ -178,6 +178,7 @@ export function validateSettings(value: unknown): ClubSettings {
     eventDeadlineHours: integerValue(input.eventDeadlineHours, "Ereignisfrist", 0, 720),
     defaultTrainingCapacity: integerValue(input.defaultTrainingCapacity, "Trainingsplätze", 0, 1_000),
     defaultTournamentCapacity: integerValue(input.defaultTournamentCapacity, "Turnierplätze", 0, 1_000),
+    teamAgeGroup: input.teamAgeGroup == null || input.teamAgeGroup === "" ? undefined : textValue(input.teamAgeGroup, "Mannschafts-Altersklasse", 2, 2).toLowerCase(),
     clubName: textValue(input.clubName, "Vereinsname", 120, 1), teamName: textValue(input.teamName, "Mannschaft", 120, 1),
     tournamentMinFYouth: integerValue(input.tournamentMinFYouth, "F-Jugend-Minimum", 0, 99),
     tournamentMaxTeamSize: integerValue(input.tournamentMaxTeamSize, "Maximale Teamgröße", 0, 99),

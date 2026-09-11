@@ -1,0 +1,15 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { ProfilePage } from './src/components/ClubModules';
+import { AdminSettingsPage } from './src/components/AdminSettings';
+import { initialSettings } from './src/data/club';
+Object.assign(globalThis, { React });
+const directory = '/tmp/nextsession-profile-review';
+mkdirSync(directory, {recursive:true});
+const user = {id:'preview',name:'Maximilian Beispiel',email:'maximilian.sehr-langer-familienname@example.org',role:'player' as const,position:'Allrounder',phone:'',birthday:'2018-09-11',ageGroup:'F1',dribblingRating:0,shootingRating:0,passingRating:0};
+const noop=()=>{};
+const profile=(managedProfile:boolean)=>renderToStaticMarkup(<ProfilePage user={{...user,managedProfile}} teamAgeGroup="f2" editable canChangePassword={false} canRequestEmailChange={!managedProfile} emailChangeByAdmin canManageAccess={false} canManageDevelopment canManagePlayerEquipment splitTeamsEnabled={false} onSave={noop} onChangePassword={async()=>null} onRemove={async()=>{}}/>);
+const settings=renderToStaticMarkup(<AdminSettingsPage settings={initialSettings} currentUser={{...user,role:'admin'}} users={[user,{...user,id:'child',managedProfile:true,email:'player-123@profiles.invalid'}]} groups={[]} ageGroups={[{id:'f2',name:'F2 · F-Jugend',ageRange:'7 Jahre',sortOrder:1}]} smtp={{configured:false}} push={{configured:false,devices:0}} organization={{clubId:'preview',clubName:'Testverein',licenseType:'single_team_pro',licenseExpiresAt:null,activeTeamId:'team',isClubAdmin:true,teams:[{id:'team',name:'F2',ageGroup:'f2',role:'admin',memberCount:2}],managedPlayers:[]}} onSave={noop} onUsersChange={noop} onReload={noop} onOpenTeam={noop}/>).replace('desktop-section-general','desktop-section-members');
+const css=readFileSync('src/app/globals.css','utf8');
+for(const [name,markup] of [['child',profile(true)],['account',profile(false)],['settings',settings]]) writeFileSync(`${directory}/${name}.html`,`<!doctype html><html lang="de" data-theme="light"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style><body><main style="max-width:1200px;margin:auto;padding:16px">${markup}</main></body></html>`);

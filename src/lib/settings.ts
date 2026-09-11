@@ -1,3 +1,4 @@
+import { isFirstTeamAgeGroup } from "./age-groups";
 import { Prisma } from "@prisma/client";
 import type { ClubSettings } from "@/data/club";
 import { prisma } from "./db";
@@ -15,7 +16,8 @@ export async function getSettings(user: Pick<User, "id">) {
     ? { settings: scopedConfig.settings }
     : await prisma.appConfig.findUnique({ where: { id: scope ? clubConfigId(scope) : "default" }, select: { settings: true } })
     ?? await prisma.appConfig.findUniqueOrThrow({ where: { id: "default" }, select: { settings: true } });
-  return config.settings as unknown as ClubSettings;
+  const team = scope?.teamId ? await prisma.team.findUnique({ where: { id: scope.teamId }, select: { ageGroup: true } }) : null;
+  return { ...(config.settings as unknown as ClubSettings), teamAgeGroup: team?.ageGroup };
 }
 
 export async function saveSettings(value: unknown, user: Pick<User, "id">) {
@@ -28,11 +30,12 @@ export async function saveSettings(value: unknown, user: Pick<User, "id">) {
   ]);
   if (!config || !membership || membership.role !== "admin") throw new ApiInputError("Nur Mannschaftsadmins dürfen Einstellungen ändern.", 403);
   const current = config.settings as unknown as ClubSettings;
+  if (requested.teamAgeGroup && !isFirstTeamAgeGroup(requested.teamAgeGroup)) throw new ApiInputError("Bitte wähle eine gültige Mannschafts-Altersklasse.");
   const settings = membership.clubAdmin ? requested : { ...requested, clubName: current.clubName, ageGroupIds: current.ageGroupIds };
   if (await prisma.ageGroup.count({ where: { id: { in: settings.ageGroupIds } } }) !== settings.ageGroupIds.length) throw new ApiInputError("Mindestens eine Altersklasse existiert nicht.");
   await prisma.$transaction(async (tx) => {
     await tx.appConfig.update({ where: { id: clubConfigId(scope) }, data: { settings: json(settings) } });
-    if (scope.teamId) await tx.team.update({ where: { id: scope.teamId }, data: { name: settings.teamName } });
+    if (scope.teamId) await tx.team.update({ where: { id: scope.teamId }, data: { name: settings.teamName, ...(settings.teamAgeGroup ? { ageGroup: settings.teamAgeGroup } : {}) } });
     if (membership.clubAdmin) await tx.club.update({ where: { id: scope.clubId }, data: { name: settings.clubName } });
   });
   return settings;
