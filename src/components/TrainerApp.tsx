@@ -167,7 +167,6 @@ export function TrainerApp() {
   const [toastMessage, setToastMessage] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const calendarRef = useRef<HTMLDivElement>(null);
   const planDataReady = useRef(false);
   const lastPersistedPlan = useRef("");
   const latestPlanSnapshot = useRef("");
@@ -272,12 +271,6 @@ export function TrainerApp() {
     }, 450);
     return () => window.clearTimeout(timer);
   }, [plans, planMeta, currentUserId]);
-
-  useEffect(() => {
-    if (view !== "plan") return;
-    const frame = window.requestAnimationFrame(() => scrollToDay(selectedDay, "auto"));
-    return () => window.cancelAnimationFrame(frame);
-  }, [view]);
 
   useEffect(() => { setMobileMenuOpen(false); }, [view]);
 
@@ -610,10 +603,6 @@ export function TrainerApp() {
     showToast(willEnable ? `${selected.phase} wird in neuen Plänen automatisch eingesetzt` : `${selected.phase} ist nicht mehr als Standard gesetzt`);
   }
 
-  function scrollToDay(key: string, behavior: ScrollBehavior = "smooth") {
-    calendarRef.current?.querySelector<HTMLElement>(`[data-day="${key}"]`)?.scrollIntoView({ behavior, inline: "center", block: "nearest" });
-  }
-
   function selectDay(key: string) {
     setSelectedDay(key);
     const defaults = trainingTemplates.filter((template) => template.kind === "phase" && template.autoApply);
@@ -629,7 +618,6 @@ export function TrainerApp() {
 
   function goToToday() {
     selectDay(todayKey);
-    window.setTimeout(() => scrollToDay(todayKey), 0);
   }
 
   function mobileNavigate(nextView: AppView) {
@@ -1005,35 +993,17 @@ export function TrainerApp() {
           <button className="mobile-menu-logout" onClick={() => { setMobileMenuOpen(false); void logout(); }}><LogOut /> Abmelden</button>
         </nav></div>}
 
-        {view === "plan" && <><div className="date-strip-row">
-          <div className="week-strip" ref={calendarRef} aria-label="Trainingstage – horizontal nach rechts scrollen">
-            {days.map((day) => (
-              <button data-day={day.key} key={day.key} className={`${selectedDay === day.key ? "selected" : ""} ${day.key === todayKey ? "today" : ""}`} onClick={() => selectDay(day.key)}>
-                <span>{day.short}</span><strong>{day.date}</strong><em>{day.month}</em><small>{day.label}</small>
-                {(plans[day.key]?.length ?? 0) > 0 && <i />}
-              </button>
-            ))}
-          </div>
-          <button className="today-button" onClick={goToToday} aria-label="Zum aktuellen Datum springen"><CalendarDays /><span>Heute</span></button>
-        </div>
-
-        <div className="mobile-summary">
-          <div><span className="status-dot" /><span><small>AUSGEWÄHLTER TAG</small><strong>{currentDay.full} · {currentDay.time} Uhr</strong></span></div>
-          <span>{total} Min</span>
-        </div></>}
-
         {organization?.isClubAdmin && licenseDaysLeft !== null && licenseDaysLeft >= 0 && licenseDaysLeft <= 14 && <div className="global-license-warning"><AlertTriangle /><span><strong>Deine Lizenz endet {licenseDaysLeft === 0 ? "heute" : `in ${licenseDaysLeft} Tagen`}.</strong><small>Danach wird EM Free aktiv. Daten bleiben erhalten, Zugänge und Pro-Funktionen werden gesperrt.</small></span><button onClick={() => setView("license")}>Lizenz prüfen</button></div>}
         {moduleContent ?? (view === "overview" ? (canManageClub && (clubSettings.dashboardView ?? "calendar") === "week" ? weeklyOverview : overview) : view === "plan" && canManageClub ? <div className="content-grid plan-only-layout">
           <section className="plan-panel card">
-            {canManageClub && <div className="plan-template-tools">
-              <button onClick={() => { setTemplateMode("browse"); setTemplateOpen(true); }}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>
-              <button onClick={() => { setTemplateMode("save"); setTemplateOpen(true); }}><BookmarkPlus /> <span><strong>Als Vorlage sichern</strong><small>Komplett oder einzelne Phase</small></span></button>
-              {planSaveState === "error" && <div className="mobile-plan-save auto-save-info error"><Check /> <span><strong>Speichern fehlgeschlagen</strong><small>Bitte erneut versuchen.</small></span><button onClick={retryPlanSave}>Erneut</button></div>}
-            </div>}
             <div className="plan-heading">
               <div><span className="eyebrow">TRAININGSPLAN · {currentDay.time} UHR</span><h1>{currentPlanMeta.name}</h1><p>{currentDay.full} · {currentTrainingEvent?.location.trim() || "Ort noch offen"}</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
               <div className="plan-heading-actions"><div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div></div>
             </div>
+            {canManageClub && <div className="plan-template-tools">
+              <button onClick={() => { setTemplateMode("browse"); setTemplateOpen(true); }}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>
+              {planSaveState === "error" && <div className="mobile-plan-save auto-save-info error"><Check /> <span><strong>Speichern fehlgeschlagen</strong><small>Bitte erneut versuchen.</small></span><button onClick={retryPlanSave}>Erneut</button></div>}
+            </div>}
             {assignmentExercise && clubSettings.splitTeamsEnabled && <div className="modal-backdrop assignment-editor-backdrop" onMouseDown={() => setAssignmentExerciseId(null)}><section className="assignment-editor" role="dialog" aria-modal="true" aria-labelledby="assignment-editor-title" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">ÜBUNG ZUORDNEN</span><h2 id="assignment-editor-title">{assignmentExercise.title}</h2><p>Team und Trainer gelten nur für diese Übung.</p></div><button onClick={() => setAssignmentExerciseId(null)} aria-label="Zuordnung schließen"><X /></button></header><div className="training-assignment-fields"><label><span>Internes Team</span><select value={assignmentExercise.internalTeam ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { internalTeam: (event.target.value || null) as InternalTeam | null })}><option value="">Gesamte Mannschaft</option><option value="A">Team A</option><option value="B">Team B</option></select></label><label><span>Verantwortlicher Trainer</span><select value={assignmentExercise.trainerId ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { trainerId: event.target.value || null })}><option value="">Noch nicht zugeordnet</option>{availableTrainers.map((trainer) => <option value={trainer.id} key={trainer.id}>{trainer.name}</option>)}</select></label></div><button className="primary assignment-editor-done" onClick={() => setAssignmentExerciseId(null)}><Check /> Fertig</button></section></div>}
 
             <div className="phase-schedule">
@@ -1046,7 +1016,7 @@ export function TrainerApp() {
                     {phaseExercises.map((item) => {
                       const index = plan.findIndex((planned) => planned.id === item.id);
                       return <article className="exercise" key={item.id} style={{ "--accent": item.accent } as React.CSSProperties}>
-                        <div className="stage"><i /><span>{String(index + 1).padStart(2, "0")}</span><select className="phase-select" value={item.category} onChange={(event) => changeExercisePhase(item.id, event.target.value as Exercise["category"])}>{phases.map((option) => <option key={option}>{option}</option>)}</select></div>
+                        <div className="stage"><i /><span>{String(index + 1).padStart(2, "0")}</span><select className="phase-select" aria-label={`Phase für ${item.title}`} value={item.category} onChange={(event) => changeExercisePhase(item.id, event.target.value as Exercise["category"])}>{phases.map((option) => <option key={option}>{option}</option>)}</select></div>
                         <button className="exercise-preview" onClick={() => openExerciseDetail(item)} aria-label={`${item.title} öffnen`}><Pitch variant={item.variant} caption={item.title} /></button>
                         <button className="exercise-copy" onClick={() => openExerciseDetail(item)}>{exerciseAssignmentLabel(item) && <span className="mobile-stage with-assignment">{exerciseAssignmentLabel(item)}</span>}<h3>{item.title}</h3><p>{item.description}</p><small><Users /> {item.players}<Clock3 /> {item.duration} Min <CircleGauge /> {item.intensity}</small></button>
                         {canManageClub && <div className="exercise-row-actions">{clubSettings.splitTeamsEnabled && <button className="exercise-assignment-button" onClick={() => setAssignmentExerciseId(item.id)} aria-label={`Team und Trainer für ${item.title} festlegen`} title="Team und Trainer"><Users /></button>}<button className="remove-button" onClick={() => removeExercise(item.id)} aria-label={`${item.title} entfernen`}><Trash2 /></button></div>}
@@ -1058,6 +1028,9 @@ export function TrainerApp() {
                 </section>;
               })}
             </div>
+            {canManageClub && <footer className="plan-template-tools plan-template-footer">
+              <button onClick={() => { setTemplateMode("save"); setTemplateOpen(true); }}><BookmarkPlus /> <span><strong>Als Vorlage sichern</strong><small>Komplett oder einzelne Phase</small></span></button>
+            </footer>}
             <section className="mobile-material-list">
               <div><span className="eyebrow">AUTOMATISCH BERECHNET</span><h2>Material für diese Einheit</h2></div>
               {requiredMaterials.map((material) => <div className="material" key={material.id}><span>{material.name}</span><strong>{material.count} <small>{material.unit}</small></strong></div>)}
