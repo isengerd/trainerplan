@@ -8,10 +8,16 @@ export function ageInYears(birthday?: string | null, today = new Date()): number
   return Number(day.slice(0, 4)) - Number(birthday.slice(0, 4)) - (day.slice(5) < birthday.slice(5) ? 1 : 0);
 }
 
-export function managedProfileLabel(birthday?: string | null, teamAgeGroup?: string | null, today = new Date()) {
-  const age = ageInYears(birthday, today);
-  if (age !== null) return age < 16 ? "Kinderprofil" : "Spielerprofil";
-  return /^(g|f|e|d|c)[12]$/i.test(teamAgeGroup ?? "") ? "Kinderprofil" : "Spielerprofil";
+/** Describe configured access independently of age and team. */
+export function playerAccessLabel(profile: { managedProfile?: boolean; loginEnabled?: boolean; hasGuardianAccess?: boolean }) {
+  const own = !profile.managedProfile && profile.loginEnabled !== false;
+  if (own && profile.hasGuardianAccess) return "Eigener Zugang + Elternzugang";
+  if (own) return "Eigener Zugang";
+  return profile.hasGuardianAccess ? "Elternzugang" : "Noch kein Zugang";
+}
+
+export function shouldSuggestPlayerLogin(birthday?: string | null, teamAgeGroup?: string | null, today = new Date()) {
+  return (ageInYears(birthday, today) ?? -1) >= 10 || /^(e|d|c|b|a)[12]$/i.test(teamAgeGroup ?? "");
 }
 
 export function visibleProfileEmail(email?: string | null): string {

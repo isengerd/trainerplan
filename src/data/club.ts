@@ -49,6 +49,8 @@ export type ClubUser = {
   passingRating: number;
   internalTeam?: InternalTeam | null;
   managedProfile?: boolean;
+  loginEnabled?: boolean;
+  hasGuardianAccess?: boolean;
   managedPlayerIds?: string[];
   defaultTrainingAttendance?: boolean;
   defaultCompetitionAttendance?: boolean;

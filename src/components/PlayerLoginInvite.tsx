@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { shouldSuggestPlayerLogin } from "@/lib/player-profile";
 
-export function PlayerLoginInvite({ playerId, enabled }: { playerId: string; enabled: boolean }) {
+export function PlayerLoginInvite({ playerId, enabled, birthday, teamAgeGroup }: { playerId: string; enabled: boolean; birthday?: string; teamAgeGroup?: string }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState("");
@@ -21,6 +22,7 @@ export function PlayerLoginInvite({ playerId, enabled }: { playerId: string; ena
   }
   return <section id="player-login-setup" className="profile-card player-login-invite">
     <h2>Eigenen Spielerzugang einrichten</h2>
+    {shouldSuggestPlayerLogin(birthday, teamAgeGroup) && <p className="player-login-suggestion"><strong>Bereit für einen eigenen Zugang?</strong><br />Ab E2 oder etwa zehn Jahren lohnt sich die Absprache: Hat das Kind ein eigenes Smartphone, kann es zusätzlich zu den Eltern selbst zu- und absagen.</p>}
     <p>Der Spieler erhält eine Einladung an seine eigene E-Mail-Adresse. Sein Profil, bisherige Daten und Elternverknüpfungen bleiben erhalten. Der Login wird erst beim Annehmen der Einladung aktiviert.</p>
     {enabled ? <form onSubmit={invite}><label><span>E-Mail-Adresse des Spielers</span><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="spieler@beispiel.de" /></label><button type="submit" className="primary" disabled={busy}>{busy ? "Wird erstellt …" : "Einladung senden"}</button></form> : <p>Verfügbar mit EM Pro oder Vereinslizenz. Nach dem Upgrade richtest du den Zugang an diesem bestehenden Profil ein.</p>}
     {message && <p role="status">{message}</p>}

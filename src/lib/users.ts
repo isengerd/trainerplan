@@ -23,7 +23,7 @@ export async function getUsers(actor: Prisma.UserGetPayload<{}>) {
     ? users.filter((user) => user.id === actor.id || actorRecord?.managedPlayerIds.includes(user.id))
     : actor.role === "player" && !accessManagementEnabled ? users.filter((user) => user.id === actor.id) : users;
   return visibleUsers.map((member) => {
-    const safe = { ...safeUser(member), managedPlayerIds: member.managedPlayerIds ?? [] };
+    const safe = { ...safeUser(member), managedPlayerIds: member.managedPlayerIds ?? [], hasGuardianAccess: users.some((guardian) => guardian.loginEnabled && guardian.managedPlayerIds.includes(member.id)) };
     if (actor.role !== "player" || member.id === actor.id) return safe;
     return { ...safe, email: "", phone: "", birthday: "" };
   });

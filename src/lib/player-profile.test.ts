@@ -1,22 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ageInYears, managedProfileLabel, visibleProfileEmail } from "./player-profile";
+import { ageInYears, playerAccessLabel, shouldSuggestPlayerLogin, visibleProfileEmail } from "./player-profile";
 import { effectiveLicenseType, hasAccessManagement } from "./license";
 import { initialSettings } from "../data/club";
 import { validateSettings } from "./validators";
 const today = new Date("2026-09-11T12:00:00Z");
 
-test("Geburtsdatum hat Vorrang vor Mannschaft und berücksichtigt den Geburtstag", () => {
+test("Altersberechnung berücksichtigt den Geburtstag", () => {
   assert.equal(ageInYears("2010-09-12", today), 15);
   assert.equal(ageInYears("2010-09-11", today), 16);
-  assert.equal(managedProfileLabel("2010-09-11", "f2", today), "Spielerprofil");
-  assert.equal(managedProfileLabel("2018-01-01", "a1", today), "Kinderprofil");
+
 });
 
-test("optionales Geburtsdatum: Mannschaft ist nur eine Anzeigehilfe", () => {
-  assert.equal(managedProfileLabel("", "f2", today), "Kinderprofil");
-  assert.equal(managedProfileLabel(null, "B1", today), "Spielerprofil");
-  assert.equal(managedProfileLabel(null, null, today), "Spielerprofil");
+test("ungültige und zukünftige Geburtsdaten ergeben kein Alter", () => {
+
   assert.equal(ageInYears("2026-02-30", today), null);
   assert.equal(ageInYears("2027-01-01", today), null);
 });
@@ -40,4 +37,20 @@ test("bestehende Einstellungen ohne Altersklasse bleiben gültig", () => {
   assert.equal(validateSettings(initialSettings).teamAgeGroup, undefined);
   assert.equal(validateSettings({ ...initialSettings, teamAgeGroup: "F2" }).teamAgeGroup, "f2");
   assert.throws(() => validateSettings({ ...initialSettings, teamAgeGroup: "F-Jugend" }));
+});
+
+test("Zugänge zeigen tatsächliche Kombinationen statt altersabhängiger Profilnamen", () => {
+  assert.equal(playerAccessLabel({ managedProfile: true }), "Noch kein Zugang");
+  assert.equal(playerAccessLabel({ managedProfile: true, hasGuardianAccess: true }), "Elternzugang");
+  assert.equal(playerAccessLabel({ managedProfile: false }), "Eigener Zugang");
+  assert.equal(playerAccessLabel({ managedProfile: false, hasGuardianAccess: true }), "Eigener Zugang + Elternzugang");
+  assert.equal(playerAccessLabel({ managedProfile: false, loginEnabled: false }), "Noch kein Zugang");
+});
+
+test("Einladung wird ab E2 oder zehn Jahren empfohlen ohne eine Altersgrenze zu erzwingen", () => {
+  assert.equal(shouldSuggestPlayerLogin("2017-09-11", "e2", today), true);
+  assert.equal(shouldSuggestPlayerLogin("2016-09-11", "f1", today), true);
+  assert.equal(shouldSuggestPlayerLogin("2016-09-12", "f1", today), false);
+  assert.equal(shouldSuggestPlayerLogin("", "b2", today), true);
+  assert.equal(shouldSuggestPlayerLogin("", "g2", today), false);
 });

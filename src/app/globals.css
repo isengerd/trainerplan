@@ -3413,3 +3413,4 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .player-login-invite label { min-width: 0; }
 .player-login-invite input { width: 100%; min-width: 0; }
 .profile-access-summary > button { justify-self: start; min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-weight: 600; text-align: left; }
+.player-login-suggestion { padding: 14px 16px; border-left: 3px solid var(--brand); border-radius: 8px; background: var(--panel-strong); }
