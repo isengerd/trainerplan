@@ -215,6 +215,7 @@ model ClubEvent {
   id                    String                  @id
   clubId                String?
   teamId                String?
+  seriesId              String?
   type                  String
   title                 String
   date                  DateTime                @db.Date
@@ -243,6 +244,7 @@ model ClubEvent {
   updatedAt             DateTime                @updatedAt
 
   @@index([clubId, teamId, date])
+  @@index([clubId, teamId, seriesId, date])
 }
 
 model TournamentSquad {

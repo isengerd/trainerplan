@@ -69,3 +69,9 @@ npm run db:deploy
 ```
 
 Für einen späteren regelmäßigen Release-Prozess sollte dieser Schritt in eine geschützte CI/CD-Action mit einem Production-Environment und manueller Freigabe verschoben werden.
+
+### Serienlöschung (Migration `202609110001_event_series`)
+
+Vor dem Deploy dieses Features `npm run db:deploy` mit der Produktions-Datenbankverbindung ausführen. Die Migration ergänzt die nullable Serienkennung und ihren Index; ältere App-Versionen können mit diesem Schema weiterarbeiten. Erst danach die neue App-Version veröffentlichen.
+
+Neue Serien erhalten beim Erstellen eine gemeinsame Kennung. Bereits früher erzeugte Termine besitzen keine verlässliche Serienzuordnung und bleiben einzeln löschbar. Es erfolgt absichtlich keine automatische Gruppierung nach Titel, Datum oder Erstellungszeit, weil dadurch unabhängige Termine gemeinsam gelöscht werden könnten.

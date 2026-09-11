@@ -105,7 +105,9 @@ export type ClubEvent = {
   opponent?: string;
   homeAway?: "home" | "away";
   competition?: string;
-  /** Only used while creating a series. Persisted occurrences are independent events. */
+  /** Server-assigned identity shared by occurrences; individual edits preserve it. */
+  seriesId?: string;
+  /** Creation-only recurrence settings. */
   repeatFrequency?: RepeatFrequency;
   repeatUntil?: string;
   weather?: { condition: "sunny" | "partly-cloudy" | "cloudy"; label: string; temperature: number };

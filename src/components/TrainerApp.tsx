@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EventDeleteDialog } from "./EventDeleteDialog";
+import type { EventDeleteScope } from "@/lib/event-series";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, BookmarkPlus, Boxes, CalendarDays, Check, ChevronRight, CircleGauge, Clock3, CreditCard, Dumbbell, Edit3,
@@ -140,6 +142,9 @@ export function TrainerApp() {
   const [planSaveState, setPlanSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [users, setUsers] = useState<ClubUser[]>([]);
   const [events, setEvents] = useState<ClubEvent[]>([]);
+  const [eventToDelete, setEventToDelete] = useState<{ event: ClubEvent; onDeleted?: () => void } | null>(null);
+  const [eventDeletePending, setEventDeletePending] = useState(false);
+  const [eventDeleteError, setEventDeleteError] = useState("");
   const [familyEvents, setFamilyEvents] = useState<FamilyDashboardEvent[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState(false);
@@ -500,6 +505,33 @@ export function TrainerApp() {
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Termine konnten nicht gespeichert werden.");
       return false;
+    }
+  }
+
+  function requestEventDeletion(event: ClubEvent, onDeleted?: () => void) {
+    if (!canManageClub) return;
+    setEventDeleteError("");
+    setEventToDelete({ event, onDeleted });
+  }
+
+  async function deleteCalendarEvent(scope: EventDeleteScope) {
+    if (!eventToDelete || eventDeletePending || !canManageClub) return;
+    setEventDeletePending(true);
+    setEventDeleteError("");
+    try {
+      const response = await fetch(`/api/v1/events/${encodeURIComponent(eventToDelete.event.id)}?scope=${scope}`, { method: "DELETE", credentials: "include" });
+      const result = await response.json() as { error?: string; deletedIds?: string[] };
+      if (!response.ok || !result.deletedIds) throw new Error(result.error ?? "Termin konnte nicht gelöscht werden.");
+      const deletedIds = new Set(result.deletedIds);
+      setEvents((current) => current.filter((event) => !deletedIds.has(event.id)));
+      setTournamentPlans((current) => current.filter((plan) => !deletedIds.has(plan.eventId)));
+      setEventToDelete(null);
+      eventToDelete.onDeleted?.();
+      showToast(deletedIds.size === 1 ? "Termin gelöscht" : `${deletedIds.size} Termine gelöscht`);
+    } catch (error) {
+      setEventDeleteError(error instanceof Error ? error.message : "Termine konnten nicht gelöscht werden.");
+    } finally {
+      setEventDeletePending(false);
     }
   }
 
@@ -912,9 +944,7 @@ export function TrainerApp() {
     onOpenEvent={openEventDetails} onOpenSquads={openTournament}
     onOpenCalendar={() => setView("calendar")} onOpenTeam={() => setView("team")}
     onBrowseExercises={(date) => { selectDay(date); setView("plan"); openExerciseLibrary("Hauptteil"); }}
-    onDeleteEvent={(event) => {
-      if (window.confirm(`„${event.title}“ endgültig löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.`)) updateEvents(events.filter((item) => item.id !== event.id));
-    }}
+    onDeleteEvent={requestEventDeletion}
   />;
   const overview = (
     <section className="overview-page">
@@ -970,7 +1000,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} tournamentPlans={tournamentPlans} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeletePlannedTraining={deletePlannedTraining} onOpenTournamentPlanning={openTournament} />
+    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} tournamentPlans={tournamentPlans} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeleteEvent={requestEventDeletion} onDeletePlannedTraining={deletePlannedTraining} onOpenTournamentPlanning={openTournament} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} />
     : view === "team"
@@ -1103,6 +1133,7 @@ export function TrainerApp() {
         </nav>
       </section>
 
+      {eventToDelete && <EventDeleteDialog event={eventToDelete.event} followingCount={events.filter((event) => event.seriesId === eventToDelete.event.seriesId && event.date >= eventToDelete.event.date).length} pending={eventDeletePending} error={eventDeleteError} onClose={() => { if (!eventDeletePending) setEventToDelete(null); }} onDelete={deleteCalendarEvent} />}
       {libraryOpen && <div className="picker-backdrop" onMouseDown={closeExerciseDialog}><aside className="exercise-picker" role="dialog" aria-modal="true" aria-label="Übungsbibliothek" onMouseDown={(event) => event.stopPropagation()}><ExerciseLibrary mode="pick" exercises={exerciseLibrary} initialPhase={targetPhase} canManage={Boolean(canManageClub)} onClose={closeExerciseDialog} onDetail={openExerciseDetail} onEdit={(item) => { setEditingExercise(item); setCreatorOpen(true); closeExerciseDialog(); }} onDelete={deleteLibraryExercise} onAdd={(item) => { addExercise(item, targetPhase); closeExerciseDialog(); }} onCreate={() => { setEditingExercise(null); setCreatorOpen(true); closeExerciseDialog(); }} /></aside></div>}
       {creatorOpen && <ExerciseCreator phase={targetPhase} exercise={editingExercise} onClose={() => { setCreatorOpen(false); setEditingExercise(null); }} onSave={saveExercise} />}
       {templateOpen && canManageClub && <TrainingTemplates presentation={mobileTemplatePage ? "page" : "dialog"} mode={templateMode} plan={plan} templates={[...featuredTemplates, ...trainingTemplates]} onModeChange={openTemplates} onApply={applyTrainingTemplate} onSave={saveTrainingTemplate} onDelete={deleteTrainingTemplate} onToggleDefault={toggleDefaultPhase} onClose={closeTemplates} />}

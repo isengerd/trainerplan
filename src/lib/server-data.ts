@@ -79,6 +79,7 @@ type DatabaseEvent = Prisma.ClubEventGetPayload<{ include: { responses: true } }
 export function eventFromDatabase(event: DatabaseEvent): ClubEvent {
   return {
     id: event.id,
+    seriesId: event.seriesId ?? undefined,
     type: event.type as ClubEvent["type"],
     title: event.title,
     date: event.date.toISOString().slice(0, 10),
