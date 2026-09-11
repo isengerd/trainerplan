@@ -1,3 +1,4 @@
+import { authorizedAccount, PAUSED_ACCESS_MESSAGE } from "@/lib/account-access";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createSession, firebaseAuthEnabled, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
@@ -27,8 +28,10 @@ export async function POST(request: NextRequest) {
   }
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.loginEnabled || !(await bcrypt.compare(password, user.passwordHash))) return NextResponse.json({ error: "E-Mail oder Passwort ist nicht korrekt." }, { status: 401 });
+  const authorized = await authorizedAccount(user);
+  if (!authorized) return NextResponse.json({ error: PAUSED_ACCESS_MESSAGE }, { status: 403 });
   const session = await createSession(user.id);
-  const response = NextResponse.json({ user: safeUser(user), token: session.token, expiresAt: session.expiresAt.toISOString() });
+  const response = NextResponse.json({ user: safeUser(authorized), token: session.token, expiresAt: session.expiresAt.toISOString() });
   response.cookies.set(SESSION_COOKIE, session.token, { httpOnly: true, sameSite: "lax", secure: requestUsesHttps(request), path: "/", expires: session.expiresAt });
   return response;
 }

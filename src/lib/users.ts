@@ -10,7 +10,7 @@ import { hasAccessManagement } from "./license";
 
 export async function getUsers(actor: Prisma.UserGetPayload<{}>) {
   const [allUsers, scope] = await Promise.all([
-    prisma.user.findMany({ orderBy: [{ role: "asc" }, { name: "asc" }] }),
+    prisma.user.findMany({ where: { id: actor.id } }),
     activeClubScope(actor),
   ]);
   const users = scope

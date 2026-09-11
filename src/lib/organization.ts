@@ -1,3 +1,4 @@
+import { membershipAllowsAccess } from "./membership-access";
 import type { Role } from "@prisma/client";
 import type { OrganizationContext } from "@/data/club";
 import { prisma } from "./db";
@@ -7,11 +8,11 @@ import { effectiveLicenseType, hasMultipleTeams } from "./license";
 export async function organizationContext(userId: string): Promise<OrganizationContext | null> {
   const scope = await activeClubScope({ id: userId });
   if (!scope) return null;
-  const memberships = await prisma.membership.findMany({
+  const memberships = (await prisma.membership.findMany({
     where: { userId, clubId: scope.clubId, status: "active" },
     include: { team: true, club: true },
     orderBy: { createdAt: "asc" },
-  });
+  })).filter(membershipAllowsAccess);
   const first = memberships[0];
   if (!first) return null;
   const isClubAdmin = memberships.some((membership) => membership.clubAdmin);

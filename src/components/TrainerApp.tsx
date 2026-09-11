@@ -269,6 +269,33 @@ export function TrainerApp() {
   useEffect(() => { void loadBootstrap(); }, []);
 
   useEffect(() => {
+    if (!currentUserId) return;
+    let cancelled = false;
+    let checking = false;
+    const checkAccess = async () => {
+      if (document.visibilityState === "hidden" || checking) return;
+      checking = true;
+      try {
+        const response = await fetch("/api/v1/auth/me", { credentials: "include", cache: "no-store" });
+        if (cancelled) return;
+        if (response.status === 401 || response.status === 403) { clearPrivateData(); return; }
+        if (response.ok) {
+          const result = await response.json() as { user: { activeTeamId?: string | null } };
+          if (!cancelled && organization && result.user.activeTeamId !== organization.activeTeamId) await loadBootstrap();
+        }
+      } catch { /* Offline: no new data can be fetched; the server enforces access. */ }
+      finally { checking = false; }
+    };
+    void checkAccess();
+    const interval = window.setInterval(() => void checkAccess(), 30_000);
+    const refresh = () => void checkAccess();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { cancelled = true; window.clearInterval(interval); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+  }, [currentUserId, view, organization?.activeTeamId]);
+
+
+  useEffect(() => {
     const syncViewFromHistory = () => {
       const nextView = viewFromLocation();
       setViewState(nextView);
@@ -415,13 +442,22 @@ export function TrainerApp() {
     if (teamId !== organization?.activeTeamId) await switchTeam(teamId);
   }
 
+  function clearPrivateData() {
+    planDataReady.current = false;
+    setCurrentUserId(null); setUsers([]); setEvents([]); setFamilyEvents([]);
+    setPlans({}); setPlanMeta({}); setTrainingTemplates([]); setExerciseLibrary([]);
+    setGroups([]); setAgeGroups([]); setInvitations([]); setTournamentPlans([]);
+    setOrganization(null); setProfileUserId(null); setSelectedManagedPlayerId(null);
+    setDetail(null); setEditingExercise(null); setEventToDelete(null);
+  }
+
   async function loadBootstrap() {
     try {
       const response = await fetch("/api/v1/bootstrap", { credentials: "include", cache: "no-store" });
       if (response.ok) applyBootstrap(await response.json() as BootstrapData);
-      else setCurrentUserId(null);
+      else clearPrivateData();
     } catch {
-      setCurrentUserId(null);
+      clearPrivateData();
     } finally {
       setAuthReady(true);
     }

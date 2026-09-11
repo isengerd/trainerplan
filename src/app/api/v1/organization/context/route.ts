@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
+import { membershipAllowsAccess } from "@/lib/membership-access";
 import { organizationContext, requireClubAdmin } from "@/lib/organization";
 
 export async function PUT(request: NextRequest) {
@@ -19,6 +20,8 @@ export async function PUT(request: NextRequest) {
       if (!(await requireClubAdmin(user.id))) throw new ApiInputError("Du bist dieser Mannschaft nicht zugeordnet.", 403);
       membership = await prisma.membership.create({ data: { userId: user.id, clubId: current.clubId, teamId, role: "admin", clubAdmin: true } });
     }
+    const club = await prisma.club.findUniqueOrThrow({ where: { id: current.clubId } });
+    if (!membershipAllowsAccess({ ...membership, club, team })) throw new ApiInputError("Diese Mannschaft ist für deinen Zugang derzeit nicht freigeschaltet.", 403);
     await prisma.user.update({ where: { id: user.id }, data: { activeTeamId: teamId, role: membership.role } });
     return NextResponse.json({ organization: await organizationContext(user.id) });
   } catch (error) {

@@ -6,6 +6,8 @@ import { ageGroupForBirthday } from "./age-groups";
 import { firebaseAdminAuth } from "./firebase-admin";
 import { firebaseIdentityMatches, isRecentFirebaseSignIn } from "./auth-policy";
 
+import { authorizedAccount, PAUSED_ACCESS_MESSAGE } from "./account-access";
+
 export const SESSION_COOKIE = "trainerplan_session";
 const SESSION_DAYS = 30;
 const FIREBASE_SESSION_DAYS = 5;
@@ -84,9 +86,11 @@ export async function createFirebaseSession(idToken: string) {
   if (!user) throw new Error("Für dieses Firebase-Konto ist noch kein NextSession-Zugang eingerichtet.");
   if (!firebaseIdentityMatches(user, { uid: decoded.uid, email })) throw new Error("Das Firebase-Konto stimmt nicht mit NextSession überein.");
   if (!user?.loginEnabled) throw new Error("Dieser Zugang wurde gesperrt.");
+  const authorized = await authorizedAccount(user);
+  if (!authorized) throw new Error(PAUSED_ACCESS_MESSAGE);
   const expiresIn = FIREBASE_SESSION_DAYS * 24 * 60 * 60 * 1000;
   const cookie = await auth.createSessionCookie(idToken, { expiresIn });
-  return { cookie, expiresAt: new Date(Date.now() + expiresIn), user };
+  return { cookie, expiresAt: new Date(Date.now() + expiresIn), user: authorized };
 }
 
 export function sessionCookieSettings(request: NextRequest, expiresAt?: Date) {
@@ -104,11 +108,7 @@ export async function authenticatedUser(request: NextRequest, options: AuthOptio
       if (options.maxAuthAgeSeconds && Date.now() / 1000 - decoded.auth_time > options.maxAuthAgeSeconds) return null;
       const firebaseUser = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid } });
       if (!firebaseUser?.loginEnabled) return null;
-      const membership = await prisma.membership.findFirst({
-        where: { userId: firebaseUser.id, status: "active", team: { active: true }, ...(firebaseUser.activeTeamId ? { teamId: firebaseUser.activeTeamId } : {}) },
-        orderBy: { createdAt: "asc" },
-      }) ?? await prisma.membership.findFirst({ where: { userId: firebaseUser.id, status: "active", team: { active: true } }, orderBy: { createdAt: "asc" } });
-      return membership ? { ...firebaseUser, role: membership.role } : firebaseUser;
+      return await authorizedAccount(firebaseUser);
     } catch {
       return null;
     }
@@ -118,11 +118,7 @@ export async function authenticatedUser(request: NextRequest, options: AuthOptio
     if (session) await prisma.apiSession.delete({ where: { id: session.id } });
     return null;
   }
-  const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id, status: "active", team: { active: true }, ...(session.user.activeTeamId ? { teamId: session.user.activeTeamId } : {}) },
-    orderBy: { createdAt: "asc" },
-  }) ?? await prisma.membership.findFirst({ where: { userId: session.user.id, status: "active", team: { active: true } }, orderBy: { createdAt: "asc" } });
-  return membership ? { ...session.user, role: membership.role } : session.user;
+  return authorizedAccount(session.user);
 }
 
 export function sensitiveAuthenticatedUser(request: NextRequest) {
