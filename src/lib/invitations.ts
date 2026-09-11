@@ -11,12 +11,13 @@ export function invitationTokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export function applicationUrl(request: NextRequest) {
-  const configured = process.env.PUBLIC_APP_URL?.trim();
-  if (!configured && process.env.NODE_ENV === "production") throw new Error("PUBLIC_APP_URL muss für Einladungslinks im Produktivbetrieb gesetzt sein.");
+export function applicationUrl(request: NextRequest, environment: { NODE_ENV?: string; PUBLIC_APP_URL?: string } = process.env) {
+  // Public links always use the product domain, even when opened through Vercel
+  // or when an older deployment still has a Vercel URL configured.
+  if (environment.NODE_ENV === "production") return "https://nextsession.de";
+  const configured = environment.PUBLIC_APP_URL?.trim();
   const url = new URL(configured || request.nextUrl.origin);
-  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (!/^https?:$/.test(url.protocol) || (process.env.NODE_ENV === "production" && url.protocol !== "https:" && !local)) throw new Error("PUBLIC_APP_URL muss eine gültige HTTPS-Adresse sein.");
+  if (!/^https?:$/.test(url.protocol)) throw new Error("PUBLIC_APP_URL muss eine gültige HTTPS-Adresse sein.");
   return url.toString().replace(/\/$/, "");
 }
 

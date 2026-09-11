@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Send, X } from "lucide-react";
 import { roleLabels, type Role } from "@/data/club";
 
-type PendingInvitation = { id: string; email: string; name?: string; role: Role; acceptedAt?: string | null; managedPlayerId?: string | null };
-export function PendingInvitations({ invitations, users = [], onChanged, canResend = true }: { invitations: PendingInvitation[]; users?: Array<{ id: string; name: string }>; onChanged: () => void; canResend?: boolean }) {
+type PendingInvitation = { expiresAt?: string; id: string; email: string; name?: string; role: Role; acceptedAt?: string | null; managedPlayerId?: string | null };
+export function PendingInvitations({ invitations, users = [], onChanged, canResend = true, title = "Ausstehende Einladungen" }: { title?: string; invitations: PendingInvitation[]; users?: Array<{ id: string; name: string }>; onChanged: () => void; canResend?: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [link, setLink] = useState("");
@@ -27,8 +27,8 @@ export function PendingInvitations({ invitations, users = [], onChanged, canRese
     finally { setBusy(null); }
   }
   return <section className="team-pending-invites pending-invitations-panel">
-    <header><span><strong>Ausstehende Einladungen</strong><small>{pending.length ? `${pending.length} noch nicht angenommen` : "Keine ausstehenden Einladungen"}</small></span></header>
-    {pending.map((item) => <article key={item.id}><span><strong>{users.find((user) => user.id === item.managedPlayerId)?.name || item.name || item.email || "Einladung"}</strong><small>{item.role === "guardian" ? "Elternzugang" : item.role === "player" ? "Eigener Spielerzugang" : roleLabels[item.role]} · {item.email || "Ohne E-Mail-Adresse"}</small></span><div className="pending-invite-actions"><button type="button" disabled={Boolean(busy) || !canResend} onClick={() => void act(item, false)}><Send /><span>{item.email ? "Erneut senden" : "Link erneuern"}</span></button><button type="button" className="danger invitation-revoke" disabled={Boolean(busy)} title="Einladung zurücknehmen" aria-label={`Einladung für ${item.email || item.name || "diese Person"} zurücknehmen`} onClick={() => void act(item, true)}><X /></button></div></article>)}
+    <header><span><strong>{title}</strong><small>{pending.length ? `${pending.length} noch nicht angenommen` : "Keine ausstehenden Einladungen"}</small></span></header>
+    {pending.map((item) => <article key={item.id}><span><strong>{users.find((user) => user.id === item.managedPlayerId)?.name || item.name || item.email || "Einladung"}</strong><small>{item.role === "guardian" ? "Elternzugang" : item.role === "player" ? "Eigener Spielerzugang" : roleLabels[item.role]} · {item.email || "Ohne E-Mail-Adresse"}{item.expiresAt && new Date(item.expiresAt) <= new Date() ? " · Link abgelaufen" : " · Einladung offen"}</small></span><div className="pending-invite-actions"><button type="button" disabled={Boolean(busy) || !canResend} onClick={() => void act(item, false)}><Send /><span>{item.email ? "Erneut senden" : "Link erneuern"}</span></button><button type="button" className="danger invitation-revoke" disabled={Boolean(busy)} title="Einladung zurücknehmen" aria-label={`Einladung für ${item.email || item.name || "diese Person"} zurücknehmen`} onClick={() => void act(item, true)}><X /></button></div></article>)}
     {message && <p role="status">{message}</p>}
     {link && <label><span>Erneuerter Einladungslink</span><input readOnly value={link} onFocus={(event) => event.currentTarget.select()} /><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(link); setMessage("Link kopiert."); } catch { setMessage("Bitte den Link markieren und kopieren."); } }}>Link kopieren</button></label>}
   </section>;

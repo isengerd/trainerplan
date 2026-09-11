@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     const { scope } = await managedChild(request, id);
     const [links, invitations] = await Promise.all([
       prisma.guardianPlayer.findMany({ where: { playerId: id, guardian: { memberships: { some: { clubId: scope.clubId, teamId: scope.teamId, status: "active", role: "guardian" } } } }, include: { guardian: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } }),
-      prisma.invitation.findMany({ where: { managedPlayerId: id, role: "guardian", clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null, expiresAt: { gt: new Date() } }, select: { id: true, email: true, expiresAt: true }, orderBy: { createdAt: "asc" } }),
+      prisma.invitation.findMany({ where: { managedPlayerId: id, role: "guardian", clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null }, select: { id: true, email: true, expiresAt: true }, orderBy: { createdAt: "asc" } }),
     ]);
     return NextResponse.json({ guardians: links.map(({ guardian }) => guardian), invitations });
   } catch (error) {
