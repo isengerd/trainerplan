@@ -121,7 +121,7 @@ export function WeeklyDashboard(props: Props) {
   }
 
   return <section className="coach-week" aria-label="Deine Trainingswoche">
-    <header className="coach-week-header"><div><span className="eyebrow">{greeting}, {props.firstName}</span><h1>Deine Trainingswoche</h1><p>{props.teamName} · KW {week.number} <span>· {weekEvents.length} {weekEvents.length === 1 ? "Termin" : "Termine"}</span></p></div><button type="button" className="coach-week-calendar" onClick={props.onOpenCalendar}><CalendarDays size={17} /><span>Kalender</span></button></header>
+    <header className="coach-week-header"><div><span className="eyebrow">{greeting}, {props.firstName}</span><h1>Deine Trainingswoche</h1><p>KW {week.number} <span>· {weekEvents.length} {weekEvents.length === 1 ? "Termin" : "Termine"}</span></p></div><button type="button" className="coach-week-calendar" aria-label="Kalender öffnen" onClick={props.onOpenCalendar}><CalendarDays size={17} /><span>Kalender</span></button></header>
 
     <nav className="coach-week-days" aria-label="Wochentag auswählen">{week.days.map((day) => {
       const dayEvents = weekEvents.filter((event) => event.date === day.key);

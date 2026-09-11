@@ -647,7 +647,8 @@ export function TrainerApp() {
   const plan = plans[selectedDay] ?? [];
 
   const total = plan.reduce((sum, item) => sum + item.duration, 0);
-  const currentPlanMeta = planMeta[selectedDay] ?? { name: currentDay.theme, focus: [] };
+  const currentTrainingEvent = events.find((event) => event.type === "training" && event.date === selectedDay && !event.cancelledAt);
+  const currentPlanMeta = planMeta[selectedDay] ?? { name: currentTrainingEvent?.title || currentDay.theme, focus: [] };
   const availableTrainers = users.filter((user) => user.role === "admin" || user.role === "trainer");
   const trainerName = (id?: string | null) => users.find((user) => user.id === id)?.name;
   const assignmentExercise = plan.find((exercise) => exercise.id === assignmentExerciseId) ?? null;
@@ -960,7 +961,7 @@ export function TrainerApp() {
 
       <section className="workspace">
         <header className="topbar">
-          <div><span className="eyebrow">{organization?.clubName ?? clubSettings.clubName} · {activeFamilyLabel}</span><h1>{viewTitle}</h1><p>{view === "plan" ? `${days[0].full} – ${days[days.length - 1].full}` : view === "calendar" ? "Termine und Verfügbarkeiten" : view === "settings" ? "Mannschaft und Zugänge verwalten" : view === "license" ? "Tarif und Vertragsdaten verwalten" : "Dein Team auf einen Blick"}</p></div>
+          <div className="workspace-context"><span>{organization?.clubName ?? clubSettings.clubName}</span><strong>{activeFamilyLabel}</strong></div>
           <div className="top-actions">
             {currentUser.role === "guardian" && (organization?.managedPlayers.length ?? 0) > 0
               ? <label className="team-switcher family-switcher"><span>Familie</span><select value={`${organization?.activeTeamId}:${selectedManagedPlayerId ?? "all"}`} onChange={(event) => void switchFamilyContext(event.target.value)}>{organization?.teams.filter((team) => organization.managedPlayers.some((player) => player.teamId === team.id)).map((team) => <optgroup key={team.id} label={`${team.name} · ${team.ageGroup}`}><option value={`${team.id}:all`}>Alle Kinder in {team.name}</option>{organization.managedPlayers.filter((player) => player.teamId === team.id).map((player) => <option key={`${team.id}:${player.id}`} value={`${team.id}:${player.id}`}>{player.name}</option>)}</optgroup>)}</select></label>
@@ -979,9 +980,9 @@ export function TrainerApp() {
           </div>
         </header>
 
-        <div className="mobile-head">
+        <div className="mobile-head" role="navigation" aria-label={viewTitle}>
           {view === "overview" ? <span className="mobile-head-spacer" aria-hidden="true" /> : <button className="icon-button" onClick={mobileBack} aria-label="Zurück zur Übersicht"><ArrowLeft /></button>}
-          <div><span>{view === "plan" ? `${currentDay.month} ${currentDay.key.slice(0, 4)}` : activeFamilyLabel}</span><strong>{viewTitle}</strong></div>
+          <div className="mobile-context"><strong>{activeFamilyLabel}</strong></div>
           <button className="icon-button" onClick={() => setMobileMenuOpen((open) => !open)} aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"} aria-expanded={mobileMenuOpen}><Menu /></button>
         </div>
 
@@ -1030,7 +1031,7 @@ export function TrainerApp() {
               {planSaveState === "error" && <div className="mobile-plan-save auto-save-info error"><Check /> <span><strong>Speichern fehlgeschlagen</strong><small>Bitte erneut versuchen.</small></span><button onClick={retryPlanSave}>Erneut</button></div>}
             </div>}
             <div className="plan-heading">
-              <div><span className="eyebrow">{currentDay.time} UHR · DAUER {total} MIN</span><h2>{currentPlanMeta.name}</h2><p>{currentDay.full} · Sportplatz Nord</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
+              <div><span className="eyebrow">TRAININGSPLAN · {currentDay.time} UHR</span><h1>{currentPlanMeta.name}</h1><p>{currentDay.full} · {currentTrainingEvent?.location.trim() || "Ort noch offen"}</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
               <div className="plan-heading-actions"><div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div></div>
             </div>
             {assignmentExercise && clubSettings.splitTeamsEnabled && <div className="modal-backdrop assignment-editor-backdrop" onMouseDown={() => setAssignmentExerciseId(null)}><section className="assignment-editor" role="dialog" aria-modal="true" aria-labelledby="assignment-editor-title" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">ÜBUNG ZUORDNEN</span><h2 id="assignment-editor-title">{assignmentExercise.title}</h2><p>Team und Trainer gelten nur für diese Übung.</p></div><button onClick={() => setAssignmentExerciseId(null)} aria-label="Zuordnung schließen"><X /></button></header><div className="training-assignment-fields"><label><span>Internes Team</span><select value={assignmentExercise.internalTeam ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { internalTeam: (event.target.value || null) as InternalTeam | null })}><option value="">Gesamte Mannschaft</option><option value="A">Team A</option><option value="B">Team B</option></select></label><label><span>Verantwortlicher Trainer</span><select value={assignmentExercise.trainerId ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { trainerId: event.target.value || null })}><option value="">Noch nicht zugeordnet</option>{availableTrainers.map((trainer) => <option value={trainer.id} key={trainer.id}>{trainer.name}</option>)}</select></label></div><button className="primary assignment-editor-done" onClick={() => setAssignmentExerciseId(null)}><Check /> Fertig</button></section></div>}
