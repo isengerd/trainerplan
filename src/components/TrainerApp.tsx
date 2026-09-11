@@ -1065,7 +1065,7 @@ export function TrainerApp() {
                 const phaseExercises = plan.filter((item) => item.category === phase);
                 const phaseDuration = phaseExercises.reduce((sum, item) => sum + item.duration, 0);
                 return <section className="phase-block" key={phase}>
-                  <header><div><span>{phase}</span><small>{phaseExercises.length} Übungen · {phaseDuration} Min</small></div>{canManageClub && <button onClick={() => openExerciseLibrary(phase)}><Plus /> Übung</button>}</header>
+                  <header><div><span>{phase}</span><small>{phaseExercises.length} Übungen · {phaseDuration} Min</small></div>{canManageClub && phaseExercises.length > 0 && <button onClick={() => openExerciseLibrary(phase)}><Plus /> Übung</button>}</header>
                   <div className="timeline">
                     {phaseExercises.map((item) => {
                       const index = plan.findIndex((planned) => planned.id === item.id);
