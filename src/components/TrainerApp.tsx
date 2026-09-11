@@ -363,7 +363,15 @@ export function TrainerApp() {
   const currentUser = users.find((user) => user.id === currentUserId) ?? null;
   const profileUser = users.find((user) => user.id === (profileUserId ?? currentUserId)) ?? currentUser;
   const canManageClub = currentUser?.role === "admin" || currentUser?.role === "trainer";
-  const currentDay = days.find((day) => day.key === selectedDay) ?? days[todayIndex];
+  const selectedDate = new Date(`${selectedDay}T12:00:00`);
+  const currentDay = days.find((day) => day.key === selectedDay) ?? {
+    key: selectedDay,
+    short: selectedDate.toLocaleDateString("de-DE", { weekday: "short" }).replace(".", "").toUpperCase(),
+    date: String(selectedDate.getDate()),
+    month: selectedDate.toLocaleDateString("de-DE", { month: "short" }).replace(".", "").toUpperCase(),
+    full: selectedDate.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+    label: "Training", theme: "Training", time: "17:00",
+  };
   const activeManagedPlayers = organization?.managedPlayers.filter((player) => player.teamId === organization.activeTeamId) ?? [];
   const activeManagedPlayerIds = activeManagedPlayers.map((player) => player.id);
   const effectiveManagedPlayerIds = selectedManagedPlayerId && activeManagedPlayerIds.includes(selectedManagedPlayerId)
@@ -909,11 +917,12 @@ export function TrainerApp() {
     const shortTeam = name.trim().match(/^T\s*(\d+)$/i);
     return shortTeam ? `Team ${shortTeam[1]}` : name.trim() || `Team ${index + 1}`;
   };
-  const openPlan = () => {
-    if (trainingDate) selectDay(trainingDate);
-    else goToToday();
+  const openTrainingPlan = (date: string) => {
+    if (!canManageClub) return;
+    selectDay(date);
     setView("plan");
   };
+  const openPlan = () => openTrainingPlan(trainingDate ?? todayKey);
   const openTournament = (eventId: string) => {
     setTournamentFocusId(eventId);
     setView("tournaments");
@@ -991,7 +1000,7 @@ export function TrainerApp() {
     events={events} users={users} plans={plans} planMeta={planMeta} tournamentPlans={tournamentPlans} settings={clubSettings}
     firstName={firstName} teamName={activeTeamName}
     ageGroup={organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? "f1"}
-    onOpenPlan={(date) => { selectDay(date); setView("plan"); }}
+    onOpenPlan={openTrainingPlan}
     onOpenEvent={openEventDetails} onOpenSquads={openTournament}
     onOpenCalendar={() => setView("calendar")} onOpenTeam={() => setView("team")}
     onBrowseExercises={(date) => { selectDay(date); setView("plan"); openExerciseLibrary("Hauptteil"); }}
@@ -1051,7 +1060,7 @@ export function TrainerApp() {
 
   const viewTitle = view === "overview" ? "Übersicht" : view === "plan" ? "Trainingsplan" : view === "exercises" ? "Übungen" : view === "calendar" ? "Kalender" : view === "tournaments" ? canManageClub ? "Mannschaftsplanung" : "Turniermannschaften" : view === "team" ? "Mannschaft" : view === "settings" ? "Einstellungen" : view === "license" ? "Lizenz & Abrechnung" : "Profil";
   const moduleContent = view === "calendar"
-    ? <CalendarPage events={events} plannedTrainings={plannedCalendarTrainings} tournamentPlans={tournamentPlans} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeleteEvent={requestEventDeletion} onDeletePlannedTraining={deletePlannedTraining} onOpenTournamentPlanning={openTournament} />
+    ? <CalendarPage onOpenTrainingPlan={openTrainingPlan} events={events} plannedTrainings={plannedCalendarTrainings} tournamentPlans={tournamentPlans} users={users} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={calendarFocusId} selectedPlannedDate={calendarPlannedDate} onSelectedEventHandled={() => setCalendarFocusId(null)} onSelectedPlannedDateHandled={() => setCalendarPlannedDate(null)} onEventsChange={updateEvents} onDeleteEvent={requestEventDeletion} onDeletePlannedTraining={deletePlannedTraining} onOpenTournamentPlanning={openTournament} />
     : view === "tournaments"
       ? <TournamentPlanningPage events={events} users={users} plans={tournamentPlans} settings={clubSettings} currentUser={contextualCurrentUser ?? currentUser} selectedEventId={tournamentFocusId} onPlansChange={updateTournamentPlan} onPublicationChange={updateTournamentPlanPublication} />
     : view === "team"
@@ -1132,7 +1141,7 @@ export function TrainerApp() {
         {moduleContent ?? (view === "overview" ? (canManageClub && (clubSettings.dashboardView ?? "calendar") === "week" ? weeklyOverview : overview) : view === "plan" && canManageClub ? <div className="content-grid plan-only-layout">
           <section className="plan-panel card">
             <div className="plan-heading">
-              <div><span className="eyebrow">TRAININGSPLAN · {currentDay.time} UHR</span><h1>{currentPlanMeta.name}</h1><p>{currentDay.full} · {currentTrainingEvent?.location.trim() || "Ort noch offen"}</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
+              <div><span className="eyebrow">TRAININGSPLAN · {currentTrainingEvent?.startTime ?? currentDay.time} UHR</span><h1>{currentPlanMeta.name}</h1><p>{currentDay.full} · {currentTrainingEvent?.location.trim() || "Ort noch offen"}</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
               <div className="plan-heading-actions"><div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div></div>
             </div>
             {canManageClub && <div className="plan-template-tools">
