@@ -2,30 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Bell, CalendarDays, CalendarRange, Check, Clock3, CreditCard, Download, FileText, LayoutList, Mail, Moon, Palette, Plus, RefreshCw, Server, Settings, Shield, Sun, Trash2, Trophy, Users } from "lucide-react";
-import { defaultPosition, roleLabels, type AgeGroupOption, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type Role, type SmtpStatus, type TeamGroup } from "@/data/club";
+import { type AgeGroupOption, type ClubSettings, type ClubUser, type OrganizationContext, type PushStatus, type SmtpStatus, type TeamGroup } from "@/data/club";
 
-import { playerAccessLabel, visibleProfileEmail } from "@/lib/player-profile";
 
 type Props = {
   onOpenTeam: () => void;
   settings: ClubSettings;
-  currentUser: ClubUser;
-  users: ClubUser[];
   groups: TeamGroup[];
   ageGroups: AgeGroupOption[];
   smtp: SmtpStatus;
   push: PushStatus;
   organization: OrganizationContext | null;
   onSave: (settings: ClubSettings) => void;
-  onUsersChange: (users: ClubUser[]) => void;
   onReload: () => void;
-};
-
-const roleDescriptions: Record<Role, string[]> = {
-  admin: ["Mitglieder und Rollen", "Gruppen und Einstellungen", "Alle Trainings und Termine"],
-  trainer: ["Trainings und Übungen", "Termine und Turnierteams", "Keine Systemeinstellungen"],
-  player: ["Termine ansehen", "Eigenes Turnierteam sehen", "Eigene Teilnahme melden"],
-  guardian: ["Kinderprofile sehen", "Teilnahme für Kinder melden", "Keine Planungsrechte"],
 };
 
 export function CalendarExportCard() {
@@ -101,13 +90,13 @@ export function LicensePage({ organization, ageGroups, onReload }: { organizatio
   </section>;
 }
 
-export function AdminSettingsPage({ onOpenTeam, settings, currentUser, users, groups, ageGroups, smtp, push, organization, onSave, onUsersChange, onReload }: Props) {
+export function AdminSettingsPage({ onOpenTeam, settings, groups, ageGroups, smtp, push, organization, onSave, onReload }: Props) {
   const [form, setForm] = useState(settings);
   const [groupForm, setGroupForm] = useState(groups);
   const [newTeam, setNewTeam] = useState({ name: "", ageGroup: ageGroups[0]?.id ?? "f1" });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [desktopSection, setDesktopSection] = useState<"general" | "members" | "calendar" | "groups" | "communication">("general");
+  const [desktopSection, setDesktopSection] = useState<"general" | "calendar" | "groups" | "communication">("general");
 
   useEffect(() => { setForm({ ...settings, theme: settings.theme ?? "light", dashboardView: settings.dashboardView ?? "calendar" }); }, [settings]);
   useEffect(() => { setGroupForm(groups); }, [groups]);
@@ -139,9 +128,7 @@ export function AdminSettingsPage({ onOpenTeam, settings, currentUser, users, gr
     notify("Gruppen gespeichert."); onReload();
   }
 
-  function updateMembership(userId: string, patch: Partial<Pick<ClubUser, "role" | "groupId" | "ageGroup">>) {
-    onUsersChange(users.map((user) => user.id === userId ? { ...user, ...patch, ...(patch.role ? { position: defaultPosition[patch.role] } : {}) } : user));
-  }
+
 
   async function testSmtp() {
     setBusy(true);
@@ -188,7 +175,6 @@ export function AdminSettingsPage({ onOpenTeam, settings, currentUser, users, gr
     { title: "Dashboard-Ansicht", label: "Dashboard" },
     { title: "Kalender exportieren", label: "Kalender" },
     { title: "Farbdesign", label: "Design" },
-    { title: "Rollen & Rechte", label: "Mitglieder" },
     { title: "Turniere & Mannschaftsplanung", label: "Turniere" },
     ...(organization?.isClubAdmin ? [{ title: "Funktionsgruppen", label: "Gruppen" }] : []),
     ...(organization?.isClubAdmin ? [{ title: "SMTP-Server", label: "Kommunikation" }] : []),
@@ -202,12 +188,13 @@ export function AdminSettingsPage({ onOpenTeam, settings, currentUser, users, gr
   }
 
   return <section className="settings-page module-page">
-    <div className="module-hero"><div><span className="eyebrow">ADMINISTRATION</span><h1>Einstellungen</h1><p>Mannschaft, Mitglieder, Rechte und Standards zentral verwalten.</p></div><button className="primary" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> Speichern</button></div>
+    <div className="module-hero"><div><span className="eyebrow">ADMINISTRATION</span><h1>Einstellungen</h1><p>Darstellung, Mannschaftsvorgaben und Funktionen einstellen.</p></div><button className="primary" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> Speichern</button></div>
+
+    <div className="settings-person-shortcut"><button type="button" onClick={onOpenTeam}><Users /> Personen und Zugänge verwalten</button></div>
 
     <nav className="desktop-settings-nav" aria-label="Einstellungsbereiche">
       <span>MANNSCHAFT</span>
       <button className={desktopSection === "general" ? "active" : ""} onClick={() => setDesktopSection("general")}><Settings /> <span><strong>Allgemein</strong><small>Darstellung und Standards</small></span></button>
-      <button className={desktopSection === "members" ? "active" : ""} onClick={() => setDesktopSection("members")}><Users /> <span><strong>Mitglieder</strong><small>Rollen und Profile</small></span></button>
       <button className={desktopSection === "calendar" ? "active" : ""} onClick={() => setDesktopSection("calendar")}><CalendarDays /> <span><strong>Termine</strong><small>Kalender und Turniere</small></span></button>
       {organization?.isClubAdmin && <><span>VEREIN</span><button className={desktopSection === "groups" ? "active" : ""} onClick={() => setDesktopSection("groups")}><Users /> <span><strong>Gruppen</strong><small>Vereinsweite Gruppen</small></span></button><button className={desktopSection === "communication" ? "active" : ""} onClick={() => setDesktopSection("communication")}><Mail /> <span><strong>Kommunikation</strong><small>E-Mail und Push</small></span></button></>}
       <button className="desktop-settings-save" onClick={() => { onSave(form); notify("Einstellungen gespeichert."); }}><Check /> <span><strong>Speichern</strong><small>Änderungen übernehmen</small></span></button>
@@ -222,7 +209,6 @@ export function AdminSettingsPage({ onOpenTeam, settings, currentUser, users, gr
       <section className="settings-card settings-wide dashboard-view-settings"><div className="settings-title"><LayoutList /><span><h2>Dashboard-Ansicht</h2><p>Lege fest, womit Trainer und Admins auf dieser Mannschaft starten.</p></span></div><div className="dashboard-view-options"><button type="button" className={(form.dashboardView ?? "calendar") === "calendar" ? "active" : ""} onClick={() => set("dashboardView", "calendar")}><CalendarDays /><span><strong>Kalenderansicht</strong><small>Die nächsten drei Ereignisse als einzelne Karten</small></span>{(form.dashboardView ?? "calendar") === "calendar" && <Check />}</button><button type="button" className={form.dashboardView === "week" ? "active" : ""} onClick={() => set("dashboardView", "week")}><CalendarRange /><span><strong>Wochenansicht</strong><small>Woche, offene Aufgaben und Trainingsimpuls</small></span>{form.dashboardView === "week" && <Check />}</button></div></section>
       <section className="settings-card settings-wide theme-settings"><div className="settings-title"><Palette /><span><h2>Farbdesign</h2><p>Das Design gilt für alle Bereiche der Web-App und wird für das Team gespeichert.</p></span></div><div className="theme-options"><button className={(form.theme ?? "light") === "dark" ? "active" : ""} onClick={() => chooseTheme("dark")}><span className="theme-preview dark"><i /><i /><i /></span><span><Moon /><strong>Dunkelgrün</strong><small>Ruhiges Design für Abend und Flutlicht</small></span>{(form.theme ?? "light") === "dark" && <Check />}</button><button className={(form.theme ?? "light") === "light" ? "active" : ""} onClick={() => chooseTheme("light")}><span className="theme-preview light"><i /><i /><i /></span><span><Sun /><strong>Hell</strong><small>Weißer Hintergrund und klare Kontraste</small></span>{(form.theme ?? "light") === "light" && <Check />}</button></div></section>
 
-      {organization?.licenseType === "single_team_free" ? <section className="settings-card settings-wide"><div className="settings-title"><Users /><span><h2>Spieler verwalten</h2><p>Profile und Ausrüstung bearbeitest du direkt in deiner Mannschaft. Elternzuordnungen bleiben bei einem Tarifwechsel erhalten.</p></span></div><button type="button" className="primary" onClick={onOpenTeam}>Zur Mannschaft</button></section> : <section className="settings-card settings-wide"><div className="settings-title"><Shield /><span><h2>Rollen & Rechte</h2><p>Zugänge und Berechtigungen für {form.teamName}. Spielerprofile bearbeitest du in der Mannschaft.</p></span></div><div className="role-matrix">{(["admin", "trainer", "player", "guardian"] as Role[]).map((role) => <article key={role} className={role}><span className={`role-badge ${role}`}>{roleLabels[role]}</span>{roleDescriptions[role].map((right) => <small key={right}><Check /> {right}</small>)}</article>)}</div><div className="member-rights-table member-access-table"><div className="member-rights-head"><span>Person</span><span>Funktionsgruppe</span><span>Altersklasse</span><span>Rolle</span></div>{users.map((user) => <div key={user.id}><span><strong>{user.name}</strong><small>{user.role === "player" ? playerAccessLabel(user) : visibleProfileEmail(user.email) || "Kein eigener Login"}</small>{user.id === currentUser.id && <small>Du selbst</small>}</span><label><span className="member-field-label">Funktionsgruppe</span><select aria-label={`Funktionsgruppe für ${user.name}`} value={user.groupId || ""} onChange={(event) => updateMembership(user.id, { groupId: event.target.value || null })}><option value="">Keine</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label><span className="member-age-group">{user.role === "player" ? user.birthday ? user.ageGroup || "Außerhalb Jugend" : `${teamAgeGroup.toUpperCase() || "—"} · Mannschaft` : "—"}</span><label><span className="member-field-label">Rolle</span><select aria-label={`Rolle für ${user.name}`} value={user.role} disabled={user.id === currentUser.id || user.managedProfile} title={user.id === currentUser.id ? "Die eigene Adminrolle kann nicht geändert werden." : user.managedProfile ? "Verwaltete Profile bleiben Spieler." : "Rolle ändern"} onChange={(event) => updateMembership(user.id, { role: event.target.value as Role })}>{(["player", "guardian", "trainer", "admin"] as Role[]).map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></label></div>)}</div></section>}
 
       {organization?.isClubAdmin && false && <section />}
 

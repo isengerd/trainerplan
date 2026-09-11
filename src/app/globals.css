@@ -3414,3 +3414,6 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .player-login-invite input { width: 100%; min-width: 0; }
 .profile-access-summary > button { justify-self: start; min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-weight: 600; text-align: left; }
 .player-login-suggestion { padding: 14px 16px; border-left: 3px solid var(--brand); border-radius: 8px; background: var(--panel-strong); }
+.settings-person-shortcut { margin: 0 0 16px; }
+.settings-person-shortcut > button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; padding: 8px 0; border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; font-size: 14px; font-weight: 600; }
+.settings-person-shortcut svg { flex-shrink: 0; width: 18px; }
