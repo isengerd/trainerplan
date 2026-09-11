@@ -558,7 +558,7 @@ export function TrainerApp() {
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next).then(() => loadBootstrap()); }
 
   async function removePlayerFromTeam(player: ClubUser) {
-    if (currentUser?.role !== "admin" || !window.confirm(`„${player.name}“ aus dieser Mannschaft entfernen? Künftige Zusagen und Einteilungen werden entfernt. Elternkonten, andere Mannschaften und bisherige Daten bleiben erhalten.`)) return;
+    if (currentUser?.role !== "admin") throw new Error("Nur Admins dürfen Spieler entfernen.");
     const response = await fetch(`/api/v1/players/${encodeURIComponent(player.id)}`, { method: "DELETE", credentials: "include" });
     const result = await response.json().catch(() => ({})) as { error?: string };
     if (!response.ok) throw new Error(result.error ?? "Spieler konnte nicht entfernt werden.");
