@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { BookmarkPlus, Check, Clock3, Layers3, Pin, Sparkles, Target, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { ArrowLeft, BookmarkPlus, Check, Clock3, Layers3, Pin, Sparkles, Target, Trash2, X } from "lucide-react";
 import type { Exercise } from "@/data/demo";
 
 export type TrainingTemplate = {
@@ -16,6 +16,7 @@ export type TrainingTemplate = {
 };
 
 type Props = {
+  presentation?: "page" | "dialog";
   mode: "browse" | "save";
   plan: Exercise[];
   templates: TrainingTemplate[];
@@ -29,7 +30,9 @@ type Props = {
 
 const phases: Exercise["category"][] = ["Ankommen", "Einstieg", "Hauptteil", "Abschlussspiel"];
 
-export function TrainingTemplates({ mode, plan, templates, onModeChange, onApply, onSave, onDelete, onToggleDefault, onClose }: Props) {
+export function TrainingTemplates({ presentation = "dialog", mode, plan, templates, onModeChange, onApply, onSave, onDelete, onToggleDefault, onClose }: Props) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { headingRef.current?.focus({ preventScroll: true }); }, [presentation]);
   const availablePhases = phases.filter((phase) => plan.some((exercise) => exercise.category === phase));
   const [kind, setKind] = useState<"plan" | "phase">("plan");
   const [phase, setPhase] = useState<Exercise["category"]>(availablePhases[0] ?? "Ankommen");
@@ -59,15 +62,26 @@ export function TrainingTemplates({ mode, plan, templates, onModeChange, onApply
     });
   }
 
-  return <div className="modal-backdrop template-backdrop" onMouseDown={onClose}>
-    <section className="template-sheet" role="dialog" aria-modal="true" aria-labelledby="template-title" onMouseDown={(event) => event.stopPropagation()}>
+  return <div className={presentation === "page" ? "template-page" : "modal-backdrop template-backdrop"} onMouseDown={presentation === "dialog" ? onClose : undefined}>
+    <section className="template-sheet" role={presentation === "page" ? "region" : "dialog"} aria-modal={presentation === "dialog" ? true : undefined} aria-labelledby="template-title" onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => {
+      if (presentation !== "dialog" || event.key !== "Tab") return;
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]')).filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === headingRef.current)) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    }}>
       <div className="template-head">
-        <div><span className="eyebrow">TRAINING SCHNELL PLANEN</span><h2 id="template-title">Plan- & Phasenvorlagen</h2></div>
-        <button className="icon-button" onClick={onClose} aria-label="Vorlagen schließen"><X /></button>
+        {presentation === "page" && <button className="icon-button" onClick={onClose} aria-label="Zurück zum Trainingsplan"><ArrowLeft /></button>}
+        <div><span className="eyebrow">TRAININGSPLAN</span>{presentation === "page" ? <h1 ref={headingRef} tabIndex={-1} id="template-title">Vorlagen</h1> : <h2 ref={headingRef} tabIndex={-1} id="template-title">Plan- & Phasenvorlagen</h2>}</div>
+        {presentation === "dialog" && <button className="icon-button" onClick={onClose} aria-label="Vorlagen schließen"><X /></button>}
       </div>
       <div className="template-tabs">
-        <button className={mode === "browse" ? "active" : ""} onClick={() => onModeChange("browse")}><Sparkles /> Vorlagen wählen</button>
-        <button className={mode === "save" ? "active" : ""} onClick={() => onModeChange("save")}><BookmarkPlus /> Aktuellen Plan sichern</button>
+        <button aria-pressed={mode === "browse"} className={mode === "browse" ? "active" : ""} onClick={() => onModeChange("browse")}><Sparkles /> Vorlagen wählen</button>
+        <button aria-pressed={mode === "save"} className={mode === "save" ? "active" : ""} onClick={() => onModeChange("save")}><BookmarkPlus /> Aktuellen Plan sichern</button>
       </div>
 
       {mode === "browse" ? <div className="template-scroll">
@@ -77,12 +91,12 @@ export function TrainingTemplates({ mode, plan, templates, onModeChange, onApply
         {!ownTemplates.length && <div className="template-empty"><BookmarkPlus /><strong>Noch keine eigene Vorlage</strong><span>Sichere den aktuellen Plan komplett oder nur eine ausgefüllte Phase.</span><button onClick={() => onModeChange("save")}>Erste Vorlage erstellen</button></div>}
       </div> : <form className="template-save" onSubmit={submit}>
         <div className="save-scope">
-          <button type="button" className={kind === "plan" ? "active" : ""} onClick={() => setKind("plan")}><Layers3 /><span><strong>Kompletter Plan</strong><small>Alle {plan.length} Übungen speichern</small></span></button>
-          <button type="button" className={kind === "phase" ? "active" : ""} onClick={() => setKind("phase")} disabled={!availablePhases.length}><BookmarkPlus /><span><strong>Nur eine Phase</strong><small>Später einzeln einsetzen</small></span></button>
+          <button type="button" aria-pressed={kind === "plan"} className={kind === "plan" ? "active" : ""} onClick={() => setKind("plan")}><Layers3 /><span><strong>Kompletter Plan</strong><small>Alle {plan.length} Übungen speichern</small></span></button>
+          <button type="button" aria-pressed={kind === "phase"} className={kind === "phase" ? "active" : ""} onClick={() => setKind("phase")} disabled={!availablePhases.length}><BookmarkPlus /><span><strong>Nur eine Phase</strong><small>Später einzeln einsetzen</small></span></button>
         </div>
         {kind === "phase" && <fieldset className="phase-choice"><legend>Welche Phase möchtest du dauerhaft sichern?</legend>{availablePhases.map((item) => <button type="button" className={phase === item ? "active" : ""} onClick={() => setPhase(item)} key={item}><span>{item}</span><strong>{plan.filter((exercise) => exercise.category === item).length} Übungen</strong></button>)}</fieldset>}
-        <label className="template-name"><span>Name der Vorlage</span><input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder={kind === "plan" ? "z. B. Dribbling & Mut" : `z. B. Mein ${phase}`} /></label>
-        <fieldset className="focus-choice"><legend><Target /> Schwerpunkte auswählen</legend><div>{focusOptions.map((focus) => <button type="button" className={selectedFocus.includes(focus) ? "active" : ""} onClick={() => toggleFocus(focus)} key={focus}>{selectedFocus.includes(focus) && <Check />}{focus}</button>)}</div></fieldset>
+        <label className="template-name"><span>Name der Vorlage</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder={kind === "plan" ? "z. B. Dribbling & Mut" : `z. B. Mein ${phase}`} /></label>
+        <fieldset className="focus-choice"><legend><Target /> Schwerpunkte auswählen</legend><div>{focusOptions.map((focus) => <button type="button" aria-pressed={selectedFocus.includes(focus)} className={selectedFocus.includes(focus) ? "active" : ""} onClick={() => toggleFocus(focus)} key={focus}>{selectedFocus.includes(focus) && <Check />}{focus}</button>)}</div></fieldset>
         <div className="template-save-summary"><Clock3 /><span><strong>{kind === "plan" ? plan.length : plan.filter((exercise) => exercise.category === phase).length} Übungen</strong><small>{(kind === "plan" ? plan : plan.filter((exercise) => exercise.category === phase)).reduce((sum, exercise) => sum + exercise.duration, 0)} Minuten werden dauerhaft gespeichert.</small></span></div>
         <div className="template-form-actions"><button type="button" onClick={onClose}>Abbrechen</button><button className="primary" type="submit" disabled={!plan.length}><Check /> Vorlage speichern</button></div>
       </form>}

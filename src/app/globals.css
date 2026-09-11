@@ -3194,3 +3194,108 @@ html[data-theme="light"] .coach-week-state.cancelled, html[data-theme="light"] .
   .plan-only-layout .exercise-copy p { display: block; overflow: visible; -webkit-line-clamp: unset; }
   .plan-only-layout .mobile-material-list .material { display: flex; width: 100%; margin-right: 0; }
 }
+
+/* Shared app typography and interaction states. */
+:root {
+  --ui-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ui-body: 1rem;
+  --ui-meta: .875rem;
+  --ui-label: .75rem;
+  --ui-title: 1.125rem;
+}
+body { font-family: var(--ui-font); }
+button, input, select, textarea { font-family: inherit; }
+.app-shell [hidden] { display: none !important; }
+.app-shell :is(.module-hero, .overview-welcome, .unified-library-heading) h1 { font-size: clamp(1.625rem, 3vw, 2.125rem); line-height: 1.2; }
+.app-shell :is(.module-page, .overview-page, .unified-library, .coach-week) p,
+.template-sheet p { font-size: var(--ui-body); line-height: 1.5; }
+.app-shell :is(.module-page, .overview-page, .unified-library) small,
+.template-sheet small { font-size: var(--ui-meta); line-height: 1.5; }
+.app-shell :is(.module-page, .overview-page, .unified-library, .coach-week) .eyebrow,
+.template-sheet .eyebrow { font-size: var(--ui-label); line-height: 1.5; letter-spacing: .09em; }
+.app-shell :is(.module-hero, .module-tools, .settings-page, .profile-page, .license-page) button { font-size: var(--ui-meta); }
+.app-shell :is(.settings-title, .profile-card, .overview-card-title) h2 { font-size: var(--ui-title); line-height: 1.35; }
+.app-shell :is(.member-name strong, .toggle-list strong, .settings-fields input, .profile-card input, .profile-card select) { font-size: var(--ui-body); line-height: 1.4; }
+.app-shell :is(.member-position, .member-equipment, .settings-hint, .settings-fields label > span, .deadline-grid label > span, .profile-card label > span, .role-badge) { font-size: var(--ui-meta); line-height: 1.5; }
+.app-shell :is(.module-page, .unified-library) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea),
+.template-sheet :is(input, select, textarea) { font-size: var(--ui-body); line-height: 1.5; min-height: 44px; }
+.app-shell :is(.main-nav nav a, .desktop-settings-nav > button strong) { font-size: var(--ui-meta); }
+.app-shell .bottom-nav button span { font-size: var(--ui-label); }
+
+/* Keep feedback distinct from the persistent selected state. */
+.app-shell button:not(:disabled), .app-shell a, .template-sheet button:not(:disabled) {
+  -webkit-tap-highlight-color: rgba(46, 158, 78, .18);
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.app-shell :is(button, a, input, select, textarea):focus-visible,
+.template-sheet :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .app-shell button:not(:disabled):hover,
+  .app-shell a:hover, .template-sheet button:not(:disabled):hover {
+    box-shadow: inset 0 0 0 999px rgb(80 170 110 / 10%);
+  }
+  .plan-only-layout .exercise:has(:is(.exercise-copy, .exercise-preview):hover) {
+    background: color-mix(in srgb, var(--brand) 8%, transparent);
+  }
+  .plan-only-layout :is(.plan-template-tools > button, .phase-dropzone):hover,
+  .template-sheet .template-cards article:has(.apply-template:hover) { border-color: var(--brand); }
+  .plan-only-layout .remove-button:hover,
+  .template-sheet button[aria-label$="löschen"]:hover { box-shadow: inset 0 0 0 999px rgb(200 55 55 / 12%); }
+}
+.app-shell button:not(:disabled):active,
+.app-shell a:active, .template-sheet button:not(:disabled):active {
+  box-shadow: inset 0 0 0 999px rgb(60 155 90 / 22%);
+}
+.plan-only-layout .exercise:has(:is(.exercise-copy, .exercise-preview):active) {
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+}
+.app-shell button:disabled, .template-sheet button:disabled { cursor: not-allowed; }
+
+/* Templates use the same scale in the desktop dialog and mobile page. */
+.template-sheet :is(.save-scope strong, .template-intro strong, .template-empty strong, .template-save-summary strong) { font-size: var(--ui-body); line-height: 1.4; }
+.template-sheet :is(.template-kind, .template-focus span, .template-name span, legend, .template-empty > span) { font-size: var(--ui-meta); line-height: 1.5; }
+.template-sheet :is(.template-intro small, .save-scope small, .template-save-summary small) { color: var(--muted); }
+.template-sheet .template-cards h3 { font-size: var(--ui-title); line-height: 1.35; overflow-wrap: anywhere; }
+.template-sheet button { min-height: 44px; font-size: var(--ui-meta); line-height: 1.4; }
+.template-sheet .icon-button { min-width: 44px; }
+.template-sheet .template-card-actions button:not(.apply-template) { min-width: 44px; }
+.template-sheet .template-tabs button { padding: 10px; white-space: normal; }
+.template-sheet .template-tabs svg { flex-shrink: 0; }
+.template-sheet .template-form-actions { gap: 10px; }
+.template-sheet .template-form-actions button { padding: 10px; }
+.template-sheet .template-form-actions svg { flex-shrink: 0; }
+.template-sheet .template-head :is(h1, h2) { outline: none; }
+.app-shell.showing-template-page { display: block; padding-bottom: 0; }
+.template-page { min-height: 100dvh; background: var(--bg); }
+.template-page .template-sheet { width: 100%; height: auto; min-height: 100dvh; overflow: visible; border: 0; border-radius: 0; box-shadow: none; animation: none; }
+.template-page .template-head { justify-content: flex-start; gap: 12px; padding: max(12px, env(safe-area-inset-top)) 16px 12px; }
+.template-page .template-head h1 { margin: 2px 0 0; font-size: 1.625rem; line-height: 1.2; }
+.template-page :is(.template-scroll, .template-save) { flex: 1; overflow: visible; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.template-page .template-form-actions { position: static; margin-bottom: 0; }
+@media (max-width: 760px) {
+  .app-shell :is(.module-page, .overview-page, .unified-library) button { min-height: 44px; }
+  .app-shell :is(.module-hero, .unified-library-heading) { flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+  .app-shell :is(.module-hero, .unified-library-heading) > div { min-width: 0; }
+  .app-shell :is(.settings-layout, .settings-fields, .profile-grid) { min-width: 0; }
+  .app-shell .module-page :is(.settings-card, .profile-card) { overflow-wrap: anywhere; }
+  .app-shell .coach-week :is(.coach-week-logistics, .coach-week-state, .coach-week-task p, .coach-week-readiness p) { font-size: var(--ui-meta); line-height: 1.5; }
+  .template-sheet .template-tabs { gap: 8px; }
+  .template-sheet .phase-choice button { flex-wrap: wrap; gap: 8px; }
+  .template-sheet .template-form-actions { grid-template-columns: 1fr; }
+  .template-sheet .template-form-actions .primary { grid-row: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell button, .app-shell a, .template-sheet button { transition: none; }
+}
+.app-shell .month-grid button { font-size: var(--ui-body); }
+.app-shell .month-grid .weekday { font-size: var(--ui-label); }
+.app-shell .calendar-legend { flex-wrap: wrap; font-size: var(--ui-meta); }
+.app-shell :is(.calendar-export-content strong, .unified-card-title strong) { font-size: var(--ui-body); }
+.app-shell :is(.license-page .billing-placeholder, .license-downgrade label) { font-size: var(--ui-meta); line-height: 1.5; }
+.app-shell :is(.event-popup, .detail-sheet, .exercise-creator, .squad-board) p { font-size: var(--ui-body); line-height: 1.5; }
+.app-shell :is(.event-popup, .detail-sheet, .exercise-creator, .squad-board) small { font-size: var(--ui-meta); line-height: 1.5; }
+.app-shell :is(.event-popup, .detail-sheet, .exercise-creator, .squad-board) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { font-size: var(--ui-body); min-height: 44px; }
+html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focus-visible { outline-color: #236c3d; }
+.app-shell .remove-button:active, .template-sheet button[aria-label$="löschen"]:active { box-shadow: inset 0 0 0 999px rgb(200 55 55 / 22%); }

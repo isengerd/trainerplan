@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { library, materialCatalog, type Exercise, type MaterialId } from "@/data/demo";
 import { initialSettings, type AgeGroupOption, type ClubEvent, type ClubInvitation, type ClubSettings, type ClubUser, type FamilyDashboardEvent, type InternalTeam, type OrganizationContext, type PushStatus, type SmtpStatus, type TeamGroup, type TournamentPlan, type TournamentSquad, type TrainingPlanMeta } from "@/data/club";
+import { openTemplateNavigation, closeTemplateNavigation, templateModeFromUrl } from "@/lib/template-navigation";
 import { ageGroupForBirthday } from "@/lib/age-groups";
 import { Pitch } from "./Pitch";
 import { Avatar, CalendarPage, ProfilePage, TeamPage } from "./ClubModules";
@@ -161,6 +162,8 @@ export function TrainerApp() {
   const [selectedManagedPlayerId, setSelectedManagedPlayerId] = useState<string | null>(null);
   const [trainingTemplates, setTrainingTemplates] = useState<TrainingTemplate[]>([]);
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [mobileTemplatePage, setMobileTemplatePage] = useState(false);
+  const templateScrollPosition = useRef(0);
   const [assignmentExerciseId, setAssignmentExerciseId] = useState<string | null>(null);
   const [templateMode, setTemplateMode] = useState<"browse" | "save">("browse");
   const [planMeta, setPlanMeta] = useState<Record<string, TrainingPlanMeta>>({});
@@ -206,12 +209,55 @@ export function TrainerApp() {
     setDetail(null);
   }
 
+  function openTemplates(mode: "browse" | "save") {
+    if (!templateOpen) templateScrollPosition.current = window.scrollY;
+    openTemplateNavigation(window, mode, selectedDay, templateOpen);
+    if (templateOpen && mobileTemplatePage) window.scrollTo(0, 0);
+    setTemplateMode(mode);
+    setTemplateOpen(true);
+  }
+
+  function closeTemplates() {
+    if (closeTemplateNavigation(window)) return;
+    setTemplateOpen(false);
+  }
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const sync = () => setMobileTemplatePage(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!templateOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeTemplates();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    if (mobileTemplatePage) window.scrollTo(0, 0);
+    else document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+      window.requestAnimationFrame(() => {
+        if (mobileTemplatePage) window.scrollTo(0, templateScrollPosition.current);
+        trigger?.focus({ preventScroll: true });
+      });
+    };
+  }, [templateOpen, mobileTemplatePage]);
+
   function setView(nextView: AppView) {
     if (nextView === view) return;
     const url = new URL(window.location.href);
     if (nextView === "overview") url.searchParams.delete("bereich");
     else url.searchParams.set("bereich", nextView);
-    window.history.pushState({ ...window.history.state, nextSessionView: nextView }, "", url);
+    url.searchParams.delete("vorlagen");
+    window.history.pushState({ ...window.history.state, nextSessionView: nextView, nextSessionTemplatePage: false }, "", url);
+    setTemplateOpen(false);
     setViewState(nextView);
   }
 
@@ -221,6 +267,14 @@ export function TrainerApp() {
     const syncViewFromHistory = () => {
       const nextView = viewFromLocation();
       setViewState(nextView);
+      const requestedTemplate = templateModeFromUrl(window.location.href);
+      const isTemplatePage = requestedTemplate !== null;
+      setTemplateOpen(isTemplatePage);
+      if (isTemplatePage) {
+        setTemplateMode(requestedTemplate);
+        const templateDate = window.history.state?.templateDate;
+        if (typeof templateDate === "string" && days.some((day) => day.key === templateDate)) setSelectedDay(templateDate);
+      }
       const returnEventId = window.history.state?.nextSessionEventDialog as string | undefined;
       if (nextView === "calendar" && returnEventId) setCalendarFocusId(returnEventId);
       setAccountMenuOpen(false);
@@ -561,7 +615,7 @@ export function TrainerApp() {
 
   function saveTrainingTemplate(template: TrainingTemplate) {
     persistTemplates([...trainingTemplates, template]);
-    setTemplateOpen(false);
+    closeTemplates();
     showToast(template.kind === "plan" ? "Komplette Planvorlage gespeichert" : `${template.phase} dauerhaft als Vorlage gespeichert`);
   }
 
@@ -585,7 +639,7 @@ export function TrainerApp() {
         ? { ...current[selectedDay], name: template.name, focus: template.focus }
         : { ...current[selectedDay], name: current[selectedDay]?.name ?? currentDay.theme, focus: Array.from(new Set([...(current[selectedDay]?.focus ?? []), ...template.focus])).slice(0, 4) },
     }));
-    setTemplateOpen(false);
+    closeTemplates();
     showToast(template.kind === "plan" ? `„${template.name}“ ausgewählt` : `${template.phase} eingesetzt – übriger Plan bleibt erhalten`);
   }
 
@@ -932,8 +986,8 @@ export function TrainerApp() {
           : null;
 
   return (
-    <main className="app-shell">
-      <aside className="main-nav">
+    <main className={`app-shell${templateOpen && canManageClub && mobileTemplatePage ? " showing-template-page" : ""}`}>
+      <aside className="main-nav" hidden={templateOpen && canManageClub && mobileTemplatePage}>
         <div className="brand"><span className="brand-mark"><Shield /></span><span><strong>NEXT</strong>SESSION<small>KIDS!</small></span></div>
         <span className="nav-label">MENÜ</span>
         <nav>
@@ -947,7 +1001,7 @@ export function TrainerApp() {
         <div className="account-card" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /><span><strong>{currentUser.name}</strong><small>{currentUser.role === "admin" ? "Admin" : currentUser.role === "trainer" ? "Trainer" : currentUser.role === "guardian" ? "Elternteil" : "Spieler"}</small></span><button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Abmelden"><LogOut /></button></div>
       </aside>
 
-      <section className="workspace">
+      <section className="workspace" hidden={templateOpen && canManageClub && mobileTemplatePage}>
         <header className="topbar">
           <div className="workspace-context"><span>{organization?.clubName ?? clubSettings.clubName}</span><strong>{activeFamilyLabel}</strong></div>
           <div className="top-actions">
@@ -1001,7 +1055,7 @@ export function TrainerApp() {
               <div className="plan-heading-actions"><div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div></div>
             </div>
             {canManageClub && <div className="plan-template-tools">
-              <button onClick={() => { setTemplateMode("browse"); setTemplateOpen(true); }}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>
+              <button onClick={() => openTemplates("browse")}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>
               {planSaveState === "error" && <div className="mobile-plan-save auto-save-info error"><Check /> <span><strong>Speichern fehlgeschlagen</strong><small>Bitte erneut versuchen.</small></span><button onClick={retryPlanSave}>Erneut</button></div>}
             </div>}
             {assignmentExercise && clubSettings.splitTeamsEnabled && <div className="modal-backdrop assignment-editor-backdrop" onMouseDown={() => setAssignmentExerciseId(null)}><section className="assignment-editor" role="dialog" aria-modal="true" aria-labelledby="assignment-editor-title" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">ÜBUNG ZUORDNEN</span><h2 id="assignment-editor-title">{assignmentExercise.title}</h2><p>Team und Trainer gelten nur für diese Übung.</p></div><button onClick={() => setAssignmentExerciseId(null)} aria-label="Zuordnung schließen"><X /></button></header><div className="training-assignment-fields"><label><span>Internes Team</span><select value={assignmentExercise.internalTeam ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { internalTeam: (event.target.value || null) as InternalTeam | null })}><option value="">Gesamte Mannschaft</option><option value="A">Team A</option><option value="B">Team B</option></select></label><label><span>Verantwortlicher Trainer</span><select value={assignmentExercise.trainerId ?? ""} onChange={(event) => updateExerciseAssignment(assignmentExercise.id, { trainerId: event.target.value || null })}><option value="">Noch nicht zugeordnet</option>{availableTrainers.map((trainer) => <option value={trainer.id} key={trainer.id}>{trainer.name}</option>)}</select></label></div><button className="primary assignment-editor-done" onClick={() => setAssignmentExerciseId(null)}><Check /> Fertig</button></section></div>}
@@ -1029,7 +1083,7 @@ export function TrainerApp() {
               })}
             </div>
             {canManageClub && <footer className="plan-template-tools plan-template-footer">
-              <button onClick={() => { setTemplateMode("save"); setTemplateOpen(true); }}><BookmarkPlus /> <span><strong>Als Vorlage sichern</strong><small>Komplett oder einzelne Phase</small></span></button>
+              <button onClick={() => openTemplates("save")}><BookmarkPlus /> <span><strong>Als Vorlage sichern</strong><small>Komplett oder einzelne Phase</small></span></button>
             </footer>}
             <section className="mobile-material-list">
               <div><span className="eyebrow">AUTOMATISCH BERECHNET</span><h2>Material für diese Einheit</h2></div>
@@ -1051,7 +1105,7 @@ export function TrainerApp() {
 
       {libraryOpen && <div className="picker-backdrop" onMouseDown={closeExerciseDialog}><aside className="exercise-picker" role="dialog" aria-modal="true" aria-label="Übungsbibliothek" onMouseDown={(event) => event.stopPropagation()}><ExerciseLibrary mode="pick" exercises={exerciseLibrary} initialPhase={targetPhase} canManage={Boolean(canManageClub)} onClose={closeExerciseDialog} onDetail={openExerciseDetail} onEdit={(item) => { setEditingExercise(item); setCreatorOpen(true); closeExerciseDialog(); }} onDelete={deleteLibraryExercise} onAdd={(item) => { addExercise(item, targetPhase); closeExerciseDialog(); }} onCreate={() => { setEditingExercise(null); setCreatorOpen(true); closeExerciseDialog(); }} /></aside></div>}
       {creatorOpen && <ExerciseCreator phase={targetPhase} exercise={editingExercise} onClose={() => { setCreatorOpen(false); setEditingExercise(null); }} onSave={saveExercise} />}
-      {templateOpen && <TrainingTemplates mode={templateMode} plan={plan} templates={[...featuredTemplates, ...trainingTemplates]} onModeChange={setTemplateMode} onApply={applyTrainingTemplate} onSave={saveTrainingTemplate} onDelete={deleteTrainingTemplate} onToggleDefault={toggleDefaultPhase} onClose={() => setTemplateOpen(false)} />}
+      {templateOpen && canManageClub && <TrainingTemplates presentation={mobileTemplatePage ? "page" : "dialog"} mode={templateMode} plan={plan} templates={[...featuredTemplates, ...trainingTemplates]} onModeChange={openTemplates} onApply={applyTrainingTemplate} onSave={saveTrainingTemplate} onDelete={deleteTrainingTemplate} onToggleDefault={toggleDefaultPhase} onClose={closeTemplates} />}
 
       {detail && (
         <div className="modal-backdrop exercise-detail-backdrop" onMouseDown={closeExerciseDialog}>
