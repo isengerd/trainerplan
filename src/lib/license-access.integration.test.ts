@@ -21,7 +21,7 @@ const fake = {
 process.env.AUTH_PROVIDER = "legacy";
 const request = (path = "/api/v1/bootstrap", method = "GET") => new NextRequest(`https://nextsession.de${path}`, { method, headers: { authorization: "Bearer existing-session" } });
 
-test("eine bestehende Sitzung verliert nach Downgrade alle geschützten Kalenderzugriffe und funktioniert nach Upgrade wieder", async () => {
+test("Eltern behalten Zugriff nach Downgrade; ausdrückliche Sperren blockieren weiterhin Kalender und Rückmeldungen", async () => {
   const { authenticatedUser } = await import("./auth");
   const { activeClubScope } = await import("./club-context");
   const bootstrap = await import("../app/api/v1/bootstrap/route");
@@ -29,12 +29,16 @@ test("eine bestehende Sitzung verliert nach Downgrade alle geschützten Kalender
   const attendance = await import("../app/api/v1/events/[id]/attendance/route");
   assert.equal((await authenticatedUser(request()))?.id, parent.id);
   licenseType = "single_team_free";
+  assert.equal((await authenticatedUser(request()))?.id, parent.id);
+  assert.deepEqual(await activeClubScope(parent), { clubId: "club", teamId: "team" });
+  memberships[0].status = "suspended";
   assert.equal(await authenticatedUser(request()), null);
   await assert.rejects(activeClubScope(parent), /Zugriff|zugriff/);
   assert.equal((await bootstrap.GET(request())).status, 401);
   assert.equal((await calendar.GET(request("/api/v1/calendar.ics"))).status, 401);
   assert.equal((await attendance.PUT(request("/api/v1/events/event/attendance", "PUT"), { params: Promise.resolve({ id: "event" }) })).status, 401);
   licenseType = "single_team_pro";
+  memberships[0].status = "active";
   assert.equal((await authenticatedUser(request()))?.id, parent.id);
   assert.deepEqual(await activeClubScope(parent), { clubId: "club", teamId: "team" });
   assert.equal(parent.loginEnabled, true);
@@ -43,7 +47,10 @@ test("eine bestehende Sitzung verliert nach Downgrade alle geschützten Kalender
 test("kein globaler Admin-Fallback bei gesperrter Mitgliedschaft; manuell deaktivierte Konten bleiben gesperrt", async () => {
   const { authorizedAccount } = await import("./account-access");
   licenseType = "single_team_free";
+  assert.equal((await authorizedAccount({ ...parent, role: "admin" }))?.role, "guardian");
+  memberships[0].role = "trainer";
   assert.equal(await authorizedAccount({ ...parent, role: "admin" }), null);
+  resetMemberships();
   licenseType = "single_team_pro";
   assert.equal(await authorizedAccount({ ...parent, loginEnabled: false }), null);
   memberships = [];
@@ -56,7 +63,8 @@ test("bestehende Sitzung und Datenkontext wechseln nur zu einer erlaubten weiter
   const { authenticatedUser } = await import("./auth");
   const { activeClubScope } = await import("./club-context");
   licenseType = "single_team_free";
-  memberships.push({ ...memberships[0], id: "other", clubId: "other-club", teamId: "other-team", club: { licenseType: "club" } });
+  memberships[0].team = { active: false };
+  memberships.push({ ...memberships[0], team: { active: true }, id: "other", clubId: "other-club", teamId: "other-team", club: { licenseType: "club" } });
   const authorized = await authenticatedUser(request());
   assert.equal(authorized?.activeTeamId, "other-team");
   await assert.rejects(activeClubScope(parent), /Zugriff|zugriff/);

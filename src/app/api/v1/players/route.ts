@@ -9,7 +9,7 @@ import { ageGroupForBirthday } from "@/lib/age-groups";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
 import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 import type { ClubSettings } from "@/data/club";
-import { hasAccessManagement } from "@/lib/license";
+import { canInviteRole } from "@/lib/license";
 
 export async function POST(request: NextRequest) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const scope = await activeClubScope(user);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
     const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
-    const accessEnabled = hasAccessManagement(club.licenseType, club.licenseExpiresAt);
+    const accessEnabled = canInviteRole(club.licenseType, "guardian", club.licenseExpiresAt);
     const team = await prisma.team.findFirstOrThrow({ where: { id: scope.teamId, clubId: scope.clubId }, select: { ageGroup: true } });
     const existingGuardian = guardianEmail ? await prisma.user.findUnique({ where: { email: guardianEmail } }) : null;
     if (existingGuardian?.managedProfile) throw new ApiInputError("Diese Adresse gehört zu einem Spielerprofil.");

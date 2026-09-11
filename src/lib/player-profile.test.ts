@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ageInYears, playerAccessLabel, shouldSuggestPlayerLogin, visibleProfileEmail } from "./player-profile";
-import { effectiveLicenseType, hasAccessManagement } from "./license";
+import { effectiveLicenseType, hasAccessManagement, canInviteRole } from "./license";
 import { initialSettings } from "../data/club";
 import { validateSettings } from "./validators";
 const today = new Date("2026-09-11T12:00:00Z");
@@ -53,4 +53,17 @@ test("Einladung wird ab E2 oder zehn Jahren empfohlen ohne eine Altersgrenze zu 
   assert.equal(shouldSuggestPlayerLogin("2016-09-12", "f1", today), false);
   assert.equal(shouldSuggestPlayerLogin("", "b2", today), true);
   assert.equal(shouldSuggestPlayerLogin("", "g2", today), false);
+});
+
+test("Free-Einladungen sind auf Spieler und Eltern begrenzt, auch bei abgelaufenem Pro", () => {
+  for (const role of ["player", "guardian"]) {
+    assert.equal(canInviteRole("single_team_free", role), true);
+    assert.equal(canInviteRole("single_team_pro", role, "2000-01-01"), true);
+  }
+  for (const role of ["trainer", "admin"]) {
+    assert.equal(canInviteRole("single_team_free", role), false);
+    assert.equal(canInviteRole("single_team_pro", role, "2000-01-01"), false);
+    assert.equal(canInviteRole("single_team_pro", role), true);
+  }
+  assert.equal(canInviteRole("unknown", "guardian"), false);
 });

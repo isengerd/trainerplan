@@ -3,7 +3,7 @@ import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { activeClubScope } from "@/lib/club-context";
 import { prisma } from "@/lib/db";
 import { ApiInputError, apiError, emailValue, readJson } from "@/lib/api-security";
-import { hasAccessManagement } from "@/lib/license";
+import { canInviteRole } from "@/lib/license";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
 import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const scope = await activeClubScope(actor);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
     const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId } });
-    if (!hasAccessManagement(club.licenseType, club.licenseExpiresAt)) throw new ApiInputError("Eigene Zugänge benötigen EM Pro oder die Vereinslizenz. Das bestehende Profil bleibt beim Upgrade erhalten.", 403);
+    if (!canInviteRole(club.licenseType, "player", club.licenseExpiresAt)) throw new ApiInputError("Eigene Zugänge sind für diese Lizenz nicht verfügbar.", 403);
     const { id } = await context.params;
     const membership = await prisma.membership.findFirst({ where: { userId: id, clubId: scope.clubId, teamId: scope.teamId, status: "active", role: "player", user: { managedProfile: true, loginEnabled: false, firebaseUid: null } }, include: { user: true } });
     if (!membership) throw new ApiInputError("Dieses Profil hat bereits einen Zugang oder ist nicht mehr in der Mannschaft.", 409);

@@ -37,8 +37,8 @@ test("eigener Zugang verwendet dasselbe Spielerprofil und erhält Geburtsdatum u
   await assert.rejects(activatePlayerLogin(db.tx, input), /bereits/);
 });
 
-test("Free, abgelaufene Lizenz und entfernte Mannschaftszugehörigkeit verhindern Aktivierung", async () => {
-  for (const db of [database("single_team_free"), database("single_team_pro", true, new Date("2000-01-01")), database("single_team_pro", false)]) {
+test("entfernte Mannschaftszugehörigkeit verhindert Aktivierung", async () => {
+  for (const db of [database("single_team_pro", false)]) {
     await assert.rejects(activatePlayerLogin(db.tx, input));
     assert.equal(db.updates(), 0);
     assert.equal(db.player.managedProfile, true);
@@ -51,4 +51,12 @@ test("nach Upgrade kann das in Free angelegte Profil unverändert aktiviert werd
   await activatePlayerLogin(db.tx, input);
   assert.equal(db.player.id, input.playerId);
   assert.equal(db.player.firebaseUid, input.firebaseUid);
+});
+
+test("eigener Spielerzugang kann auch in Free und nach Ablauf von Pro aktiviert werden", async () => {
+  for (const db of [database("single_team_free"), database("single_team_pro", true, new Date("2000-01-01"))]) {
+    await activatePlayerLogin(db.tx, input);
+    assert.equal(db.player.loginEnabled, true);
+    assert.equal(db.player.id, input.playerId);
+  }
 });

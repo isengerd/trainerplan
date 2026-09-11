@@ -3,7 +3,7 @@ import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { activeClubScope, ensureClubConfig } from "@/lib/club-context";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
-import { hasAccessManagement } from "@/lib/license";
+import { canInviteRole } from "@/lib/license";
 import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -13,9 +13,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const scope = await activeClubScope(user);
   if (!scope) return NextResponse.json({ error: "Keine aktive Mannschaft." }, { status: 409 });
   const club = await prisma.club.findUnique({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
-  if (!club || !hasAccessManagement(club.licenseType, club.licenseExpiresAt)) return NextResponse.json({ error: "Einladungen benötigen EM Pro oder die Vereinslizenz." }, { status: 403 });
   const invitation = await prisma.invitation.findFirst({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null }, include: { invitedBy: { select: { name: true } } } });
   if (!invitation) return NextResponse.json({ error: "Die Einladung wurde nicht gefunden." }, { status: 404 });
+  if (!club || !canInviteRole(club.licenseType, invitation.role, club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung benötigt EM Pro oder die Vereinslizenz." }, { status: 403 });
   const { token, tokenHash } = createInvitationToken();
   const link = `${applicationUrl(request)}/einladung?token=${encodeURIComponent(token)}`;
   const renewed = await prisma.invitation.updateMany({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null }, data: { tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) } });

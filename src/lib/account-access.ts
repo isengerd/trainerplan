@@ -2,7 +2,7 @@ import type { User } from "@prisma/client";
 import { prisma } from "./db";
 import { selectAccessibleMembership } from "./membership-access";
 
-export const PAUSED_ACCESS_MESSAGE = "Für diesen Zugang ist derzeit keine Mannschaft freigeschaltet. Eltern-, Spieler- und Trainerzugänge benötigen EM Pro oder eine Vereinslizenz. Nach einem Upgrade ist dein bestehender Zugang wieder verfügbar.";
+export const PAUSED_ACCESS_MESSAGE = "Für diesen Zugang ist derzeit keine Mannschaft freigeschaltet. Bitte prüfe die Mannschaftszuordnung. Trainerzugänge benötigen EM Pro oder eine Vereinslizenz.";
 
 export async function accountMembershipAccess(user: Pick<User, "id" | "activeTeamId">) {
   const memberships = await prisma.membership.findMany({ where: { userId: user.id }, include: { club: true, team: true }, orderBy: { createdAt: "asc" } });

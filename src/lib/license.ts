@@ -19,3 +19,11 @@ export function hasAccessManagement(value: string, expiresAt?: Date | string | n
 export function hasMultipleTeams(value: string, expiresAt?: Date | string | null) {
   return effectiveLicenseType(value, expiresAt) === "club";
 }
+
+/** Player and parent participation is a core feature in every known plan. */
+export function canInviteRole(value: string, role: string, expiresAt?: Date | string | null) {
+  if (!["single_team_free", "single_team_pro", "single_team", "club"].includes(value)) return false;
+  if (expiresAt && Number.isNaN(new Date(expiresAt).getTime())) return false;
+  if (role === "player" || role === "guardian") return true;
+  return (role === "admin" || role === "trainer") && hasAccessManagement(value, expiresAt);
+}

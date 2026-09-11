@@ -10,7 +10,7 @@ import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate
 import { defaultPosition } from "@/data/club";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
 import { activatePlayerLogin } from "@/lib/activate-player-login";
-import { hasAccessManagement } from "@/lib/license";
+import { canInviteRole } from "@/lib/license";
 
 async function invitationForToken(token: string) {
   if (!token) return null;
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const attempt = await persistentRateLimit(anonymousThrottleKey("invite-check", clientIp(request)), 60, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   const invitation = await invitationForToken(request.nextUrl.searchParams.get("token") || "");
-  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !hasAccessManagement(invitation.club.licenseType, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !canInviteRole(invitation.club.licenseType, invitation.role, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
   return NextResponse.json({ email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, managedPlayer: invitation.role === "guardian" ? invitation.managedPlayer?.name : undefined, expiresAt: invitation.expiresAt.toISOString() });
 }
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   try { body = await readJson(request, 16_384); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
   const invitation = await invitationForToken(body?.token || "");
-  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !hasAccessManagement(invitation.club.licenseType, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !canInviteRole(invitation.club.licenseType, invitation.role, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
   let accountEmail: string;
   try { accountEmail = invitation.email ? invitation.email.toLowerCase() : emailValue(body?.email); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Bitte gib eine gültige E-Mail-Adresse ein." }, { status: 400 }); }

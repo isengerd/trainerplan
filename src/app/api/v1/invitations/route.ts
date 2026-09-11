@@ -7,7 +7,7 @@ import { sendInvitationMail, smtpStatus } from "@/lib/smtp";
 import type { ClubSettings } from "@/data/club";
 import { ApiInputError, emailValue, readJson, textValue } from "@/lib/api-security";
 import { activeClubScope, ensureClubConfig } from "@/lib/club-context";
-import { hasAccessManagement } from "@/lib/license";
+import { canInviteRole } from "@/lib/license";
 
 export async function POST(request: NextRequest) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const membership = await activeClubScope(user);
   if (!membership) return NextResponse.json({ error: "Kein aktiver Vereinsbereich gefunden." }, { status: 409 });
   const club = await prisma.club.findUnique({ where: { id: membership.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
-  if (!club || !hasAccessManagement(club.licenseType, club.licenseExpiresAt)) return NextResponse.json({ error: "Einladungen und Zugänge benötigen EM Pro oder die Vereinslizenz." }, { status: 403 });
+  if (!club || !canInviteRole(club.licenseType, body.role, club.licenseExpiresAt)) return NextResponse.json({ error: "Trainer- und Admin-Einladungen benötigen EM Pro oder die Vereinslizenz." }, { status: 403 });
   const existingUser = email ? await prisma.user.findUnique({ where: { email }, select: { id: true } }) : null;
   if (existingUser && await prisma.membership.findFirst({ where: { userId: existingUser.id, clubId: membership.clubId, teamId: membership.teamId, status: "active" } })) return NextResponse.json({ error: "Diese Person gehört bereits zu dieser Mannschaft." }, { status: 409 });
   const groupId = body.groupId ? textValue(body.groupId, "Gruppe", 100, 1) : null;

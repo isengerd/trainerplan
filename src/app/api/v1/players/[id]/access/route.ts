@@ -4,7 +4,7 @@ import { ApiInputError, apiError, emailValue, readJson } from "@/lib/api-securit
 import { activeClubScope } from "@/lib/club-context";
 import { prisma } from "@/lib/db";
 import { applicationUrl, createInvitationToken } from "@/lib/invitations";
-import { hasAccessManagement } from "@/lib/license";
+import { canInviteRole } from "@/lib/license";
 
 async function managedChild(request: NextRequest, id: string) {
   const user = await sensitiveAuthenticatedUser(request);
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const scope = await activeClubScope(user);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
     const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
-    if (!hasAccessManagement(club.licenseType, club.licenseExpiresAt)) throw new ApiInputError("Zugänge benötigen EM Pro oder die Vereinslizenz.", 403);
+    if (!canInviteRole(club.licenseType, "guardian", club.licenseExpiresAt)) throw new ApiInputError("Elternzugänge sind für diese Lizenz nicht verfügbar.", 403);
     const { id } = await context.params;
     const membership = await prisma.membership.findFirst({ where: { userId: id, clubId: scope.clubId, teamId: scope.teamId, status: "active", role: "player" }, include: { user: true } });
     if (!membership) throw new ApiInputError("Das Spielerprofil wurde nicht gefunden.", 404);
