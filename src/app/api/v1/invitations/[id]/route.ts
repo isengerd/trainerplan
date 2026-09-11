@@ -18,7 +18,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   if (!invitation) return NextResponse.json({ error: "Die Einladung wurde nicht gefunden." }, { status: 404 });
   const { token, tokenHash } = createInvitationToken();
   const link = `${applicationUrl(request)}/einladung?token=${encodeURIComponent(token)}`;
-  await prisma.invitation.update({ where: { id }, data: { tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) } });
+  const renewed = await prisma.invitation.updateMany({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null }, data: { tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) } });
+  if (renewed.count !== 1) return NextResponse.json({ error: "Diese Einladung wurde inzwischen angenommen oder zurückgenommen." }, { status: 409 });
   let emailSent = false;
   let emailError: string | undefined;
   if (invitation.email) {
@@ -39,6 +40,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const { id } = await context.params;
   const scope = await activeClubScope(user);
   if (!scope) return NextResponse.json({ error: "Keine aktive Mannschaft." }, { status: 409 });
-  await prisma.invitation.deleteMany({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null } });
+  const removed = await prisma.invitation.deleteMany({ where: { id, clubId: scope.clubId, teamId: scope.teamId, acceptedAt: null } });
+  if (removed.count !== 1) return NextResponse.json({ error: "Diese Einladung wurde bereits angenommen oder zurückgenommen." }, { status: 409 });
   return NextResponse.json({ ok: true });
 }

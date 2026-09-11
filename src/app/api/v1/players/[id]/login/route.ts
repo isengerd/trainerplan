@@ -38,3 +38,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json({ error: result.message }, { status: result.status });
   }
 }
+
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const actor = await sensitiveAuthenticatedUser(request);
+    if (!actor || actor.role !== "admin") throw new ApiInputError("Nur Admins dürfen Einladungen verwalten.", actor ? 403 : 401);
+    const scope = await activeClubScope(actor);
+    if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
+    const { id } = await context.params;
+    const invitations = await prisma.invitation.findMany({ where: { managedPlayerId: id, clubId: scope.clubId, teamId: scope.teamId, role: "player", acceptedAt: null }, select: { id: true, email: true, name: true, role: true }, orderBy: { createdAt: "desc" } });
+    return NextResponse.json({ invitations });
+  } catch (error) {
+    const result = apiError(error); return NextResponse.json({ error: result.message }, { status: result.status });
+  }
+}

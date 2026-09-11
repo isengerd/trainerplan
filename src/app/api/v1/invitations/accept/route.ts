@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   let user;
   try {
     user = await prisma.$transaction(async (tx) => {
-      const claimed = await tx.invitation.updateMany({ where: { id: invitation.id, acceptedAt: null, expiresAt: { gt: new Date() } }, data: { acceptedAt: new Date() } });
+      const claimed = await tx.invitation.updateMany({ where: { id: invitation.id, tokenHash: invitation.tokenHash, acceptedAt: null, expiresAt: { gt: new Date() } }, data: { acceptedAt: new Date() } });
       if (claimed.count !== 1) throw new ApiInputError("Diese Einladung wurde bereits verwendet.", 409);
       if (invitation.role === "player" && invitation.managedPlayerId) {
         if (!invitation.clubId || !invitation.teamId || (existingUser && existingUser.id !== invitation.managedPlayerId)) throw new ApiInputError("Diese E-Mail-Adresse gehört bereits zu einem anderen Konto.", 409);

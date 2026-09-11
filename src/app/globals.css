@@ -3417,3 +3417,9 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .settings-person-shortcut { margin: 0 0 16px; }
 .settings-person-shortcut > button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; padding: 8px 0; border: 0; border-radius: 6px; background: transparent; color: var(--text); text-align: left; font-size: 14px; font-weight: 600; }
 .settings-person-shortcut svg { flex-shrink: 0; width: 18px; }
+.pending-invitations-panel .pending-invite-actions { display: flex; gap: 8px; }
+.pending-invitations-panel .pending-invite-actions button { min-height: 44px; }
+.pending-invitations-panel .invitation-revoke { flex: 0 0 44px; width: 44px; padding: 0; }
+.pending-invitations-panel article > span small { white-space: normal; overflow-wrap: anywhere; }
+.pending-invitations-panel > label { display: grid; gap: 8px; min-width: 0; }
+.pending-invitations-panel > label input { min-width: 0; width: 100%; }
