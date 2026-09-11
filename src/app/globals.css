@@ -3406,3 +3406,10 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
   color: #b9514c; font-size: 14px; font-weight: 600; text-align: left;
 }
 .player-remove-dialog h2 { overflow-wrap: anywhere; }
+.player-login-invite { margin-top: 20px; }
+.player-login-invite form { display: grid; gap: 12px; }
+.player-login-invite form > button { justify-self: start; min-height: 44px; padding: 10px 16px; }
+.player-login-invite p { font-size: 16px; line-height: 1.5; }
+.player-login-invite label { min-width: 0; }
+.player-login-invite input { width: 100%; min-width: 0; }
+.profile-access-summary > button { justify-self: start; min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-strong); color: var(--text); font-weight: 600; text-align: left; }

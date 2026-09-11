@@ -554,7 +554,12 @@ export function TrainerApp() {
     }
   }
 
-  function updateUser(nextUser: ClubUser) { updateUsers(users.map((user) => user.id === nextUser.id ? nextUser : user)); }
+  async function updateUser(nextUser: ClubUser) {
+    const response = await fetch("/api/v1/users", { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify([nextUser]) });
+    const result = await response.json() as { users?: ClubUser[]; error?: string };
+    if (!response.ok || !result.users) throw new Error(result.error || "Profil konnte nicht gespeichert werden.");
+    setUsers(result.users);
+  }
   function updateSettings(next: ClubSettings) { setClubSettings(next); void syncResource("settings", next).then(() => loadBootstrap()); }
 
   async function removePlayerFromTeam(player: ClubUser) {

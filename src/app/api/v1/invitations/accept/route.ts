@@ -9,6 +9,7 @@ import { ApiInputError, clientIp, emailValue, readJson } from "@/lib/api-securit
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { defaultPosition } from "@/data/club";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
+import { activatePlayerLogin } from "@/lib/activate-player-login";
 import { hasAccessManagement } from "@/lib/license";
 
 async function invitationForToken(token: string) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   const invitation = await invitationForToken(request.nextUrl.searchParams.get("token") || "");
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !hasAccessManagement(invitation.club.licenseType, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
-  return NextResponse.json({ email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, managedPlayer: invitation.managedPlayer?.name, expiresAt: invitation.expiresAt.toISOString() });
+  return NextResponse.json({ email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, managedPlayer: invitation.role === "guardian" ? invitation.managedPlayer?.name : undefined, expiresAt: invitation.expiresAt.toISOString() });
 }
 
 export async function POST(request: NextRequest) {
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
   if (!verifiedEmail || verifiedEmail !== accountEmail) return NextResponse.json({ error: "Die Einladung gehört zu einer anderen E-Mail-Adresse." }, { status: 403 });
   const existingUser = await prisma.user.findUnique({ where: { email: accountEmail } });
   if (existingUser?.firebaseUid && existingUser.firebaseUid !== decoded.uid) return NextResponse.json({ error: "Diese E-Mail-Adresse ist bereits mit einem anderen Zugang verbunden." }, { status: 409 });
+  if (invitation.role === "guardian" && invitation.managedPlayerId === existingUser?.id) return NextResponse.json({ error: "Bitte verwende für den Elternzugang ein eigenes Elternkonto, nicht das Konto des Spielers." }, { status: 409 });
   const name = body?.name?.trim() || invitation.name.trim() || accountEmail.split("@")[0]?.slice(0, 100) || "Mitglied";
   const passwordHash = await bcrypt.hash(randomUUID(), 12);
   let user;
@@ -53,6 +55,10 @@ export async function POST(request: NextRequest) {
     user = await prisma.$transaction(async (tx) => {
       const claimed = await tx.invitation.updateMany({ where: { id: invitation.id, acceptedAt: null, expiresAt: { gt: new Date() } }, data: { acceptedAt: new Date() } });
       if (claimed.count !== 1) throw new ApiInputError("Diese Einladung wurde bereits verwendet.", 409);
+      if (invitation.role === "player" && invitation.managedPlayerId) {
+        if (!invitation.clubId || !invitation.teamId || (existingUser && existingUser.id !== invitation.managedPlayerId)) throw new ApiInputError("Diese E-Mail-Adresse gehört bereits zu einem anderen Konto.", 409);
+        return activatePlayerLogin(tx, { playerId: invitation.managedPlayerId, clubId: invitation.clubId, teamId: invitation.teamId, email: accountEmail, firebaseUid: decoded.uid });
+      }
       const member = existingUser ?? await tx.user.create({ data: {
           id: `user-${randomUUID()}`,
           firebaseUid: decoded.uid,
@@ -78,11 +84,12 @@ export async function POST(request: NextRequest) {
         else await tx.membership.create({ data: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId, role: invitation.role, groupId: invitation.groupId } });
         if (!member.activeTeamId && invitation.teamId) await tx.user.update({ where: { id: member.id }, data: { activeTeamId: invitation.teamId } });
       }
-      if (invitation.managedPlayerId) await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: member.id, playerId: invitation.managedPlayerId } }, update: {}, create: { guardianId: member.id, playerId: invitation.managedPlayerId } });
+      if (invitation.role === "guardian" && invitation.managedPlayerId) await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: member.id, playerId: invitation.managedPlayerId } }, update: {}, create: { guardianId: member.id, playerId: invitation.managedPlayerId } });
       return member;
     });
   } catch (error) {
-    if (error instanceof ApiInputError || error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (error instanceof ApiInputError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "Diese Einladung wurde bereits verwendet oder der Zugang existiert schon." }, { status: 409 });
     }
     throw error;
