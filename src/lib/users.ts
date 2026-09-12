@@ -16,14 +16,14 @@ export async function getUsers(actor: Prisma.UserGetPayload<{}>) {
   const users = scope
     ? (await prisma.membership.findMany({ where: { clubId: scope.clubId, status: "active", ...(scope.teamId ? { teamId: scope.teamId } : {}) }, include: { user: { include: { childrenManaged: { select: { playerId: true } } } } } })).map((membership) => ({ ...membership.user, role: membership.role, groupId: membership.groupId, managedPlayerIds: membership.user.childrenManaged.map((link) => link.playerId) })).sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name))
     : allUsers.map((user) => ({ ...user, managedPlayerIds: [] as string[] }));
-  const club = scope ? await prisma.club.findUnique({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } }) : null;
+  const club = scope ? await prisma.club.findUnique({ where: { id: scope.clubId }, select: { ownerUserId: true, licenseType: true, licenseExpiresAt: true } }) : null;
   const accessManagementEnabled = Boolean(club && hasAccessManagement(club.licenseType, club.licenseExpiresAt));
   const actorRecord = users.find((user) => user.id === actor.id);
   const visibleUsers = actor.role === "guardian"
     ? users.filter((user) => user.id === actor.id || actorRecord?.managedPlayerIds.includes(user.id))
     : actor.role === "player" && !accessManagementEnabled ? users.filter((user) => user.id === actor.id) : users;
   return visibleUsers.map((member) => {
-    const safe = { ...safeUser(member), managedPlayerIds: member.managedPlayerIds ?? [], hasGuardianAccess: users.some((guardian) => guardian.loginEnabled && guardian.managedPlayerIds.includes(member.id)) };
+    const safe = { ...safeUser(member), ...(member.id === actor.id ? { role: actor.role } : {}), managedPlayerIds: member.managedPlayerIds ?? [], hasGuardianAccess: users.some((guardian) => guardian.loginEnabled && guardian.managedPlayerIds.includes(member.id)) };
     if (actor.role !== "player" || member.id === actor.id) return safe;
     return { ...safe, email: "", phone: "", birthday: "" };
   });
@@ -33,7 +33,7 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
   const allowed: ClubUser[] = validateUsers(value, actor.id, actor.role === "admin" || actor.role === "trainer");
   const scope = await activeClubScope(actor);
   if (!scope) throw new ApiInputError("Der Vereinskontext ist noch nicht eingerichtet.", 409);
-  const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });
+  const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { ownerUserId: true, licenseType: true, licenseExpiresAt: true } });
   const accessManagementEnabled = hasAccessManagement(club.licenseType, club.licenseExpiresAt);
   const memberships = await prisma.membership.findMany({ where: { clubId: scope.clubId, teamId: scope.teamId, status: "active" }, include: { user: { select: { id: true, managedProfile: true } } } });
   const existingUsers = memberships.map((membership) => ({ id: membership.user.id, role: membership.role, managedProfile: membership.user.managedProfile }));
@@ -41,6 +41,7 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
   const existingById = new Map(existingUsers.map((entry) => [entry.id, entry]));
   if (allowed.some((entry) => !existingIds.has(entry.id))) throw new ApiInputError("Ein Benutzerkonto existiert nicht.");
   if (actor.role === "admin") {
+    if (allowed.some((entry) => entry.id === club.ownerUserId && entry.role !== "admin")) throw new ApiInputError("Die Inhaberschaft kann nur durch eine bestätigte Übergabe geändert werden.", 409);
     const changedRoles = new Map(allowed.map((entry) => [entry.id, entry.role]));
     if ((changedRoles.get(actor.id) ?? actor.role) !== "admin") throw new ApiInputError("Du kannst dir die eigene Adminrolle nicht entziehen. Übertrage die Administration bei Bedarf zuerst an eine andere Person.");
     if (!existingUsers.some((entry) => (changedRoles.get(entry.id) ?? entry.role) === "admin")) throw new ApiInputError("Mindestens ein Admin muss erhalten bleiben.");
@@ -71,7 +72,7 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
     } });
   }));
   if (actor.role === "admin" && accessManagementEnabled) {
-    await prisma.$transaction(allowed.map((entry) => prisma.membership.updateMany({ where: { userId: entry.id, clubId: scope.clubId, teamId: scope.teamId, status: "active" }, data: { role: entry.role, groupId: entry.groupId || null } })));
+    await prisma.$transaction(allowed.map((entry) => prisma.membership.updateMany({ where: { userId: entry.id, clubId: scope.clubId, teamId: scope.teamId, status: "active", ...(entry.role !== "admin" ? { club: { ownerUserId: { not: entry.id } } } : {}) }, data: { role: entry.role, groupId: entry.groupId || null } })));
   }
   return getUsers(actor);
 }

@@ -10,7 +10,8 @@ import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate
 import { defaultPosition } from "@/data/club";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
 import { activatePlayerLogin } from "@/lib/activate-player-login";
-import { canInviteRole } from "@/lib/license";
+import { invitationAllowsAccess, transferOwnership } from "@/lib/ownership";
+import { isRecentFirebaseSignIn } from "@/lib/auth-policy";
 
 async function invitationForToken(token: string) {
   if (!token) return null;
@@ -21,18 +22,19 @@ export async function GET(request: NextRequest) {
   const attempt = await persistentRateLimit(anonymousThrottleKey("invite-check", clientIp(request)), 60, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Anfragen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   const invitation = await invitationForToken(request.nextUrl.searchParams.get("token") || "");
-  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !canInviteRole(invitation.club.licenseType, invitation.role, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
-  return NextResponse.json({ email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, managedPlayer: invitation.role === "guardian" ? invitation.managedPlayer?.name : undefined, expiresAt: invitation.expiresAt.toISOString() });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitationAllowsAccess(invitation)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
+  return NextResponse.json({ ownershipTransfer: invitation.ownershipTransfer, email: invitation.email, name: invitation.name, role: invitation.role, group: invitation.group?.name, team: invitation.team?.name, club: invitation.club?.name, managedPlayer: invitation.role === "guardian" ? invitation.managedPlayer?.name : undefined, expiresAt: invitation.expiresAt.toISOString() });
 }
 
 export async function POST(request: NextRequest) {
   const attempt = await persistentRateLimit(anonymousThrottleKey("invite-accept", clientIp(request)), 12, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Versuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
-  let body: { token?: string; name?: string; email?: string; idToken?: string } | null = null;
+  let body: { token?: string; name?: string; email?: string; idToken?: string; confirmOwnership?: boolean } | null = null;
   try { body = await readJson(request, 16_384); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
   const invitation = await invitationForToken(body?.token || "");
-  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitation.club || !canInviteRole(invitation.club.licenseType, invitation.role, invitation.club.licenseExpiresAt)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
+  if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitationAllowsAccess(invitation)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });
+  if (invitation.ownershipTransfer && body?.confirmOwnership !== true) return NextResponse.json({ error: "Bitte bestätige die Übernahme der Inhaberschaft." }, { status: 400 });
   let accountEmail: string;
   try { accountEmail = invitation.email ? invitation.email.toLowerCase() : emailValue(body?.email); }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Bitte gib eine gültige E-Mail-Adresse ein." }, { status: 400 }); }
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
   let decoded;
   try { decoded = await auth.verifyIdToken(body.idToken, true); }
   catch { return NextResponse.json({ error: "Die Firebase-Anmeldung ist ungültig oder wurde widerrufen." }, { status: 401 }); }
+  if (invitation.ownershipTransfer && !isRecentFirebaseSignIn(decoded.auth_time)) return NextResponse.json({ error: "Bitte melde dich für die Übernahme erneut an." }, { status: 401 });
   const verifiedEmail = decoded.email?.trim().toLowerCase();
   if (!verifiedEmail || verifiedEmail !== accountEmail) return NextResponse.json({ error: "Die Einladung gehört zu einer anderen E-Mail-Adresse." }, { status: 403 });
   const existingUser = await prisma.user.findUnique({ where: { email: accountEmail } });
@@ -53,6 +56,8 @@ export async function POST(request: NextRequest) {
   let user;
   try {
     user = await prisma.$transaction(async (tx) => {
+      const fresh = await tx.invitation.findUnique({ where: { id: invitation.id }, include: { club: true, team: true } });
+      if (!fresh || !invitationAllowsAccess(fresh)) throw new ApiInputError("Diese Einladung ist nicht mehr freigeschaltet.", 409);
       const claimed = await tx.invitation.updateMany({ where: { id: invitation.id, tokenHash: invitation.tokenHash, acceptedAt: null, expiresAt: { gt: new Date() } }, data: { acceptedAt: new Date() } });
       if (claimed.count !== 1) throw new ApiInputError("Diese Einladung wurde bereits verwendet.", 409);
       if (invitation.role === "player" && invitation.managedPlayerId) {
@@ -75,20 +80,25 @@ export async function POST(request: NextRequest) {
         const bound = await tx.user.updateMany({ where: { id: existingUser.id, firebaseUid: null }, data: { firebaseUid: decoded.uid } });
         if (bound.count !== 1) throw new ApiInputError("Der Zugang wurde gleichzeitig anderweitig verbunden.", 409);
       }
+      if (invitation.ownershipTransfer) {
+        await transferOwnership(tx, invitation, member.id);
+        return member;
+      }
       if (invitation.clubId) {
         const membership = await tx.membership.findFirst({ where: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId } });
         if (membership) {
           const keepExistingRole = (membership.role === "admin" || membership.role === "trainer") && (invitation.role === "guardian" || invitation.role === "player");
-          await tx.membership.update({ where: { id: membership.id }, data: { role: keepExistingRole ? membership.role : invitation.role, groupId: invitation.groupId, status: "active" } });
+          await tx.membership.update({ where: { id: membership.id }, data: { role: fresh.club?.ownerUserId === member.id ? "admin" : keepExistingRole ? membership.role : invitation.role, groupId: invitation.groupId, status: "active" } });
         }
         else await tx.membership.create({ data: { userId: member.id, clubId: invitation.clubId, teamId: invitation.teamId, role: invitation.role, groupId: invitation.groupId } });
         if (!member.activeTeamId && invitation.teamId) await tx.user.update({ where: { id: member.id }, data: { activeTeamId: invitation.teamId } });
       }
       if (invitation.role === "guardian" && invitation.managedPlayerId) await tx.guardianPlayer.upsert({ where: { guardianId_playerId: { guardianId: member.id, playerId: invitation.managedPlayerId } }, update: {}, create: { guardianId: member.id, playerId: invitation.managedPlayerId } });
       return member;
-    });
+    }, { isolationLevel: "Serializable" });
   } catch (error) {
     if (error instanceof ApiInputError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return NextResponse.json({ error: "Die Mannschaft wurde gleichzeitig geändert. Bitte versuche die Annahme erneut." }, { status: 409 });
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "Diese Einladung wurde bereits verwendet oder der Zugang existiert schon." }, { status: 409 });
     }

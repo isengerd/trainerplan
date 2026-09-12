@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       // Store the stable catalog ID, not the display label, so the team can advance next season.
       const team = await tx.team.create({ data: { clubId: club.id, name: teamName, ageGroup } });
       const updatedUser = await tx.user.update({ where: { id: user.id }, data: { name, ageGroup, activeTeamId: team.id } });
+      await tx.club.update({ where: { id: club.id }, data: { ownerUserId: user.id } });
       await tx.membership.create({ data: { userId: user.id, clubId: club.id, teamId: team.id, role: "admin", clubAdmin: true } });
       const config = await tx.appConfig.findUnique({ where: { id: "default" } });
       if (config) {

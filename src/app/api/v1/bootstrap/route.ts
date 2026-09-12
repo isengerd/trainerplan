@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     prisma.teamGroup.findMany({ where: activeMembership ? { clubId: activeMembership.clubId } : { clubId: null }, orderBy: { name: "asc" } }),
     prisma.ageGroup.findMany({ orderBy: { sortOrder: "asc" } }),
     currentUser.role === "admin"
-      ? tenantScopedResult(Boolean(activeMembership), () => prisma.invitation.findMany({ where: { clubId: activeMembership!.clubId, ...(activeMembership!.teamId ? { teamId: activeMembership!.teamId } : {}) }, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } }))
+      ? tenantScopedResult(Boolean(activeMembership), () => prisma.invitation.findMany({ where: { ownershipTransfer: false, clubId: activeMembership!.clubId, ...(activeMembership!.teamId ? { teamId: activeMembership!.teamId } : {}) }, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } }))
       : Promise.resolve([]),
     activeMembership
       ? prisma.tournamentSquad.findMany({ where: { event: { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } }, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } })

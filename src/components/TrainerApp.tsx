@@ -280,8 +280,8 @@ export function TrainerApp() {
         if (cancelled) return;
         if (response.status === 401 || response.status === 403) { clearPrivateData(); return; }
         if (response.ok) {
-          const result = await response.json() as { user: { activeTeamId?: string | null } };
-          if (!cancelled && organization && result.user.activeTeamId !== organization.activeTeamId) await loadBootstrap();
+          const result = await response.json() as { user: { activeTeamId?: string | null; role: string }; isOwner: boolean };
+          if (!cancelled && organization && (result.user.activeTeamId !== organization.activeTeamId || result.user.role !== users.find((entry) => entry.id === currentUserId)?.role || result.isOwner !== Boolean(organization.isOwner))) await loadBootstrap();
         }
       } catch { /* Offline: no new data can be fetched; the server enforces access. */ }
       finally { checking = false; }
@@ -292,7 +292,7 @@ export function TrainerApp() {
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => { cancelled = true; window.clearInterval(interval); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
-  }, [currentUserId, view, organization?.activeTeamId]);
+  }, [currentUserId, view, organization?.activeTeamId, organization?.isOwner, users]);
 
 
   useEffect(() => {
@@ -1088,7 +1088,7 @@ export function TrainerApp() {
           {canManageClub && <a className={view === "exercises" ? "active" : ""} onClick={() => setView("exercises")}><Library /> Übungen</a>}
           {(accessManagementEnabled || currentUser.role === "admin") && <a className={view === "team" ? "active" : ""} onClick={() => setView("team")}><Dumbbell /> {accessManagementEnabled ? "Mannschaft" : "Spieler"}</a>}
         </nav>
-        <div className="account-card" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /><span><strong>{currentUser.name}</strong><small>{currentUser.role === "admin" ? "Admin" : currentUser.role === "trainer" ? "Trainer" : currentUser.role === "guardian" ? "Elternteil" : "Spieler"}</small></span><button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Abmelden"><LogOut /></button></div>
+        <div className="account-card" onClick={() => { setProfileUserId(currentUser.id); setView("profile"); }}><Avatar user={currentUser} size="small" /><span><strong>{currentUser.name}</strong><small>{currentUser.role === "admin" ? (organization?.isPlatformAdmin ? "Plattformadmin" : organization?.isOwner ? "Trainer · Inhaber" : "Admin") : currentUser.role === "trainer" ? "Trainer" : currentUser.role === "guardian" ? "Elternteil" : "Spieler"}</small></span><button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Abmelden"><LogOut /></button></div>
       </aside>
 
       <section className="workspace" hidden={templateOpen && canManageClub && mobileTemplatePage}>
@@ -1137,7 +1137,7 @@ export function TrainerApp() {
           <button className="mobile-menu-logout" onClick={() => { setMobileMenuOpen(false); void logout(); }}><LogOut /> Abmelden</button>
         </nav></div>}
 
-        {organization?.isClubAdmin && licenseDaysLeft !== null && licenseDaysLeft >= 0 && licenseDaysLeft <= 14 && <div className="global-license-warning"><AlertTriangle /><span><strong>Deine Lizenz endet {licenseDaysLeft === 0 ? "heute" : `in ${licenseDaysLeft} Tagen`}.</strong><small>Danach wird EM Free aktiv. Spieler- und Elternzugänge sowie Rückmeldungen bleiben erhalten. Trainerzugänge und Pro-Funktionen pausieren.</small></span><button onClick={() => setView("license")}>Lizenz prüfen</button></div>}
+        {organization?.isClubAdmin && licenseDaysLeft !== null && licenseDaysLeft >= 0 && licenseDaysLeft <= 14 && <div className="global-license-warning"><AlertTriangle /><span><strong>Deine Lizenz endet {licenseDaysLeft === 0 ? "heute" : `in ${licenseDaysLeft} Tagen`}.</strong><small>Danach wird EM Free aktiv. Spieler- und Elternzugänge sowie Rückmeldungen bleiben erhalten. Der Inhaber behält den Trainerplatz. Zusätzliche Trainer- und Adminzugänge sowie Pro-Funktionen pausieren.</small></span><button onClick={() => setView("license")}>Lizenz prüfen</button></div>}
         {moduleContent ?? (view === "overview" ? (canManageClub && (clubSettings.dashboardView ?? "calendar") === "week" ? weeklyOverview : overview) : view === "plan" && canManageClub ? <div className="content-grid plan-only-layout">
           <section className="plan-panel card">
             <div className="plan-heading">

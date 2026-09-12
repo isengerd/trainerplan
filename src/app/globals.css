@@ -3430,3 +3430,25 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .event-training-plan > button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border: 1px solid #267644; border-radius: 9px; background: #267644; color: white; font-size: 16px; font-weight: 700; }
 .event-training-plan > button svg { width: 18px; }
 @media (max-width: 600px) { .event-training-plan { align-items: stretch; flex-direction: column; } }
+
+/* Ownership: readable consent and long addresses on small screens. */
+.ownership-card { min-width: 0; }
+.ownership-card p, .ownership-card label { font-size: 1rem; line-height: 1.5; }
+.ownership-card input:not([type="checkbox"]) { width: 100%; min-width: 0; font-size: 1rem; }
+.ownership-card button { min-height: 44px; }
+.ownership-pending { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; }
+.ownership-pending > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ownership-pending small { display: block; margin-top: .35rem; }
+.ownership-confirm { display: flex !important; flex-direction: row !important; align-items: flex-start; gap: .75rem; margin: 1rem 0; font-size: 1rem; line-height: 1.5; }
+.ownership-confirm input[type="checkbox"] { width: 22px; height: 22px; flex: 0 0 22px; margin-top: .2rem; }
+.ownership-card label:not(.ownership-confirm) { display: grid; gap: .5rem; margin: 1rem 0; }
+.ownership-card input:not([type="checkbox"]) { min-height: 44px; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel, transparent); color: inherit; }
+.app-shell .ownership-card button { font-size: 1rem; line-height: 1.4; padding: .65rem .9rem; }
+.ownership-card button > svg { width: 20px; height: 20px; flex-shrink: 0; }
+.ownership-card .profile-inline-actions { flex-wrap: wrap; }
+.ownership-card .settings-title > svg { flex-shrink: 0; }
+.ownership-card :is(input, button):focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+.ownership-confirm input { accent-color: var(--brand); }
+.ownership-card button:disabled { opacity: .55; cursor: not-allowed; }
+@media (hover: hover) { .ownership-card button:not(:disabled):hover { filter: brightness(.95); } }
+.ownership-card button:not(:disabled):active { transform: translateY(1px); }

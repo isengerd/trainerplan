@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         ageGroup,
         activeTeamId: team.id,
       } });
+      await tx.club.update({ where: { id: club.id }, data: { ownerUserId: createdUser.id } });
       await tx.membership.create({ data: { userId: createdUser.id, clubId: club.id, teamId: team.id, role: "admin", clubAdmin: true } });
       const defaultConfig = await tx.appConfig.findUnique({ where: { id: "default" } });
       if (defaultConfig) await tx.appConfig.create({ data: {

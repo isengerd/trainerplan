@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   if (!config) return NextResponse.json({ error: "Die Mannschaftskonfiguration fehlt." }, { status: 404 });
   const settings = config.settings as unknown as ClubSettings;
 
-  if (email) await prisma.invitation.deleteMany({ where: { email, clubId: membership.clubId, teamId: membership.teamId, acceptedAt: null } });
+  if (email) await prisma.invitation.deleteMany({ where: { email, clubId: membership.clubId, teamId: membership.teamId, ownershipTransfer: false, acceptedAt: null } });
   const { token, tokenHash } = createInvitationToken();
   const invitation = await prisma.invitation.create({
     data: { email, name, role: body.role, ageGroup: "", groupId, clubId: membership?.clubId, teamId: membership?.teamId, invitedById: user.id, tokenHash, expiresAt: new Date(Date.now() + 7 * 86400000) },

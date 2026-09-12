@@ -20,6 +20,8 @@ export type OrganizationContext = {
   licenseExpiresAt: string | null;
   activeTeamId: string | null;
   isClubAdmin: boolean;
+  isOwner?: boolean;
+  isPlatformAdmin?: boolean;
   teams: OrganizationTeam[];
   managedPlayers: Array<{
     id: string;

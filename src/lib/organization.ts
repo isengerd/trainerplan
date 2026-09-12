@@ -1,3 +1,4 @@
+import { isPlatformAdmin } from "./platform-admin";
 import { membershipAllowsAccess } from "./membership-access";
 import type { Role } from "@prisma/client";
 import type { OrganizationContext } from "@/data/club";
@@ -15,7 +16,8 @@ export async function organizationContext(userId: string): Promise<OrganizationC
   })).filter(membershipAllowsAccess);
   const first = memberships[0];
   if (!first) return null;
-  const isClubAdmin = memberships.some((membership) => membership.clubAdmin);
+  const isOwner = first.club.ownerUserId === userId;
+  const isClubAdmin = isOwner || memberships.some((membership) => membership.clubAdmin);
   const scopedTeamIds = memberships.map((membership) => membership.teamId).filter((teamId): teamId is string => Boolean(teamId));
   const availableTeams = await prisma.team.findMany({
     where: {
@@ -49,6 +51,8 @@ export async function organizationContext(userId: string): Promise<OrganizationC
     licenseExpiresAt: first.club.licenseExpiresAt?.toISOString() ?? null,
     activeTeamId: scope.teamId,
     isClubAdmin,
+    isOwner,
+    isPlatformAdmin: isPlatformAdmin(userId),
     teams: availableTeams.map((team) => ({
       id: team.id,
       name: team.name,
@@ -74,4 +78,11 @@ export async function requireClubAdmin(userId: string) {
   if (!scope) return null;
   const membership = await prisma.membership.findFirst({ where: { userId, clubId: scope.clubId, status: "active", clubAdmin: true } });
   return membership ? { scope, membership } : null;
+}
+
+export async function requireClubOwner(userId: string) {
+  const scope = await activeClubScope({ id: userId });
+  if (!scope) return null;
+  const club = await prisma.club.findUnique({ where: { id: scope.clubId } });
+  return club?.ownerUserId === userId ? { scope, club } : null;
 }
