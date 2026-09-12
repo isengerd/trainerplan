@@ -267,6 +267,7 @@ export function TrainerApp() {
   }
 
   useEffect(() => { void loadBootstrap(); }, []);
+  useEffect(() => { window.dispatchEvent(new CustomEvent("trainerplan:auth-changed")); }, [currentUserId]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -323,8 +324,13 @@ export function TrainerApp() {
 
   useEffect(() => {
     const refreshPushStatus = () => void loadBootstrap();
+    const showPushError = (event: Event) => {
+      const message = (event as CustomEvent<unknown>).detail;
+      if (typeof message === "string") showToast(message);
+    };
     window.addEventListener("trainerplan:push-registered", refreshPushStatus);
-    return () => window.removeEventListener("trainerplan:push-registered", refreshPushStatus);
+    window.addEventListener("trainerplan:push-error", showPushError);
+    return () => { window.removeEventListener("trainerplan:push-registered", refreshPushStatus); window.removeEventListener("trainerplan:push-error", showPushError); };
   }, []);
 
   useEffect(() => {
