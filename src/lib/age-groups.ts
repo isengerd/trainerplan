@@ -44,3 +44,9 @@ export const NEXT_AGE_GROUP: Record<FirstTeamAgeGroup, FirstTeamAgeGroup | null>
 export function isFirstTeamAgeGroup(value: string): value is FirstTeamAgeGroup {
   return (FIRST_TEAM_AGE_GROUPS as readonly string[]).includes(value);
 }
+
+// Default when creating a team or selecting a different age group.
+// A saved manual choice is not recalculated when loading settings.
+export function defaultLeagueMatches(ageGroup: string) {
+  return ageGroup.trim().toLowerCase() === "d1";
+}

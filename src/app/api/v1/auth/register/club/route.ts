@@ -1,3 +1,4 @@
+import { defaultLeagueMatches } from "@/lib/age-groups";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       const defaultConfig = await tx.appConfig.findUnique({ where: { id: "default" } });
       if (defaultConfig) await tx.appConfig.create({ data: {
         id: `club-${club.id}`, clubId: club.id, teamId: team.id,
-        settings: { ...(defaultConfig.settings as Record<string, unknown>), clubName, teamName: `${teamName} · ${ageGroup}` },
+        settings: { ...(defaultConfig.settings as Record<string, unknown>), clubName, teamName: `${teamName} · ${ageGroup}`, leagueMatchesEnabled: defaultLeagueMatches(ageGroup) },
         plans: defaultConfig.plans as Prisma.InputJsonValue, templates: defaultConfig.templates as Prisma.InputJsonValue, planMeta: defaultConfig.planMeta as Prisma.InputJsonValue,
       } });
       return createdUser;

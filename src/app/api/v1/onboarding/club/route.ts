@@ -1,3 +1,4 @@
+import { defaultLeagueMatches } from "@/lib/age-groups";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
       await tx.membership.create({ data: { userId: user.id, clubId: club.id, teamId: team.id, role: "admin", clubAdmin: true } });
       const config = await tx.appConfig.findUnique({ where: { id: "default" } });
       if (config) {
-        const settings = { ...(config.settings as Record<string, unknown>), clubName, teamName };
+        const settings = { ...(config.settings as Record<string, unknown>), clubName, teamName, leagueMatchesEnabled: defaultLeagueMatches(ageGroup) };
         await tx.appConfig.upsert({
           where: { id: `club-${club.id}` },
           create: { id: `club-${club.id}`, clubId: club.id, teamId: team.id, settings, plans: config.plans as Prisma.InputJsonValue, templates: config.templates as Prisma.InputJsonValue, planMeta: config.planMeta as Prisma.InputJsonValue },

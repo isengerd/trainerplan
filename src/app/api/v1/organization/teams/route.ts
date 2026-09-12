@@ -1,3 +1,4 @@
+import { defaultLeagueMatches } from "@/lib/age-groups";
 import { NextRequest, NextResponse } from "next/server";
 import { sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, apiError, readJson, textValue } from "@/lib/api-security";
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     const sourceConfig = await prisma.appConfig.findUnique({ where: { id: `club-${club.id}` } }) ?? await prisma.appConfig.findUnique({ where: { id: "default" } });
     if (sourceConfig) {
       const sourceSettings = sourceConfig.settings as Record<string, unknown>;
-      await prisma.appConfig.create({ data: { id: `team-${team.id}`, clubId: club.id, teamId: team.id, settings: { ...sourceSettings, clubName: club.name, teamName: name } as Prisma.InputJsonValue, plans: {}, templates: sourceConfig.templates as Prisma.InputJsonValue, planMeta: {} } });
+      await prisma.appConfig.create({ data: { id: `team-${team.id}`, clubId: club.id, teamId: team.id, settings: { ...sourceSettings, clubName: club.name, teamName: name, leagueMatchesEnabled: defaultLeagueMatches(ageGroup) } as Prisma.InputJsonValue, plans: {}, templates: sourceConfig.templates as Prisma.InputJsonValue, planMeta: {} } });
     }
     return NextResponse.json({ team, organization: await organizationContext(user.id) }, { status: 201 });
   } catch (error) {
