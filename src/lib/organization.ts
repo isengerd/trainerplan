@@ -1,3 +1,4 @@
+import { canManageLicense, licenseSelfServiceEnabled } from "./license-management";
 import { isPlatformAdmin } from "./platform-admin";
 import { membershipAllowsAccess } from "./membership-access";
 import type { Role } from "@prisma/client";
@@ -52,6 +53,8 @@ export async function organizationContext(userId: string): Promise<OrganizationC
     activeTeamId: scope.teamId,
     isClubAdmin,
     isOwner,
+    canManageLicense: canManageLicense(userId, first.club.ownerUserId),
+    betaMode: !licenseSelfServiceEnabled(),
     isPlatformAdmin: isPlatformAdmin(userId),
     teams: availableTeams.map((team) => ({
       id: team.id,
@@ -85,4 +88,12 @@ export async function requireClubOwner(userId: string) {
   if (!scope) return null;
   const club = await prisma.club.findUnique({ where: { id: scope.clubId } });
   return club?.ownerUserId === userId ? { scope, club } : null;
+}
+
+// Platform operators still need an active, explicitly assigned team context.
+export async function requireLicenseManager(userId: string) {
+  const scope = await activeClubScope({ id: userId });
+  if (!scope) return null;
+  const club = await prisma.club.findUnique({ where: { id: scope.clubId } });
+  return club && canManageLicense(userId, club.ownerUserId) ? { scope, club } : null;
 }

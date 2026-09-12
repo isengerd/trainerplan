@@ -62,3 +62,23 @@ Plattformkonto behält seine Administration in der zugeordneten Mannschaft.
 Lokal wurden keine produktiven Rollen geändert und keine Migrationen auf eine
 Produktionsdatenbank angewandt. Die Freischaltung des Betreiberkontos muss vor dem
 Rollout anhand der echten Konto-ID erfolgen.
+
+## Vereins-Beta: Lizenzverwaltung ausblenden
+
+`LICENSE_SELF_SERVICE_ENABLED=false` sperrt Tarifwechsel für alle normalen Konten,
+auch Mannschaftsinhaber. Ohne gesetzte Variable ist die Sperre ebenfalls aktiv.
+Nur die ausdrücklich über `PLATFORM_ADMIN_USER_IDS` freigeschalteten Betreiber
+sehen Lizenz & Abrechnung und können im bereits zugeordneten Vereinskontext den
+Tarif ändern. Es entsteht kein Zugriff auf fremde Vereine.
+
+Die App blendet Lizenzmenüs und Ablaufhinweise anhand einer serverseitig berechneten
+Berechtigung aus. Beide Tarif-Endpunkte prüfen dieselbe Regel. Die Upgrade-Werbung
+in der Mannschaftsansicht wurde durch neutrale Zugangsinformationen ersetzt.
+Bestehende Tarife, Ablauffristen, Mannschaftsrollen und Daten werden nicht geändert.
+Für einen ununterbrochenen Beta-Test daher weiterhin auf gültige Testfreischaltungen
+achten. Die Einstellung verlängert keine ablaufenden Lizenzen automatisch.
+
+Später schaltet ausschließlich der exakte Wert `true` die öffentliche
+Lizenzverwaltung für Inhaber wieder ein. Andere Trainer erhalten dadurch keine
+Tarifberechtigung. Für diese Änderung ist keine Datenbankmigration nötig, nur ein
+neues Deployment. Die Zuordnung des geschützten Plattformkontos bleibt bestehen.
