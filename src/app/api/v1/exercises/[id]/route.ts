@@ -1,3 +1,4 @@
+import { activeClubScope } from "@/lib/club-context";
 import { NextRequest, NextResponse } from "next/server";
 import { canManage, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { apiError, readJson } from "@/lib/api-security";
@@ -12,7 +13,7 @@ export async function PATCH(request: NextRequest, context: Context) {
   if (!canManage(user.role)) return NextResponse.json({ error: "Nur Trainer und Admins dürfen Übungen verwalten." }, { status: 403 });
   try {
     const { id } = await context.params;
-    const scope = await prisma.membership.findFirst({ where: { userId: user.id, status: "active" }, select: { clubId: true, teamId: true } });
+    const scope = await activeClubScope(user);
     if (!scope || !(await prisma.exerciseRecord.findFirst({ where: { id, clubId: scope.clubId, ...(scope.teamId ? { teamId: scope.teamId } : {}) }, select: { id: true } }))) return NextResponse.json({ error: "Die Übung wurde nicht gefunden." }, { status: 404 });
     const body = await readJson<Record<string, unknown>>(request, 256_000);
     const exercise = await saveExercise({ ...body, id }, user);

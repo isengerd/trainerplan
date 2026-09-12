@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticatedUser } from "@/lib/auth";
-import { objectValue, readJson, textValue } from "@/lib/api-security";
+import { ApiInputError, objectValue, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     await prisma.devicePushToken.upsert({ where: { token }, create: { token, platform, userId: user.id }, update: { platform, userId: user.id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Push-Token konnte nicht gespeichert werden." }, { status: 400 });
+    return NextResponse.json({ error: error instanceof ApiInputError ? error.message : "Push-Token konnte nicht gespeichert werden." }, { status: 400 });
   }
 }
 

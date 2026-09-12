@@ -4,11 +4,11 @@ export function normalizeLicenseType(value: string): LicenseType {
   if (value === "club") return "club";
   if (value === "single_team_free") return "single_team_free";
   // Legacy-Einzelmannschaften verlieren beim Rollout keine bisherigen Funktionen.
-  return "single_team_pro";
+  return value === "single_team" || value === "single_team_pro" ? "single_team_pro" : "single_team_free";
 }
 
 export function effectiveLicenseType(value: string, expiresAt?: Date | string | null): LicenseType {
-  if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) return "single_team_free";
+  if (expiresAt && (!Number.isFinite(new Date(expiresAt).getTime()) || new Date(expiresAt).getTime() <= Date.now())) return "single_team_free";
   return normalizeLicenseType(value);
 }
 

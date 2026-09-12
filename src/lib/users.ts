@@ -1,3 +1,5 @@
+import { membershipAllowsAccess } from "./membership-access";
+import { isPlatformAdmin } from "./platform-admin";
 import { positionForRole } from "./member-position";
 import { Prisma } from "@prisma/client";
 import type { ClubUser } from "@/data/club";
@@ -25,6 +27,12 @@ export async function getUsers(actor: Prisma.UserGetPayload<{}>) {
     : actor.role === "player" && !accessManagementEnabled ? users.filter((user) => user.id === actor.id) : users;
   return visibleUsers.map((member) => {
     const safe = { ...safeUser({ ...member, role: member.id === actor.id ? actor.role : member.role }), managedPlayerIds: member.managedPlayerIds ?? [], hasGuardianAccess: users.some((guardian) => guardian.loginEnabled && guardian.managedPlayerIds.includes(member.id)) };
+    if (actor.role === "player" || actor.role === "guardian") {
+      safe.dribblingRating = 0;
+      safe.shootingRating = 0;
+      safe.passingRating = 0;
+      safe.internalTeam = null;
+    }
     if (actor.role !== "player" || member.id === actor.id) return safe;
     return { ...safe, email: "", phone: "", birthday: "" };
   });
@@ -34,48 +42,53 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
   const allowed: ClubUser[] = validateUsers(value, actor.id, actor.role === "admin" || actor.role === "trainer");
   const scope = await activeClubScope(actor);
   if (!scope) throw new ApiInputError("Der Vereinskontext ist noch nicht eingerichtet.", 409);
-  const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { ownerUserId: true, licenseType: true, licenseExpiresAt: true } });
-  const accessManagementEnabled = hasAccessManagement(club.licenseType, club.licenseExpiresAt);
-  const memberships = await prisma.membership.findMany({ where: { clubId: scope.clubId, teamId: scope.teamId, status: "active" }, include: { user: { select: { id: true, managedProfile: true } } } });
-  const existingUsers = memberships.map((membership) => ({ id: membership.user.id, role: membership.role, managedProfile: membership.user.managedProfile }));
-  const existingIds = new Set(existingUsers.map((entry) => entry.id));
-  const existingById = new Map(existingUsers.map((entry) => [entry.id, entry]));
-  if (allowed.some((entry) => !existingIds.has(entry.id))) throw new ApiInputError("Ein Benutzerkonto existiert nicht.");
-  if (actor.role === "admin") {
-    if (allowed.some((entry) => entry.id === club.ownerUserId && entry.role !== "admin")) throw new ApiInputError("Die Inhaberschaft kann nur durch eine bestätigte Übergabe geändert werden.", 409);
-    const changedRoles = new Map(allowed.map((entry) => [entry.id, entry.role]));
-    if ((changedRoles.get(actor.id) ?? actor.role) !== "admin") throw new ApiInputError("Du kannst dir die eigene Adminrolle nicht entziehen. Übertrage die Administration bei Bedarf zuerst an eine andere Person.");
-    if (!existingUsers.some((entry) => (changedRoles.get(entry.id) ?? entry.role) === "admin")) throw new ApiInputError("Mindestens ein Admin muss erhalten bleiben.");
-    const groupIds = [...new Set(allowed.map((entry) => entry.groupId).filter((id): id is string => Boolean(id)))];
-    if (groupIds.length && await prisma.teamGroup.count({ where: { id: { in: groupIds }, clubId: scope.clubId } }) !== groupIds.length) throw new ApiInputError("Eine ausgewählte Gruppe existiert nicht.");
-  }
-  await prisma.$transaction(allowed.map((entry) => {
-    const existing = existingById.get(entry.id)!;
-    const effectiveRole = actor.role === "admin" && accessManagementEnabled ? entry.role : existing.role;
-    const position = positionForRole(effectiveRole, entry.position);
-    const canEditProfile = actor.role === "admin" || actor.id === entry.id;
-    const canEditDevelopment = actor.role === "admin" || (actor.role === "trainer" && existing.role === "player");
-    const canEditPlayerEquipment = existing.role === "player" && (actor.role === "admin" || actor.role === "trainer");
-    return prisma.user.update({ where: { id: entry.id }, data: {
-      name: canEditProfile ? entry.name : undefined,
-      email: actor.role === "admin" && existing.managedProfile && entry.email ? entry.email.trim().toLowerCase() : undefined,
-      role: actor.role === "admin" && accessManagementEnabled ? entry.role : undefined,
-      position: existing.role === "player" ? (canEditPlayerEquipment ? position : undefined) : (canEditProfile ? position : undefined),
-      number: canEditPlayerEquipment ? entry.number : undefined,
-      ballNumber: canEditPlayerEquipment ? entry.ballNumber : undefined, phone: canEditProfile ? entry.phone : undefined,
-      birthday: canEditProfile ? (entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null) : undefined,
-      ageGroup: actor.role === "admin" ? (entry.role === "player" ? ageGroupForBirthday(entry.birthday) ?? "" : entry.ageGroup) : undefined,
-      avatar: canEditProfile ? entry.avatar : undefined,
-      dribblingRating: canEditDevelopment && existing.role === "player" ? entry.dribblingRating : undefined,
-      shootingRating: canEditDevelopment && existing.role === "player" ? entry.shootingRating : undefined,
-      passingRating: canEditDevelopment && existing.role === "player" ? entry.passingRating : undefined,
-      internalTeam: canEditDevelopment && existing.role === "player" ? entry.internalTeam || null : undefined,
-      defaultTrainingAttendance: canEditProfile && existing.role === "player" ? entry.defaultTrainingAttendance : undefined,
-      defaultCompetitionAttendance: canEditProfile && existing.role === "player" ? entry.defaultCompetitionAttendance : undefined,
-    } });
-  }));
-  if (actor.role === "admin" && accessManagementEnabled) {
-    await prisma.$transaction(allowed.map((entry) => prisma.membership.updateMany({ where: { userId: entry.id, clubId: scope.clubId, teamId: scope.teamId, status: "active", ...(entry.role !== "admin" ? { club: { ownerUserId: { not: entry.id } } } : {}) }, data: { role: entry.role, groupId: entry.groupId || null } })));
-  }
+  await prisma.$transaction(async (tx) => {
+    const freshActor = await tx.membership.findFirst({ where: { userId: actor.id, clubId: scope.clubId, teamId: scope.teamId }, include: { club: true, team: true, user: { select: { loginEnabled: true, managedProfile: true } } } });
+    if (!freshActor || !freshActor.user.loginEnabled || freshActor.user.managedProfile || !membershipAllowsAccess(freshActor) || (isPlatformAdmin(actor.id) ? "admin" : freshActor.role) !== actor.role) throw new ApiInputError("Deine Mannschaftsrechte haben sich geändert. Bitte lade die Ansicht erneut.", 409);
+    const club = await tx.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { ownerUserId: true, licenseType: true, licenseExpiresAt: true } });
+    const accessManagementEnabled = hasAccessManagement(club.licenseType, club.licenseExpiresAt);
+    const memberships = await tx.membership.findMany({ where: { clubId: scope.clubId, teamId: scope.teamId, status: "active" }, include: { user: { select: { id: true, managedProfile: true } } } });
+    const existingUsers = memberships.map((membership) => ({ id: membership.user.id, role: membership.role, managedProfile: membership.user.managedProfile }));
+    const existingIds = new Set(existingUsers.map((entry) => entry.id));
+    const existingById = new Map(existingUsers.map((entry) => [entry.id, entry]));
+    if (allowed.some((entry) => !existingIds.has(entry.id))) throw new ApiInputError("Ein Benutzerkonto existiert nicht.");
+    if (allowed.some((entry) => existingById.get(entry.id)?.managedProfile && entry.role !== "player")) throw new ApiInputError("Verwaltete Kinderprofile bleiben Spieler.", 403);
+    if (actor.role === "admin") {
+      if (allowed.some((entry) => entry.id === club.ownerUserId && entry.role !== "admin")) throw new ApiInputError("Die Inhaberschaft kann nur durch eine bestätigte Übergabe geändert werden.", 409);
+      const changedRoles = new Map(allowed.map((entry) => [entry.id, entry.role]));
+      if ((changedRoles.get(actor.id) ?? actor.role) !== "admin") throw new ApiInputError("Du kannst dir die eigene Adminrolle nicht entziehen. Übertrage die Administration bei Bedarf zuerst an eine andere Person.");
+      if (!existingUsers.some((entry) => (changedRoles.get(entry.id) ?? entry.role) === "admin")) throw new ApiInputError("Mindestens ein Admin muss erhalten bleiben.");
+      const groupIds = [...new Set(allowed.map((entry) => entry.groupId).filter((id): id is string => Boolean(id)))];
+      if (groupIds.length && await tx.teamGroup.count({ where: { id: { in: groupIds }, clubId: scope.clubId } }) !== groupIds.length) throw new ApiInputError("Eine ausgewählte Gruppe existiert nicht.");
+    }
+    for (const entry of allowed) {
+      const existing = existingById.get(entry.id)!;
+      const effectiveRole = actor.role === "admin" && accessManagementEnabled ? entry.role : existing.role;
+      const position = positionForRole(effectiveRole, entry.position);
+      const canEditProfile = actor.role === "admin" || actor.id === entry.id;
+      const canEditDevelopment = actor.role === "admin" || (actor.role === "trainer" && existing.role === "player");
+      const canEditPlayerEquipment = existing.role === "player" && (actor.role === "admin" || actor.role === "trainer");
+      await tx.user.update({ where: { id: entry.id }, data: {
+        name: canEditProfile ? entry.name : undefined,
+        email: actor.role === "admin" && existing.managedProfile && entry.email ? entry.email.trim().toLowerCase() : undefined,
+        role: actor.role === "admin" && accessManagementEnabled ? entry.role : undefined,
+        position: existing.role === "player" ? (canEditPlayerEquipment ? position : undefined) : (canEditProfile ? position : undefined),
+        number: canEditPlayerEquipment ? entry.number : undefined,
+        ballNumber: canEditPlayerEquipment ? entry.ballNumber : undefined, phone: canEditProfile ? entry.phone : undefined,
+        birthday: canEditProfile ? (entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null) : undefined,
+        ageGroup: actor.role === "admin" ? (entry.role === "player" ? ageGroupForBirthday(entry.birthday) ?? "" : entry.ageGroup) : undefined,
+        avatar: canEditProfile ? entry.avatar : undefined,
+        dribblingRating: canEditDevelopment && existing.role === "player" ? entry.dribblingRating : undefined,
+        shootingRating: canEditDevelopment && existing.role === "player" ? entry.shootingRating : undefined,
+        passingRating: canEditDevelopment && existing.role === "player" ? entry.passingRating : undefined,
+        internalTeam: canEditDevelopment && existing.role === "player" ? entry.internalTeam || null : undefined,
+        defaultTrainingAttendance: canEditProfile && existing.role === "player" ? entry.defaultTrainingAttendance : undefined,
+        defaultCompetitionAttendance: canEditProfile && existing.role === "player" ? entry.defaultCompetitionAttendance : undefined,
+      } });
+    }
+    if (actor.role === "admin" && accessManagementEnabled) {
+      for (const entry of allowed) await tx.membership.updateMany({ where: { userId: entry.id, clubId: scope.clubId, teamId: scope.teamId, status: "active", ...(entry.role !== "admin" ? { club: { ownerUserId: { not: entry.id } } } : {}) }, data: { role: entry.role, groupId: entry.groupId || null } });
+    }
+  }, { isolationLevel: "Serializable" });
   return getUsers(actor);
 }

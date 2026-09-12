@@ -9,9 +9,10 @@ import { activeClubScope, ensureClubConfig, scopedResourceWhere } from "./club-c
 export async function getEvents(user: Pick<User, "id" | "role">): Promise<ClubEvent[]> {
   await ensureApplicationData();
   const scope = await activeClubScope(user);
-  const scopedConfig = scope ? await ensureClubConfig(scope) : null;
+  if (!scope) return [];
+  const scopedConfig = await ensureClubConfig(scope);
   const [events, config] = await Promise.all([
-    prisma.clubEvent.findMany({ where: scope ? { OR: [scopedResourceWhere(scope), { clubId: null }] } : { clubId: null }, include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
+    prisma.clubEvent.findMany({ where: scopedResourceWhere(scope), include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
     Promise.resolve(scopedConfig ?? (scope ? null : prisma.appConfig.findUnique({ where: { id: "default" }, select: { settings: true } }))).then((config) => config),
   ]);
   if (!config) throw new ApiInputError("Die Konfiguration konnte nicht geladen werden.");
@@ -41,7 +42,7 @@ export async function saveEvents(value: unknown, user: User) {
     if (!settings.attendanceEnabled) throw new ApiInputError("Teilnahmerückmeldungen sind deaktiviert.", 403);
 
     for (const incoming of events) {
-      const existing = await prisma.clubEvent.findFirst({ where: { id: incoming.id, OR: [scopedResourceWhere(scope), { clubId: null }] }, include: { responses: true } });
+      const existing = await prisma.clubEvent.findFirst({ where: { id: incoming.id, ...scopedResourceWhere(scope) }, include: { responses: true } });
       if (!existing) continue;
       if (existing.cancelledAt) throw new ApiInputError("Der Termin wurde abgesagt.", 409);
       const value = incoming.responses[user.id];
@@ -63,6 +64,8 @@ export async function saveEvents(value: unknown, user: User) {
   if (responseUserIds.length && await prisma.membership.count({ where: { userId: { in: responseUserIds }, clubId: scope.clubId, teamId: scope.teamId, status: "active" } }) !== responseUserIds.length) throw new ApiInputError("Eine Teilnahme gehört zu keinem Mitglied dieser Mannschaft.");
   const ids = events.map((event) => event.id);
   await prisma.$transaction(async (tx) => {
+    const existing = await tx.clubEvent.findMany({ where: { id: { in: ids } }, select: { clubId: true, teamId: true } });
+    if (existing.some((event) => event.clubId !== scope.clubId || event.teamId !== scope.teamId)) throw new ApiInputError("Ein Termin gehört nicht zu dieser Mannschaft.", 403);
     if (ids.length) await tx.clubEvent.deleteMany({ where: { ...scopedResourceWhere(scope), id: { notIn: ids } } });
     else await tx.clubEvent.deleteMany({ where: scopedResourceWhere(scope) });
     for (const event of events) {
@@ -71,6 +74,6 @@ export async function saveEvents(value: unknown, user: User) {
       const responses = Object.entries(event.responses);
       if (responses.length) await tx.attendanceResponse.createMany({ data: responses.map(([userId, response]) => ({ eventId: event.id, userId, value: response })) });
     }
-  });
+  }, { isolationLevel: "Serializable" });
   return { ok: true };
 }

@@ -15,6 +15,6 @@ export async function POST(request: NextRequest) {
     response.cookies.set(SESSION_COOKIE, session.cookie, sessionCookieSettings(request, session.expiresAt));
     return response;
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Die Anmeldung ist fehlgeschlagen." }, { status: error instanceof ApiInputError ? error.status : 401 });
+    return NextResponse.json({ error: error instanceof ApiInputError ? error.message : "Die Anmeldung ist fehlgeschlagen." }, { status: error instanceof ApiInputError ? error.status : 401 });
   }
 }

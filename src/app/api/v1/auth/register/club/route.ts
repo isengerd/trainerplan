@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set(SESSION_COOKIE, session.token, { httpOnly: true, sameSite: "lax", secure: requestUsesHttps(request), path: "/", expires: session.expiresAt });
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Die Registrierung konnte nicht verarbeitet werden.";
+    const message = error instanceof ApiInputError ? error.message : "Die Registrierung konnte nicht verarbeitet werden.";
     return NextResponse.json({ error: message }, { status: error instanceof ApiInputError ? error.status : 400 });
   }
 }

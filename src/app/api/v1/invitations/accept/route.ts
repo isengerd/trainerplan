@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { firebaseAuthEnabled, safeUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { invitationTokenHash } from "@/lib/invitations";
-import { ApiInputError, clientIp, emailValue, readJson } from "@/lib/api-security";
+import { ApiInputError, clientIp, emailValue, readJson, objectValue, textValue, optionalText } from "@/lib/api-security";
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { defaultPosition } from "@/data/club";
 import { firebaseAdminAuth } from "@/lib/firebase-admin";
@@ -13,8 +13,8 @@ import { activatePlayerLogin } from "@/lib/activate-player-login";
 import { invitationAllowsAccess, transferOwnership } from "@/lib/ownership";
 import { isRecentFirebaseSignIn } from "@/lib/auth-policy";
 
-async function invitationForToken(token: string) {
-  if (!token) return null;
+async function invitationForToken(token: unknown) {
+  if (typeof token !== "string" || token.length < 16 || token.length > 200) return null;
   return prisma.invitation.findUnique({ where: { tokenHash: invitationTokenHash(token) }, include: { group: true, team: true, club: true, managedPlayer: true } });
 }
 
@@ -30,7 +30,10 @@ export async function POST(request: NextRequest) {
   const attempt = await persistentRateLimit(anonymousThrottleKey("invite-accept", clientIp(request)), 12, 15 * 60_000);
   if (!attempt.allowed) return NextResponse.json({ error: "Zu viele Versuche. Bitte später erneut versuchen." }, { status: 429, headers: { "Retry-After": String(attempt.retryAfter) } });
   let body: { token?: string; name?: string; email?: string; idToken?: string; confirmOwnership?: boolean } | null = null;
-  try { body = await readJson(request, 16_384); }
+  try {
+    const input = objectValue(await readJson(request, 16_384));
+    body = { token: textValue(input.token, "Einladung", 200, 16), idToken: textValue(input.idToken, "Firebase-Token", 10_000, 100), name: optionalText(input.name, "Name", 100), email: optionalText(input.email, "E-Mail-Adresse", 254), confirmOwnership: input.confirmOwnership === true };
+  }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
   const invitation = await invitationForToken(body?.token || "");
   if (!invitation || invitation.acceptedAt || invitation.expiresAt <= new Date() || !invitationAllowsAccess(invitation)) return NextResponse.json({ error: "Diese Einladung ist ungültig oder abgelaufen." }, { status: 404 });

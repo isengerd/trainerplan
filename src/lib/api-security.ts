@@ -7,8 +7,25 @@ export class ApiInputError extends Error {
 export async function readJson<T>(request: NextRequest, maxBytes = 256_000): Promise<T> {
   const declared = Number(request.headers.get("content-length") || 0);
   if (Number.isFinite(declared) && declared > maxBytes) throw new ApiInputError("Die Anfrage ist zu groß.", 413);
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > maxBytes) throw new ApiInputError("Die Anfrage ist zu groß.", 413);
+  const reader = request.body?.getReader();
+  let text = "";
+  if (reader) {
+    const decoder = new TextDecoder();
+    let bytes = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > maxBytes) {
+          await reader.cancel().catch(() => undefined);
+          throw new ApiInputError("Die Anfrage ist zu groß.", 413);
+        }
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+      text += decoder.decode();
+    } finally { reader.releaseLock(); }
+  }
   try { return JSON.parse(text) as T; }
   catch { throw new ApiInputError("Ungültiges JSON."); }
 }

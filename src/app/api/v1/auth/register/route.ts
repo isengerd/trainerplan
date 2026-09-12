@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({ data: { id: `user-${randomUUID()}`, firebaseUid: decoded.uid, name: decoded.name?.slice(0, 100) || "Neuer Nutzer", email, passwordHash: await bcrypt.hash(randomUUID(), 12), role: "admin", position: defaultPosition.admin } });
     return NextResponse.json({ user: safeUser(user), setupRequired: true }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Die Registrierung konnte nicht verarbeitet werden.";
+    const message = error instanceof ApiInputError ? error.message : "Die Registrierung konnte nicht verarbeitet werden.";
     return NextResponse.json({ error: message }, { status: error instanceof ApiInputError ? error.status : 400 });
   }
 }

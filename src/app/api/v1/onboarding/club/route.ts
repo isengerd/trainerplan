@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ user: safeUser(result), setupRequired: false });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Die Einrichtung konnte nicht gespeichert werden.";
+    const message = error instanceof ApiInputError ? error.message : "Die Einrichtung konnte nicht gespeichert werden.";
     return NextResponse.json({ error: message }, { status: error instanceof ApiInputError ? error.status : 400 });
   }
 }

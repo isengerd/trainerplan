@@ -1,3 +1,4 @@
+import { ApiInputError } from "./api-security";
 import { positionForRole } from "./member-position";
 import { createHash, randomBytes } from "node:crypto";
 import type { NextRequest } from "next/server";
@@ -74,21 +75,21 @@ type AuthOptions = { checkRevoked?: boolean; maxAuthAgeSeconds?: number };
 
 export async function createFirebaseSession(idToken: string) {
   const auth = firebaseAdminAuth();
-  if (!auth) throw new Error("Firebase Authentication ist serverseitig nicht konfiguriert.");
+  if (!auth) throw new ApiInputError("Firebase Authentication ist serverseitig nicht konfiguriert.");
   const decoded = await auth.verifyIdToken(idToken, true);
   if (!isRecentFirebaseSignIn(decoded.auth_time)) {
-    throw new Error("Bitte melde dich erneut an, bevor eine Sitzung erstellt wird.");
+    throw new ApiInputError("Bitte melde dich erneut an, bevor eine Sitzung erstellt wird.");
   }
   const email = decoded.email?.trim().toLowerCase();
-  if (!email) throw new Error("Das Firebase-Konto besitzt keine E-Mail-Adresse.");
+  if (!email) throw new ApiInputError("Das Firebase-Konto besitzt keine E-Mail-Adresse.");
   const user = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid } });
   // A normal login must never claim an existing Prisma account by email. New
   // bindings are created only by registration, a valid invitation or migration.
-  if (!user) throw new Error("Für dieses Firebase-Konto ist noch kein NextSession-Zugang eingerichtet.");
-  if (!firebaseIdentityMatches(user, { uid: decoded.uid, email })) throw new Error("Das Firebase-Konto stimmt nicht mit NextSession überein.");
-  if (!user?.loginEnabled) throw new Error("Dieser Zugang wurde gesperrt.");
+  if (!user) throw new ApiInputError("Für dieses Firebase-Konto ist noch kein NextSession-Zugang eingerichtet.");
+  if (!firebaseIdentityMatches(user, { uid: decoded.uid, email })) throw new ApiInputError("Das Firebase-Konto stimmt nicht mit NextSession überein.");
+  if (!user?.loginEnabled) throw new ApiInputError("Dieser Zugang wurde gesperrt.");
   const authorized = await authorizedAccount(user);
-  if (!authorized) throw new Error(PAUSED_ACCESS_MESSAGE);
+  if (!authorized) throw new ApiInputError(PAUSED_ACCESS_MESSAGE);
   const expiresIn = FIREBASE_SESSION_DAYS * 24 * 60 * 60 * 1000;
   const cookie = await auth.createSessionCookie(idToken, { expiresIn });
   return { cookie, expiresAt: new Date(Date.now() + expiresIn), user: authorized };
@@ -105,7 +106,7 @@ export async function authenticatedUser(request: NextRequest, options: AuthOptio
     const auth = firebaseAdminAuth();
     if (!auth) return null;
     try {
-      const decoded = await auth.verifySessionCookie(token, Boolean(options.checkRevoked));
+      const decoded = await auth.verifySessionCookie(token, options.checkRevoked !== false);
       if (options.maxAuthAgeSeconds && Date.now() / 1000 - decoded.auth_time > options.maxAuthAgeSeconds) return null;
       const firebaseUser = await prisma.user.findUnique({ where: { firebaseUid: decoded.uid } });
       if (!firebaseUser?.loginEnabled) return null;

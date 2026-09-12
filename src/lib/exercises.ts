@@ -1,3 +1,4 @@
+import { ApiInputError } from "./api-security";
 import { Prisma } from "@prisma/client";
 import type { Exercise } from "@/data/demo";
 import { prisma } from "./db";
@@ -19,11 +20,15 @@ export async function saveExercise(value: unknown, user: Pick<User, "id">): Prom
   const [exercise] = validateExercises([value]);
   const scope = await activeClubScope(user);
   if (!scope) throw new Error("Der Vereinskontext ist noch nicht eingerichtet.");
-  await prisma.exerciseRecord.upsert({
-    where: { id: exercise.id },
-    update: { data: json(exercise), ...scopedResourceWhere(scope) },
-    create: { id: exercise.id, data: json(exercise), ...scopedResourceWhere(scope) },
-  });
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.exerciseRecord.findUnique({ where: { id: exercise.id }, select: { clubId: true, teamId: true } });
+    if (existing && (existing.clubId !== scope.clubId || existing.teamId !== scope.teamId)) throw new ApiInputError("Diese Übung gehört nicht zu deiner Mannschaft. Erstelle stattdessen eine eigene Kopie.", 403);
+    await tx.exerciseRecord.upsert({
+      where: { id: exercise.id },
+      update: { data: json(exercise) },
+      create: { id: exercise.id, data: json(exercise), ...scopedResourceWhere(scope) },
+    });
+  }, { isolationLevel: "Serializable" });
   return exercise;
 }
 
