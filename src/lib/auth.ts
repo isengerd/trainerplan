@@ -1,3 +1,4 @@
+import { positionForRole } from "./member-position";
 import { createHash, randomBytes } from "node:crypto";
 import type { NextRequest } from "next/server";
 import type { Role, User } from "@prisma/client";
@@ -24,7 +25,7 @@ export function safeUser(user: User): SafeUser {
     name: user.name,
     email: user.email,
     role: user.role,
-    position: user.position,
+    position: positionForRole(user.role, user.position),
     number: user.number,
     ballNumber: user.ballNumber,
     phone: user.phone,

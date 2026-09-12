@@ -1,3 +1,4 @@
+import { positionForRole } from "./member-position";
 import { Prisma } from "@prisma/client";
 import type { ClubUser } from "@/data/club";
 import { prisma } from "./db";
@@ -23,7 +24,7 @@ export async function getUsers(actor: Prisma.UserGetPayload<{}>) {
     ? users.filter((user) => user.id === actor.id || actorRecord?.managedPlayerIds.includes(user.id))
     : actor.role === "player" && !accessManagementEnabled ? users.filter((user) => user.id === actor.id) : users;
   return visibleUsers.map((member) => {
-    const safe = { ...safeUser(member), ...(member.id === actor.id ? { role: actor.role } : {}), managedPlayerIds: member.managedPlayerIds ?? [], hasGuardianAccess: users.some((guardian) => guardian.loginEnabled && guardian.managedPlayerIds.includes(member.id)) };
+    const safe = { ...safeUser({ ...member, role: member.id === actor.id ? actor.role : member.role }), managedPlayerIds: member.managedPlayerIds ?? [], hasGuardianAccess: users.some((guardian) => guardian.loginEnabled && guardian.managedPlayerIds.includes(member.id)) };
     if (actor.role !== "player" || member.id === actor.id) return safe;
     return { ...safe, email: "", phone: "", birthday: "" };
   });
@@ -50,6 +51,8 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
   }
   await prisma.$transaction(allowed.map((entry) => {
     const existing = existingById.get(entry.id)!;
+    const effectiveRole = actor.role === "admin" && accessManagementEnabled ? entry.role : existing.role;
+    const position = positionForRole(effectiveRole, entry.position);
     const canEditProfile = actor.role === "admin" || actor.id === entry.id;
     const canEditDevelopment = actor.role === "admin" || (actor.role === "trainer" && existing.role === "player");
     const canEditPlayerEquipment = existing.role === "player" && (actor.role === "admin" || actor.role === "trainer");
@@ -57,7 +60,7 @@ export async function saveUsers(value: unknown, actor: Prisma.UserGetPayload<{}>
       name: canEditProfile ? entry.name : undefined,
       email: actor.role === "admin" && existing.managedProfile && entry.email ? entry.email.trim().toLowerCase() : undefined,
       role: actor.role === "admin" && accessManagementEnabled ? entry.role : undefined,
-      position: existing.role === "player" ? (canEditPlayerEquipment ? entry.position : undefined) : (canEditProfile ? entry.position : undefined),
+      position: existing.role === "player" ? (canEditPlayerEquipment ? position : undefined) : (canEditProfile ? position : undefined),
       number: canEditPlayerEquipment ? entry.number : undefined,
       ballNumber: canEditPlayerEquipment ? entry.ballNumber : undefined, phone: canEditProfile ? entry.phone : undefined,
       birthday: canEditProfile ? (entry.birthday ? new Date(`${entry.birthday}T12:00:00Z`) : null) : undefined,
