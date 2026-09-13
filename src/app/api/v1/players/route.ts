@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { sensitiveAuthenticatedUser } from "@/lib/auth";
-import { ApiInputError, apiError, emailValue, readJson, textValue } from "@/lib/api-security";
+import { ApiInputError, apiError, emailValue, readJson, textValue, optionalText } from "@/lib/api-security";
 import { activeClubScope, ensureClubConfig } from "@/lib/club-context";
 import { prisma } from "@/lib/db";
 import { ageGroupForBirthday } from "@/lib/age-groups";
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const parsedBirthday = birthday ? new Date(`${birthday}T12:00:00Z`) : null;
     if (parsedBirthday && (Number.isNaN(parsedBirthday.getTime()) || parsedBirthday.toISOString().slice(0, 10) !== birthday || parsedBirthday >= new Date())) throw new ApiInputError("Bitte gib ein gültiges Geburtsdatum an.");
     const guardianEmail = body.guardianEmail ? emailValue(body.guardianEmail) : null;
-    const guardianName = typeof body.guardianName === "string" ? body.guardianName.trim().slice(0, 100) : "";
+    const guardianName = optionalText(body.guardianName, "Name des Elternteils", 100);
     const scope = await activeClubScope(user);
     if (!scope?.teamId) throw new ApiInputError("Keine aktive Mannschaft ausgewählt.", 409);
     const club = await prisma.club.findUniqueOrThrow({ where: { id: scope.clubId }, select: { licenseType: true, licenseExpiresAt: true } });

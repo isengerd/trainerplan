@@ -26,8 +26,21 @@ export async function readJson<T>(request: NextRequest, maxBytes = 256_000): Pro
       text += decoder.decode();
     } finally { reader.releaseLock(); }
   }
-  try { return JSON.parse(text) as T; }
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); }
   catch { throw new ApiInputError("Ungültiges JSON."); }
+  if (!parsed || typeof parsed !== "object") throw new ApiInputError("Ein JSON-Objekt oder eine Liste wird erwartet.");
+  validateJsonStructure(parsed);
+  return parsed as T;
+}
+
+function validateJsonStructure(value: unknown, depth = 0): void {
+  if (depth > 32) throw new ApiInputError("Die Daten sind zu tief verschachtelt.");
+  if (!value || typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    if (["__proto__", "prototype", "constructor"].includes(key)) throw new ApiInputError("Unzulässiger Datenschlüssel.");
+    validateJsonStructure(child, depth + 1);
+  }
 }
 
 export function clientIp(request: NextRequest) {
@@ -56,7 +69,8 @@ export function objectValue(value: unknown, message = "Ungültige Daten."): Reco
 
 export function textValue(value: unknown, field: string, max: number, min = 0) {
   if (typeof value !== "string") throw new ApiInputError(`${field} ist ungültig.`);
-  const text = value.trim();
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value)) throw new ApiInputError(`${field} enthält unzulässige Steuerzeichen.`);
+  const text = value.replace(/\r\n?/g, "\n").trim();
   if (text.length < min || text.length > max) throw new ApiInputError(`${field} muss zwischen ${min} und ${max} Zeichen lang sein.`);
   return text;
 }
@@ -68,7 +82,7 @@ export function optionalText(value: unknown, field: string, max: number) {
 
 export function emailValue(value: unknown) {
   const email = textValue(value, "E-Mail-Adresse", 254, 3).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ApiInputError("Die E-Mail-Adresse ist ungültig.");
+  if (!/^[^\s@<>(),;:"\\]+@[^\s@<>(),;:"\\]+\.[^\s@<>(),;:"\\]+$/.test(email)) throw new ApiInputError("Die E-Mail-Adresse ist ungültig.");
   return email;
 }
 

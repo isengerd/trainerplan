@@ -14,7 +14,7 @@ export async function PUT(request: NextRequest) {
   try {
     ({ currentPassword, newPassword, confirmation } = await readJson<{ currentPassword?: string; newPassword?: string; confirmation?: string }>(request, 8_192));
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Ungültige Anfrage." }, { status: error instanceof ApiInputError ? error.status : 400 }); }
-  if (!currentPassword || currentPassword.length > 256 || !newPassword || newPassword.length < 12 || newPassword.length > 256) return NextResponse.json({ error: "Das neue Passwort benötigt 12 bis 256 Zeichen." }, { status: 400 });
+  if (typeof currentPassword !== "string" || !currentPassword || currentPassword.length > 256 || typeof newPassword !== "string" || newPassword.length < 12 || newPassword.length > 256 || typeof confirmation !== "string") return NextResponse.json({ error: "Das neue Passwort benötigt 12 bis 256 Zeichen." }, { status: 400 });
   if (newPassword !== confirmation) return NextResponse.json({ error: "Die beiden neuen Passwörter stimmen nicht überein." }, { status: 400 });
   if (!(await bcrypt.compare(currentPassword, user.passwordHash))) return NextResponse.json({ error: "Das aktuelle Passwort ist nicht korrekt." }, { status: 400 });
   await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(newPassword, 12) } });

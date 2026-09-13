@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticatedUser } from "@/lib/auth";
 import { getEvents } from "@/lib/events";
+import { escapeCalendarText as escapeIcs } from "@/lib/output-encoding";
 
 export const dynamic = "force-dynamic";
-
-function escapeIcs(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
-}
 
 function localDateTime(date: string, time: string) {
   return `${date.replaceAll("-", "")}T${time.replace(":", "")}00`;

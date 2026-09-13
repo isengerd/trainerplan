@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { mailSubject } from "./output-encoding";
 
 export function smtpStatus() {
   const port = Number(process.env.SMTP_PORT || 587);
@@ -18,6 +19,8 @@ export function smtpTransport() {
     host: status.host,
     port: status.port,
     secure: status.secure,
+    disableFileAccess: true,
+    disableUrlAccess: true,
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD || "" } : undefined,
   });
 }
@@ -28,7 +31,7 @@ export async function sendInvitationMail(input: { to: string; name: string; invi
   await transport.sendMail({
     from: process.env.SMTP_FROM,
     to: input.to,
-    subject: `Einladung zu ${input.clubName}`,
+    subject: mailSubject(`Einladung zu ${input.clubName}`),
     text: `${greeting}\n\n${input.inviter} hat dich zu ${input.clubName} eingeladen.\n\nEinladung annehmen: ${input.link}\n\nDer Link ist 7 Tage gültig.`,
   });
 }
@@ -51,7 +54,7 @@ export async function sendEventMail(input: { to: string; name: string; actor: st
   await transport.sendMail({
     from: process.env.SMTP_FROM,
     to: input.to,
-    subject: `${subject}: ${input.event.title}`,
+    subject: mailSubject(`${subject}: ${input.event.title}`),
     text: `Hallo ${input.name},\n\n${input.actor} hat den Termin „${input.event.title}“ ${action}.\n\nDatum: ${date}\nTreffen: ${input.event.meetingTime} Uhr\nBeginn: ${input.event.startTime} Uhr\nOrt: ${input.event.location}${input.event.address ? `\nAdresse: ${input.event.address}` : ""}${input.action === "deleted" ? "" : `\n\nTermin in NextSession öffnen: ${input.link}`}${input.action === "created" || input.action === "updated" || input.action === "restored" ? "\n\nBitte gib deine Zu- oder Absage in NextSession ab." : ""}`,
   });
 }

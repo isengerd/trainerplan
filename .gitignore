@@ -13,3 +13,4 @@ android/local.properties
 android/app/build/
 ios/App/Pods/
 ios/App/DerivedData/
+docs/security-checks.local.txt

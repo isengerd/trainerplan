@@ -126,7 +126,7 @@ export function validateExercises(value: unknown): Exercise[] {
       let parsed: URL;
       try { parsed = new URL(youtubeUrl); } catch { throw new ApiInputError("Der YouTube-Link ist ungültig."); }
       const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-      if (parsed.protocol !== "https:" || !["youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"].includes(host)) throw new ApiInputError("Es sind nur HTTPS-Links zu YouTube erlaubt.");
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || !["youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"].includes(host)) throw new ApiInputError("Es sind nur HTTPS-Links zu YouTube erlaubt.");
     }
     if (!Array.isArray(input.materials) || input.materials.length > materialIds.length) throw new ApiInputError("Material ist ungültig.");
     const materials = input.materials.map((material) => {
@@ -194,9 +194,10 @@ export function validatePlans(value: unknown) {
   const plans = objectValue(input.plans, "Trainingspläne fehlen.");
   const planMetaInput = objectValue(input.planMeta, "Planinformationen fehlen.");
   if (Object.keys(plans).length > 1_000 || Object.keys(planMetaInput).length > 1_000) throw new ApiInputError("Zu viele Trainingspläne.");
+  const validatedPlans: Record<string, Exercise[]> = {};
   for (const [date, exercises] of Object.entries(plans)) {
     if (!validDate(date) || !Array.isArray(exercises) || exercises.length > 100) throw new ApiInputError("Ein Trainingsplan ist ungültig.");
-    validateExercises(exercises);
+    validatedPlans[date] = validateExercises(exercises);
   }
   const planMeta = Object.fromEntries(Object.entries(planMetaInput).map(([date, value]) => {
     if (!validDate(date)) throw new ApiInputError("Ein Datum der Planinformationen ist ungültig.");
@@ -207,19 +208,26 @@ export function validatePlans(value: unknown) {
     } satisfies TrainingPlanMeta];
   }));
   assertJsonSize(input, 10_000_000);
-  return { plans, planMeta };
+  return { plans: validatedPlans, planMeta };
 }
 
 export function validateTemplates(value: unknown) {
   if (!Array.isArray(value) || value.length > 500) throw new ApiInputError("Ungültige Vorlagen.");
   assertJsonSize(value, 8_000_000);
   const ids = new Set<string>();
-  for (const item of value) {
-    const input = objectValue(item); textValue(input.name, "Vorlagenname", 160, 1);
+  return value.map((item) => {
+    const input = objectValue(item);
     const id = textValue(input.id, "Vorlagen-ID", 160, 1);
     if (ids.has(id)) throw new ApiInputError("Vorlagen enthalten doppelte IDs.");
     ids.add(id);
-    enumValue(input.kind, ["plan", "phase"] as const, "Vorlagenart"); validateExercises(input.exercises);
-  }
-  return value;
+    const kind = enumValue(input.kind, ["plan", "phase"] as const, "Vorlagenart");
+    if (input.autoApply !== undefined && typeof input.autoApply !== "boolean") throw new ApiInputError("Automatische Anwendung ist ungültig.");
+    return {
+      id, name: textValue(input.name, "Vorlagenname", 160, 1), kind,
+      exercises: validateExercises(input.exercises),
+      focus: input.focus === undefined ? undefined : stringList(input.focus, "Schwerpunkte", 12, 80),
+      phase: kind === "phase" ? enumValue(input.phase, phases, "Phase") : undefined,
+      autoApply: input.autoApply as boolean | undefined,
+    };
+  });
 }
