@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const scopedConfig = activeMembership ? await ensureClubConfig(activeMembership) : null;
   const [users, events, exercises, config, groups, ageGroups, invitations, tournamentSquads] = await Promise.all([
     getUsers(currentUser),
-    prisma.clubEvent.findMany({ where: activeMembership ? { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } : { clubId: null }, include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }),
+    activeMembership ? prisma.clubEvent.findMany({ where: scopedResourceWhere(activeMembership), include: { responses: true }, orderBy: [{ date: "asc" }, { startTime: "asc" }] }) : Promise.resolve([]),
     prisma.exerciseRecord.findMany({ where: activeMembership ? { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } : { clubId: null }, orderBy: { createdAt: "asc" } }),
     Promise.resolve(scopedConfig ?? prisma.appConfig.findUnique({ where: { id: "default" } })),
     prisma.teamGroup.findMany({ where: activeMembership ? { clubId: activeMembership.clubId } : { clubId: null }, orderBy: { name: "asc" } }),
@@ -30,12 +30,12 @@ export async function GET(request: NextRequest) {
       ? tenantScopedResult(Boolean(activeMembership), () => prisma.invitation.findMany({ where: { ownershipTransfer: false, clubId: activeMembership!.clubId, ...(activeMembership!.teamId ? { teamId: activeMembership!.teamId } : {}) }, include: { invitedBy: { select: { name: true } } }, orderBy: { createdAt: "desc" } }))
       : Promise.resolve([]),
     activeMembership
-      ? prisma.tournamentSquad.findMany({ where: { event: { OR: [scopedResourceWhere(activeMembership), { clubId: null }] } }, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } })
+      ? prisma.tournamentSquad.findMany({ where: { event: scopedResourceWhere(activeMembership) }, include: { players: { select: { playerId: true } } }, orderBy: { createdAt: "asc" } })
       : Promise.resolve([]),
   ]);
   if (!config) return NextResponse.json({ error: "Die Konfiguration konnte nicht geladen werden." }, { status: 500 });
   const settings = config.settings as { showResponsesToPlayers?: boolean };
-  const managesSportingContent = canManage(currentUser.role);
+  const managesSportingContent = Boolean(activeMembership) && canManage(currentUser.role);
   const publishedTournamentIds = new Set(events.filter((event) => event.tournamentPlanPublishedAt).map((event) => event.id));
   const managedPlayerIds = (await prisma.guardianPlayer.findMany({ where: { guardianId: currentUser.id }, select: { playerId: true } })).map((link) => link.playerId);
   const familyTeamIds = [...new Set(organization?.managedPlayers.map((player) => player.teamId) ?? [])];
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     settings: { ...(config.settings as Record<string, unknown>), teamAgeGroup: organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup },
     plans: managesSportingContent ? config.plans : {},
     templates: managesSportingContent ? config.templates : [],
-    planMeta: managesSportingContent ? config.planMeta : Object.fromEntries(Object.entries(config.planMeta as Record<string, { name?: string }>).map(([date, meta]) => [date, { name: meta?.name ?? "Training", focus: [] }])),
+    planMeta: !activeMembership ? {} : managesSportingContent ? config.planMeta : Object.fromEntries(Object.entries(config.planMeta as Record<string, { name?: string }>).map(([date, meta]) => [date, { name: meta?.name ?? "Training", focus: [] }])),
     groups: groups.map(({ id, name, description, color }) => ({ id, name, description, color })),
     ageGroups: ageGroups.map(({ id, name, ageRange, sortOrder }) => ({ id, name, ageRange, sortOrder })),
     invitations: invitations.map(invitationDto),

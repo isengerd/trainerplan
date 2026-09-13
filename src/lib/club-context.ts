@@ -21,7 +21,7 @@ export async function activeMembership(userId: string) {
 }
 
 export function scopedResourceWhere(scope: ClubScope) {
-  return { clubId: scope.clubId, ...(scope.teamId ? { teamId: scope.teamId } : {}) };
+  return { clubId: scope.clubId, teamId: scope.teamId };
 }
 
 export function clubConfigId(scope: ClubScope) {
@@ -38,8 +38,10 @@ export async function ensureClubConfig(scope: ClubScope) {
   return prisma.appConfig.create({ data: {
     id, clubId: scope.clubId, teamId: scope.teamId,
     settings: fallback.settings as Prisma.InputJsonValue,
-    plans: fallback.plans as Prisma.InputJsonValue,
-    templates: fallback.templates as Prisma.InputJsonValue,
-    planMeta: fallback.planMeta as Prisma.InputJsonValue,
+    // Defaults may supply settings, never private sporting content belonging
+    // to an older club context or another team. Existing team configs stay intact.
+    plans: {},
+    templates: [],
+    planMeta: {},
   } });
 }

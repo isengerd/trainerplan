@@ -16,11 +16,9 @@ export type TrainingPlansPayload = {
 
 export async function getTrainingPlans(user: Pick<User, "id">): Promise<TrainingPlansPayload> {
   const scope = await activeClubScope(user);
-  const scopedConfig = scope ? await ensureClubConfig(scope) : null;
-  const config = await prisma.appConfig.findUnique({
-    where: { id: scope ? clubConfigId(scope) : "default" },
-    select: { plans: true, planMeta: true },
-  }) ?? scopedConfig ?? await prisma.appConfig.findUniqueOrThrow({ where: { id: "default" }, select: { plans: true, planMeta: true } });
+  if (!scope) return { plans: {}, planMeta: {} };
+  const config = await ensureClubConfig(scope);
+  if (!config) throw new ApiInputError("Die Mannschaftskonfiguration fehlt.", 404);
 
   return {
     plans: config.plans as unknown as Record<string, Exercise[]>,
