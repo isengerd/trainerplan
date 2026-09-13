@@ -46,9 +46,9 @@ export function eventHasEnded(event: ClubEvent, now: Date) {
   return end <= now.getTime();
 }
 
-export function getWeek(today: string) {
+export function getWeek(today: string, offset = 0) {
   const monday = new Date(`${today}T12:00:00Z`);
-  monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
+  monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7 + offset * 7);
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(monday);
     date.setUTCDate(monday.getUTCDate() + index);

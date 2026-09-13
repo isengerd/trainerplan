@@ -2981,6 +2981,16 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-header h1 { margin: 6px 0 8px; font-size: clamp(27px, 3vw, 38px); line-height: 1.12; letter-spacing: -.045em; }
 .coach-week-header p { margin: 0; color: var(--cw-muted); font-size: 12px; line-height: 1.6; }
 .coach-week-calendar { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); font-size: 12px !important; }
+.coach-week-switch { display: flex; gap: 4px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.coach-week-switch button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 8px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--cw-muted); font-size: 15px; font-weight: 600; }
+.coach-week-switch button[aria-pressed="true"] { background: var(--cw-soft); border-color: var(--cw-accent); color: var(--text); }
+.coach-week-sunday { display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 20px; padding: 16px; text-align: left; border: 1px solid var(--line); border-radius: 16px; background: var(--cw-soft); color: var(--text); }
+.coach-week-sunday span { flex: 1; min-width: 0; }
+.coach-week-sunday strong { display: block; font-size: 16px; line-height: 1.4; }
+.coach-week-sunday small { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; color: var(--cw-muted); }
+.coach-week-sunday > svg { flex-shrink: 0; }
+@media (hover: hover) { .coach-week-switch button:hover, .coach-week-sunday:hover { border-color: var(--cw-accent); background: var(--cw-soft); } }
+.coach-week-switch button:active, .coach-week-sunday:active { transform: translateY(1px); filter: brightness(.96); }
 .coach-week-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; padding: 7px; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); }
 .coach-week-days button { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 68px; padding: 6px 2px; border: 1px solid transparent; border-radius: 11px; background: transparent; color: var(--cw-muted); }
 .coach-week-days button:hover, .coach-week-days button.selected { background: var(--cw-soft); border-color: var(--cw-accent); }

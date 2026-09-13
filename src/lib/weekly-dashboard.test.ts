@@ -8,6 +8,18 @@ const player = (id: string, role: ClubUser["role"] = "player") => ({ id, role, n
 const event = (patch: Partial<ClubEvent> = {}): ClubEvent => ({ id: "training", type: "training", title: "F2 Training", date: "2026-09-10", startTime: "17:00", endTime: "18:00", meetingTime: "16:50", location: "Sportplatz", description: "", maxParticipants: 0, trainerIds: ["coach"], responses: {}, ...patch });
 const input = (patch: Partial<DashboardInput> = {}): DashboardInput => ({ events: [], users: [player("p1"), player("p2"), player("p3"), player("coach", "trainer")], plans: {}, planMeta: {}, tournamentPlans: [], settings: initialSettings, ...patch });
 
+test("Sunday preview includes Monday and handles year and daylight-saving boundaries", () => {
+  for (const [sunday, monday] of [["2026-09-13", "2026-09-14"], ["2027-01-03", "2027-01-04"], ["2026-03-29", "2026-03-30"]]) {
+    const week = getWeek(sunday, 1);
+    assert.equal(week.start, monday);
+    assert.equal(week.days.length, 7);
+    const training = event({ date: monday });
+    const tasks = preparationTasks(input({ events: [training] }), [training], new Date(`${sunday}T12:00:00Z`));
+    assert.ok(tasks.some((task) => task.kind === "plan" && task.date === monday));
+  }
+  assert.equal(getWeek("2027-01-03", 1).number, 1);
+});
+
 test("Attendance separates missing answers from uncertainty and ignores users outside the player roster", () => {
   assert.deepEqual(attendanceCounts(event({ responses: { p1: "yes", p2: "maybe", ghost: "yes", coach: "yes" } }), input().users), { yes: 1, no: 0, maybe: 1, unanswered: 1, total: 3 });
   assert.deepEqual(attendanceCounts(event(), []), { yes: 0, no: 0, maybe: 0, unanswered: 0, total: 0 });
