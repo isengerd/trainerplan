@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createFirebaseSession, firebaseAuthEnabled, safeUser, SESSION_COOKIE, sessionCookieSettings } from "@/lib/auth";
+import { createFirebaseSession, firebaseAuthEnabled, safeSessionUser, SESSION_COOKIE, sessionCookieSettings } from "@/lib/auth";
 import { ApiInputError, clientIp, readJson } from "@/lib/api-security";
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const body = await readJson<{ idToken?: unknown }>(request, 16_384);
     if (typeof body.idToken !== "string" || body.idToken.length < 100 || body.idToken.length > 10_000) throw new ApiInputError("Das Firebase-Token ist ungültig.");
     const session = await createFirebaseSession(body.idToken);
-    const response = NextResponse.json({ user: safeUser(session.user), expiresAt: session.expiresAt.toISOString() });
+    const response = NextResponse.json({ user: safeSessionUser(session.user), expiresAt: session.expiresAt.toISOString() });
     response.cookies.set(SESSION_COOKIE, session.cookie, sessionCookieSettings(request, session.expiresAt));
     return response;
   } catch (error) {

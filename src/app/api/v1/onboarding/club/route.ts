@@ -1,7 +1,7 @@
 import { defaultLeagueMatches } from "@/lib/age-groups";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
+import { safeSessionUser, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { ApiInputError, readJson, textValue } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 import { uniqueClubSlug } from "@/lib/registration";
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       }
       return updatedUser;
     });
-    return NextResponse.json({ user: safeUser(result), setupRequired: false });
+    return NextResponse.json({ user: safeSessionUser(result), setupRequired: false });
   } catch (error) {
     const message = error instanceof ApiInputError ? error.message : "Die Einrichtung konnte nicht gespeichert werden.";
     return NextResponse.json({ error: message }, { status: error instanceof ApiInputError ? error.status : 400 });

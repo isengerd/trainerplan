@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FieldModeLauncher } from "./FieldModeLauncher";
+import { clearFieldSessions, setFieldOwner, syncSavedFieldFeedback } from "@/lib/field-mode";
 import { EventDeleteDialog } from "./EventDeleteDialog";
 import type { EventDeleteScope } from "@/lib/event-series";
 import { useRouter } from "next/navigation";
@@ -399,6 +401,7 @@ export function TrainerApp() {
   }, [canManageClub, currentUser, view]);
 
   function applyBootstrap(data: BootstrapData) {
+    try { setFieldOwner(data.currentUser.id); if (data.organization?.activeTeamId) void syncSavedFieldFeedback(data.organization.activeTeamId); } catch { /* Offline storage is optional. */ }
     lastPersistedPlan.current = JSON.stringify({ plans: data.plans, planMeta: data.planMeta });
     planDataReady.current = true;
     // Frühere Versionen speicherten Team und Trainer global am Trainingstag. Beim
@@ -478,6 +481,7 @@ export function TrainerApp() {
   }
 
   async function logout() {
+    try { clearFieldSessions(); } catch { /* Continue server logout if storage is unavailable. */ }
     const pushToken = window.localStorage.getItem("trainerplan-push-token");
     if (pushToken) await fetch("/api/v1/push-tokens", { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: pushToken }) }).catch(() => undefined);
     await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" }).catch(() => undefined);
@@ -1150,6 +1154,7 @@ export function TrainerApp() {
               <div><span className="eyebrow">TRAININGSPLAN · {currentTrainingEvent?.startTime ?? currentDay.time} UHR</span><h1>{currentPlanMeta.name}</h1><p>{currentDay.full} · {currentTrainingEvent?.location.trim() || "Ort noch offen"}</p>{currentPlanMeta.focus.length > 0 && <div className="plan-focus-tags">{currentPlanMeta.focus.map((focus) => <span key={focus}><Target />{focus}</span>)}</div>}</div>
               <div className="plan-heading-actions"><div className="plan-duration"><Clock3 /><span><strong>{total}</strong> Min</span></div></div>
             </div>
+            {canManageClub && organization?.activeTeamId && <FieldModeLauncher owner={currentUser.id} teamId={organization.activeTeamId} teamName={clubSettings.teamName} date={selectedDay} title={currentPlanMeta.name} players={users.filter(u => u.role === "player").length} exercises={phases.flatMap(phase => plan.filter(e => e.category === phase))} />}
             {canManageClub && <div className="plan-template-tools">
               <button onClick={() => openTemplates("browse")}><Sparkles /> <span><strong>Vorlage wählen</strong><small>Schwerpunkt oder Standardphase</small></span></button>
               {planSaveState === "error" && <div className="mobile-plan-save auto-save-info error"><Check /> <span><strong>Speichern fehlgeschlagen</strong><small>Bitte erneut versuchen.</small></span><button onClick={retryPlanSave}>Erneut</button></div>}

@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build && node scripts/build-field-worker.mjs",
     "start": "next start",
     "lint": "next lint",
     "test": "tsx --test src/**/*.test.ts",

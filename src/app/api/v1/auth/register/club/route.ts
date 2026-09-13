@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { defaultPosition } from "@/data/club";
-import { createSession, firebaseAuthEnabled, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
+import { createSession, firebaseAuthEnabled, requestUsesHttps, safeSessionUser, SESSION_COOKIE } from "@/lib/auth";
 import { ApiInputError, clientIp, emailValue, readJson, textValue } from "@/lib/api-security";
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
 import { prisma } from "@/lib/db";
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     });
 
     const session = await createSession(user.id);
-    const response = NextResponse.json({ user: safeUser(user), club: { name: clubName, teamName }, token: session.token, expiresAt: session.expiresAt.toISOString() }, { status: 201 });
+    const response = NextResponse.json({ user: safeSessionUser(user), club: { name: clubName, teamName }, token: session.token, expiresAt: session.expiresAt.toISOString() }, { status: 201 });
     response.cookies.set(SESSION_COOKIE, session.token, { httpOnly: true, sameSite: "lax", secure: requestUsesHttps(request), path: "/", expires: session.expiresAt });
     return response;
   } catch (error) {

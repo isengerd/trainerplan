@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canManage, safeUser, sensitiveAuthenticatedUser } from "@/lib/auth";
+import { canManage, safeSessionUser, sensitiveAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ensureApplicationData, eventFromDatabase } from "@/lib/server-data";
 import { invitationDto } from "@/lib/invitations";
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     ? users.filter((member) => member.id === currentUser.id || releasedRosterIds.has(member.id))
     : users;
   return NextResponse.json({
-    currentUser: { ...safeUser(currentUser), managedPlayerIds },
+    currentUser: { ...safeSessionUser(currentUser), managedPlayerIds },
     organization,
     setupRequired: !activeMembership,
     users: visibleUsers.map((member) => {

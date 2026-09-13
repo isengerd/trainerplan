@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
 import { defaultPosition } from "@/data/club";
-import { firebaseAuthEnabled, safeUser } from "@/lib/auth";
+import { firebaseAuthEnabled, safeSessionUser } from "@/lib/auth";
 import { ApiInputError, clientIp, readJson } from "@/lib/api-security";
 import { prisma } from "@/lib/db";
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (!email) throw new ApiInputError("Das Firebase-Konto besitzt keine E-Mail-Adresse.");
     if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) return NextResponse.json({ error: "Für diese E-Mail-Adresse existiert bereits ein Zugang." }, { status: 409 });
     const user = await prisma.user.create({ data: { id: `user-${randomUUID()}`, firebaseUid: decoded.uid, name: decoded.name?.slice(0, 100) || "Neuer Nutzer", email, passwordHash: await bcrypt.hash(randomUUID(), 12), role: "admin", position: defaultPosition.admin } });
-    return NextResponse.json({ user: safeUser(user), setupRequired: true }, { status: 201 });
+    return NextResponse.json({ user: safeSessionUser(user), setupRequired: true }, { status: 201 });
   } catch (error) {
     const message = error instanceof ApiInputError ? error.message : "Die Registrierung konnte nicht verarbeitet werden.";
     return NextResponse.json({ error: message }, { status: error instanceof ApiInputError ? error.status : 400 });

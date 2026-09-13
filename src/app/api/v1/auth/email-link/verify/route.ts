@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createFirebaseSession, firebaseAuthEnabled, safeUser, SESSION_COOKIE, sessionCookieSettings } from "@/lib/auth";
+import { createFirebaseSession, firebaseAuthEnabled, safeSessionUser, SESSION_COOKIE, sessionCookieSettings } from "@/lib/auth";
 import { clientIp, emailValue, readJson } from "@/lib/api-security";
 import { redeemFirebaseEmailLink } from "@/lib/firebase-email-link";
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (typeof body.oobCode !== "string" || body.oobCode.length < 20 || body.oobCode.length > 2_048) throw new Error("invalid code");
     const idToken = await redeemFirebaseEmailLink(email, body.oobCode);
     const session = await createFirebaseSession(idToken);
-    const response = NextResponse.json({ user: safeUser(session.user), expiresAt: session.expiresAt.toISOString() });
+    const response = NextResponse.json({ user: safeSessionUser(session.user), expiresAt: session.expiresAt.toISOString() });
     response.cookies.set(SESSION_COOKIE, session.cookie, sessionCookieSettings(request, session.expiresAt));
     return response;
   } catch {

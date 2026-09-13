@@ -26,6 +26,7 @@ enum MembershipStatus {
 }
 
 model User {
+  trainingFeedback TrainingFeedback[]
   id                      String                  @id
   firebaseUid             String?                 @unique
   name                    String
@@ -69,6 +70,7 @@ model User {
 }
 
 model Club {
+  trainingFeedback TrainingFeedback[]
   id          String           @id @default(cuid())
   name        String
   slug        String           @unique
@@ -88,6 +90,7 @@ model Club {
 }
 
 model Team {
+  trainingFeedback TrainingFeedback[]
   id          String           @id @default(cuid())
   clubId      String
   name        String
@@ -341,4 +344,22 @@ model ApiSession {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model TrainingFeedback {
+  id String @id @default(cuid())
+  userId String
+  clubId String
+  teamId String
+  sessionId String
+  exerciseId String
+  date String
+  rating Int
+  reason String?
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  @@unique([userId, teamId, sessionId, exerciseId])
+  @@index([clubId, teamId, date])
 }

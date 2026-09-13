@@ -47,6 +47,18 @@ export function safeUser(user: User): SafeUser {
   };
 }
 
+// Session responses are viewed by the account itself, unlike staff roster DTOs.
+export function safeSessionUser(user: User): SafeUser {
+  const result = safeUser(user);
+  if (user.role === "player" || user.role === "guardian") {
+    result.dribblingRating = 0;
+    result.shootingRating = 0;
+    result.passingRating = 0;
+    result.internalTeam = null;
+  }
+  return result;
+}
+
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }

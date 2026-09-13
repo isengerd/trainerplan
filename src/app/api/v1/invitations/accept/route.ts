@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { firebaseAuthEnabled, safeUser } from "@/lib/auth";
+import { firebaseAuthEnabled, safeSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { invitationTokenHash } from "@/lib/invitations";
 import { ApiInputError, clientIp, emailValue, readJson, objectValue, textValue, optionalText } from "@/lib/api-security";
@@ -107,5 +107,5 @@ export async function POST(request: NextRequest) {
     }
     throw error;
   }
-  return NextResponse.json({ user: safeUser(user) });
+  return NextResponse.json({ user: safeSessionUser(user) });
 }

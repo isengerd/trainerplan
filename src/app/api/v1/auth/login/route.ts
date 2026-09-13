@@ -1,7 +1,7 @@
 import { authorizedAccount, PAUSED_ACCESS_MESSAGE } from "@/lib/account-access";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { createSession, firebaseAuthEnabled, requestUsesHttps, safeUser, SESSION_COOKIE } from "@/lib/auth";
+import { createSession, firebaseAuthEnabled, requestUsesHttps, safeSessionUser, SESSION_COOKIE } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ApiInputError, clientIp, emailValue, readJson } from "@/lib/api-security";
 import { anonymousThrottleKey, persistentRateLimit } from "@/lib/persistent-rate-limit";
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   const authorized = await authorizedAccount(user);
   if (!authorized) return NextResponse.json({ error: PAUSED_ACCESS_MESSAGE }, { status: 403 });
   const session = await createSession(user.id);
-  const response = NextResponse.json({ user: safeUser(authorized), token: session.token, expiresAt: session.expiresAt.toISOString() });
+  const response = NextResponse.json({ user: safeSessionUser(authorized), token: session.token, expiresAt: session.expiresAt.toISOString() });
   response.cookies.set(SESSION_COOKIE, session.token, { httpOnly: true, sameSite: "lax", secure: requestUsesHttps(request), path: "/", expires: session.expiresAt });
   return response;
 }
