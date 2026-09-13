@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Mail, Shield } from "lucide-react";
 import { useState } from "react";
+import { readAuthResponse } from "@/lib/auth-response";
 import { createServerSession, firebaseClientAuthEnabled, firebasePasswordSignIn } from "@/lib/firebase-client";
 
 const EMAIL_LINK_STORAGE_KEY = "nextsession-email-for-sign-in";
@@ -23,7 +24,7 @@ export function LoginPage() {
         await createServerSession(credential.idToken);
       } else {
         const response = await fetch("/api/v1/auth/login", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
-        const result = await response.json() as { error?: string };
+        const result = await readAuthResponse<{ error?: string }>(response);
         if (!response.ok) throw new Error(result.error || "Anmeldung fehlgeschlagen.");
       }
       window.location.replace("/app");
@@ -37,7 +38,7 @@ export function LoginPage() {
     event.preventDefault(); setLoading(true); setError("");
     try {
       const response = await fetch("/api/v1/auth/email-link/send", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-      const result = await response.json() as { error?: string };
+      const result = await readAuthResponse<{ error?: string }>(response);
       if (!response.ok) throw new Error(result.error || "Der Anmeldelink konnte nicht angefordert werden.");
       window.localStorage.setItem(EMAIL_LINK_STORAGE_KEY, email.trim().toLowerCase());
       setSent(true);

@@ -1,3 +1,5 @@
+import { readAuthResponse } from "./auth-response";
+
 type FirebasePasswordResult = { idToken: string; email: string; localId: string; expiresIn: string };
 
 export const firebaseClientAuthEnabled = () => process.env.NEXT_PUBLIC_AUTH_PROVIDER === "firebase";
@@ -20,7 +22,7 @@ async function firebasePasswordRequest(action: "signInWithPassword" | "signUp", 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, returnSecureToken: true }),
   });
-  const result = await response.json() as FirebasePasswordResult & { error?: { message?: string } };
+  const result = await readAuthResponse<FirebasePasswordResult & { error?: { message?: string } }>(response);
   if (!response.ok || !result.idToken) throw new Error(firebaseErrors[result.error?.message?.split(" : ")[0] || ""] || "Die Anmeldung bei Firebase ist fehlgeschlagen.");
   return result;
 }
@@ -38,7 +40,7 @@ export async function firebasePasswordSignInOrCreate(email: string, password: st
 
 export async function createServerSession(idToken: string) {
   const response = await fetch("/api/v1/auth/session", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken }) });
-  const result = await response.json() as { error?: string };
+  const result = await readAuthResponse<{ error?: string }>(response);
   if (!response.ok) throw new Error(result.error || "Die sichere Sitzung konnte nicht erstellt werden.");
 }
 
@@ -51,7 +53,7 @@ export async function firebaseChangePassword(email: string, currentPassword: str
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ idToken: credential.idToken, password: newPassword, returnSecureToken: true }),
   });
-  const result = await response.json() as FirebasePasswordResult & { error?: { message?: string } };
+  const result = await readAuthResponse<FirebasePasswordResult & { error?: { message?: string } }>(response);
   if (!response.ok || !result.idToken) throw new Error(firebaseErrors[result.error?.message?.split(" : ")[0] || ""] || "Das Passwort konnte nicht geändert werden.");
   await createServerSession(result.idToken);
 }
