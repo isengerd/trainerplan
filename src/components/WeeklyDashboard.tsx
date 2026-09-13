@@ -29,6 +29,7 @@ export function WeeklyDashboard(props: Props) {
   const [taskLimit, setTaskLimit] = useState(3);
   const [menuEventId, setMenuEventId] = useState<string | null>(null);
   const swipeStart = useRef<{ id: string; x: number; y: number } | null>(null);
+  const weekSwitch = useRef<HTMLDivElement>(null);
   const todayHeading = useRef<HTMLHeadingElement>(null);
   const taskHeading = useRef<HTMLHeadingElement>(null);
   const today = berlinDateKey(now);
@@ -125,11 +126,10 @@ export function WeeklyDashboard(props: Props) {
   return <section className="coach-week" aria-label="Deine Trainingswoche">
     <header className="coach-week-header"><div><span className="eyebrow">{greeting}, {props.firstName}</span><h1>Deine Trainingswoche</h1><p>{dateLabel(week.start, { day: "numeric", month: "short" })}–{dateLabel(week.end, { day: "numeric", month: "short", year: "numeric" })} · KW {week.number} <span>· {weekEvents.length} {weekEvents.length === 1 ? "Termin" : "Termine"}</span></p></div><button type="button" className="coach-week-calendar" aria-label="Kalender öffnen" onClick={props.onOpenCalendar}><CalendarDays size={17} /><span>Kalender</span></button></header>
 
-    <div className="coach-week-switch" role="group" aria-label="Woche auswählen">
+    <div ref={weekSwitch} tabIndex={-1} className="coach-week-switch" role="group" aria-label="Woche auswählen">
       <button type="button" aria-pressed={weekOffset === 0} onClick={() => { setWeekOffset(0); setSelectedDate(null); }}>Diese Woche</button>
       <button type="button" aria-pressed={weekOffset === 1} onClick={() => { setWeekOffset(1); setSelectedDate(null); }}>Nächste Woche <ArrowRight size={16} /></button>
     </div>
-    {isSunday && weekOffset === 0 && <button type="button" className="coach-week-sunday" onClick={() => { setWeekOffset(1); setSelectedDate(null); }}><CalendarDays size={22} aria-hidden="true" /><span><strong>Schon bereit für nächste Woche?</strong><small>Montag kommt schneller, als man denkt. Mach dein Training startklar.</small></span><ArrowRight size={20} aria-hidden="true" /></button>}
 
     <nav className="coach-week-days" aria-label="Wochentag auswählen">{week.days.map((day) => {
       const dayEvents = weekEvents.filter((event) => event.date === day.key);
@@ -157,5 +157,9 @@ export function WeeklyDashboard(props: Props) {
 
     {nextTraining && (weekOffset === 1 || nextTraining.date !== dailyIdeaDate) && <section className="coach-week-idea coach-week-linked-card"><div className="coach-week-idea-label"><Sparkles size={17} /><span>{idea.planned ? "DEIN GEPLANTER SCHWERPUNKT" : "SPIELIDEE FÜR DEINE WOCHE"}</span></div><h2>{idea.title}</h2><p>{idea.text}</p><details><summary>{idea.planned ? "Woher kommt der Schwerpunkt?" : "Warum diese Idee?"}</summary><p>{idea.reason}</p>{!idea.planned && young && <a href="https://www.dfb-akademie.de/trainingspraxis/-/id-11011534" target="_blank" rel="noreferrer">Grundgedanke: kleine Spielformen · DFB-Akademie</a>}</details><button type="button" className="coach-week-card-link" onClick={() => props.onBrowseExercises(nextTraining.date)}>Übungen für {dateLabel(nextTraining.date, { weekday: "short" })} auswählen <ArrowRight size={16} /></button></section>}
     </aside></div>
+    {isSunday && weekOffset === 0 && <button type="button" className="coach-week-sunday" onClick={() => {
+      setWeekOffset(1); setSelectedDate(null);
+      requestAnimationFrame(() => { weekSwitch.current?.focus({ preventScroll: true }); weekSwitch.current?.scrollIntoView({ block: "start" }); });
+    }}><CalendarDays size={22} aria-hidden="true" /><span><strong>Schon mal nächste Woche vorbereiten?</strong><small>Ein bisschen heute planen, am Montag entspannt auf den Platz.</small><b>Nächste Woche planen</b></span></button>}
   </section>;
 }

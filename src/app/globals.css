@@ -2984,7 +2984,7 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-switch { display: flex; gap: 4px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .coach-week-switch button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 8px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--cw-muted); font-size: 15px; font-weight: 600; }
 .coach-week-switch button[aria-pressed="true"] { background: var(--cw-soft); border-color: var(--cw-accent); color: var(--text); }
-.coach-week-sunday { display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 20px; padding: 16px; text-align: left; border: 1px solid var(--line); border-radius: 16px; background: var(--cw-soft); color: var(--text); }
+.coach-week-sunday { display: flex; align-items: center; gap: 12px; width: 100%; margin: 24px 0 0; padding: 16px; text-align: left; border: 1px solid var(--line); border-radius: 16px; background: var(--cw-soft); color: var(--text); }
 .coach-week-sunday span { flex: 1; min-width: 0; }
 .coach-week-sunday strong { display: block; font-size: 16px; line-height: 1.4; }
 .coach-week-sunday small { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; color: var(--cw-muted); }
@@ -3462,3 +3462,5 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .ownership-card button:disabled { opacity: .55; cursor: not-allowed; }
 @media (hover: hover) { .ownership-card button:not(:disabled):hover { filter: brightness(.95); } }
 .ownership-card button:not(:disabled):active { transform: translateY(1px); }
+
+.coach-week-sunday b { display: block; margin-top: 12px; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
