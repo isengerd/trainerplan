@@ -1,6 +1,6 @@
 type Player = { x: number; y: number; toX: number; toY: number; team: "yellow" | "blue" | "red" | "keeper"; delay?: number };
 type Route = { x1: number; y1: number; x2: number; y2: number; kind?: "run" | "ball" };
-type Scene = { title: string; players: Player[]; routes: Route[]; balls?: { x: number; y: number }[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean; zones?: { labels: [string, string] } };
+type Scene = { title: string; players: Player[]; routes: Route[]; shootingLines?: number[]; balls?: { x: number; y: number }[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean; zones?: { labels: [string, string] } };
 
 const scenes: Scene[] = [
   {
@@ -216,6 +216,21 @@ const scenes: Scene[] = [
     balls: [{ x: 30, y: 35 }, { x: 74, y: 35 }, { x: 30, y: 75 }, { x: 74, y: 75 }],
     cones: [{ x: 12, y: 16 }, { x: 88, y: 16 }, { x: 12, y: 84 }, { x: 88, y: 84 }],
   },
+  {
+    title: "3 gegen 3 · Freeze und freie Räume entdecken",
+    players: [
+      { x: 36, y: 30, toX: 36, toY: 30, team: "yellow" },
+      { x: 46, y: 52, toX: 46, toY: 52, team: "yellow" },
+      { x: 64, y: 76, toX: 64, toY: 76, team: "yellow" },
+      { x: 62, y: 30, toX: 62, toY: 30, team: "blue" },
+      { x: 54, y: 46, toX: 54, toY: 46, team: "blue" },
+      { x: 36, y: 68, toX: 36, toY: 68, team: "blue" },
+    ],
+    routes: [], shootingLines: [28.16, 71.84],
+    ball: { x: 48, y: 55, toX: 48, toY: 55 },
+    goals: [{ x: 8, y: 25, vertical: true }, { x: 8, y: 75, vertical: true }, { x: 92, y: 25, vertical: true }, { x: 92, y: 75, vertical: true }],
+    cones: [{ x: 8, y: 10 }, { x: 92, y: 10 }, { x: 8, y: 90 }, { x: 92, y: 90 }, { x: 28.16, y: 10 }, { x: 28.16, y: 90 }, { x: 71.84, y: 10 }, { x: 71.84, y: 90 }],
+  },
 ];
 
 type PitchProps = { variant?: number; animated?: boolean; label?: string; caption?: string };
@@ -227,6 +242,7 @@ export function Pitch({ variant = 0, animated = false, label, caption }: PitchPr
       <span className="pitch-line center" /><span className="pitch-circle" /><span className="pitch-box left" /><span className="pitch-box right" />
       <svg className="route-layer" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <defs><marker id={`route-arrow-${variant}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,.86)" /></marker></defs>
+        {scene.shootingLines?.map((x) => <line key={`shooting-${x}`} x1={x} y1="10" x2={x} y2="90" stroke="#ffcf57" strokeWidth="0.5" strokeDasharray="2 2" />)}
         {scene.routes.map((route, index) => <line key={index} className={route.kind === "ball" ? "ball-route" : "run-route"} x1={route.x1} y1={route.y1} x2={route.x2} y2={route.y2} markerEnd={`url(#route-arrow-${variant})`} />)}
       </svg>
       {scene.goals?.map((goal, index) => <span key={`goal-${index}`} className={`scene-goal ${goal.vertical ? "vertical" : ""}`} style={{ left: `${goal.x}%`, top: `${goal.y}%` }} />)}

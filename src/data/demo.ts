@@ -416,7 +416,21 @@ const videoTechniqueBlock: Exercise = {
   youtubeUrl: "https://www.youtube.com/watch?v=r1VAlbdJ-J8",
 };
 
-export const library: Exercise[] = [...baseLibrary, ...importedExercises, videoTechniqueBlock].map((exercise) => ({
+const freezeGame: Exercise = {
+  id: "drei-gegen-drei-einfrieren",
+  title: "3 gegen 3 mit Einfrieren",
+  description: "Freeze! Kurz den Kopf drehen, freie Tore und Mitspieler entdecken – bei Tauwetter geht es sofort weiter.",
+  duration: 15, players: "6", ageGroup: "F-Jugend", ageRange: "U8",
+  category: "Hauptteil", accent: "#f5c451", intensity: "Hoch",
+  focus: ["Orientierung", "Wahrnehmung", "Freilaufen", "Reaktion"],
+  setup: "Ein 25 × 20 m großes Feld mit vier Minitoren aufbauen, je zwei an jeder Grundlinie. Schusslinien sechs Meter vor beiden Grundlinien mit seitlichen Hütchen markieren; keine Hütchen in die Laufwege legen. Zwei Dreierteams spielen ohne Torwart auf die beiden gegnerischen Tore. Treffer zählen erst innerhalb der gegnerischen Schusszone. Drei Runden à vier Minuten mit kurzen Pausen spielen; insgesamt etwa 15 Minuten einplanen. Pro Runde höchstens ein bis zwei passende Momente zum Einfrieren wählen. Auf Freeze stoppen alle kontrolliert, der Ball bleibt liegen. Nur eine kurze Frage stellen und nach spätestens fünf bis zehn Sekunden mit Tauwetter weiterspielen. Der vorherige Ballbesitzer setzt mit Dribbling oder Pass fort; die anderen bleiben bis zum Signal an ihrem Platz. Bei Aus wird eingedribbelt, nach einem Tor startet das andere Team an der eigenen Grundlinie; die Gegner geben Platz.",
+  coaching: ["Dreh nur den Kopf: Welches gegnerische Tor ist frei?", "Wer hat gerade ganz viel Platz?", "Wo ist eure eigene Schusslinie?"],
+  variations: ["Blitz-Tauwetter: Nach zwei Sekunden direkt weiterspielen – diesmal ohne Frage.", "Nach dem Torschuss: Erst den Abschluss und die Bewegungen sicher beenden lassen, dann kurz stoppen. Fragen: Wo könntest du beim nächsten Abpraller bereitstehen? Anschließend passend zur Spielsituation fortsetzen.", "Statuen-Challenge: Gemeinsam kontrolliert einfrieren und kurz stillstehen. Niemand scheidet aus; danach sofort weiterspielen.", "Bei mehr als sechs Kindern parallele Felder aufbauen und Material entsprechend vervielfachen."],
+  materials: [{ id: "balls", count: 3 }, { id: "cones", count: 8 }, { id: "miniGoals", count: 4 }, { id: "bibs", count: 3 }],
+  fieldSize: "25 × 20 m · Schusszonen 6 m", variant: 34,
+};
+
+export const library: Exercise[] = [...baseLibrary, ...importedExercises, videoTechniqueBlock, freezeGame].map((exercise) => ({
   ...exercise,
   ...reviewedContent[exercise.id],
   variations: reviewedVariations[exercise.id] ?? exercise.variations,
