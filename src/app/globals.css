@@ -3042,6 +3042,9 @@ html[data-theme="light"] .squad-board-actions { background: rgba(255,255,255,.92
 .coach-week-event.cancelled h3 { text-decoration: line-through; color: var(--cw-muted); }
 .coach-week-muted { color: var(--cw-muted); font-size: 11px; line-height: 1.5; }
 .coach-week-event-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.coach-week-field-launch { position: relative; z-index: 2; min-width: 0; }
+.coach-week-field-launch small { display: block; max-width: 38ch; margin-top: 8px; color: var(--text); font-size: 14px; }
+.coach-week-field-launch button:disabled { opacity: .65; cursor: wait; }
 .coach-week-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 11px 16px; border: 1px solid #267644; border-radius: 10px; background: #267644; color: #fff; font-size: 12px !important; font-weight: 650 !important; }
 .coach-week-text-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 0; border: 0; background: transparent; color: var(--cw-accent); font-size: 12px !important; text-align: left; }
 .coach-week-free { display: flex; align-items: flex-start; gap: 16px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }

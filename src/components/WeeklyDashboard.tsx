@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, Check, ChevronRight, ClipboardCheck, Clock3, Dumbbell, MapPin, MoreHorizontal, Sparkles, Trophy, Users, X } from "lucide-react";
 import type { ClubEvent } from "@/data/club";
+import { FieldModeLauncher } from "./FieldModeLauncher";
 import { attendanceCounts, berlinDateKey, eventHasEnded, getWeek, preparationTasks, trainingIdea, trainingTitle, type DashboardInput, type PreparationTask } from "@/lib/weekly-dashboard";
 
 type Props = DashboardInput & {
   firstName: string;
   teamName: string;
   ageGroup: string;
+  fieldMode?: { owner: string; teamId: string };
   onOpenPlan: (date: string) => void;
   onOpenEvent: (id: string) => void;
   onOpenSquads: (id: string) => void;
@@ -119,7 +121,7 @@ export function WeeklyDashboard(props: Props) {
       {attendance(event)}
       <div className="coach-week-state-line">{state && <span className={`coach-week-state ${state.tone}`}><i />{state.text}</span>}{featured && coaches.length > 0 && <span className="coach-week-muted">Mit {coaches.map((coach) => coach!.name).join(" & ")}</span>}{!featured && eventTasks.length > 0 && <span className="coach-week-muted">{eventTasks.length} {eventTasks.length === 1 ? "Vorbereitungspunkt" : "Vorbereitungspunkte"} offen</span>}</div>
 
-      {(featured || training) && !event.cancelledAt && !ended && <div className="coach-week-event-actions"><button type="button" className="coach-week-primary" onClick={() => primaryAction(event)}>{training ? plans[event.date]?.length ? "Trainingsplan öffnen" : "Training planen" : event.type === "tournament" ? "Mannschaften öffnen" : "Details öffnen"}<ArrowRight size={16} /></button>{settings.attendanceEnabled && <button type="button" className="coach-week-text-button" onClick={() => props.onOpenEvent(event.id)}>Rückmeldungen ansehen</button>}</div>}
+      {(featured || training) && !event.cancelledAt && !ended && <div className="coach-week-event-actions"><button type="button" className="coach-week-primary" onClick={() => primaryAction(event)}>{training ? plans[event.date]?.length ? "Trainingsplan öffnen" : "Training planen" : event.type === "tournament" ? "Mannschaften öffnen" : "Details öffnen"}<ArrowRight size={16} /></button>{training && props.fieldMode && Boolean(plans[event.date]?.length) && <FieldModeLauncher compact owner={props.fieldMode.owner} teamId={props.fieldMode.teamId} teamName={props.teamName} date={event.date} title={trainingTitle(event, planMeta[event.date])} players={users.filter(user => user.role === "player").length} exercises={["Ankommen", "Einstieg", "Hauptteil", "Abschlussspiel"].flatMap(phase => plans[event.date].filter(exercise => exercise.category === phase))} />}</div>}
     </article>;
   }
 

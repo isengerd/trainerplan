@@ -1007,6 +1007,7 @@ export function TrainerApp() {
   </button>;
   const weeklyOverview = <WeeklyDashboard
     key={organization?.activeTeamId ?? "active-team"}
+    fieldMode={canManageClub && organization?.activeTeamId ? { owner: currentUser.id, teamId: organization.activeTeamId } : undefined}
     events={events} users={users} plans={plans} planMeta={planMeta} tournamentPlans={tournamentPlans} settings={clubSettings}
     firstName={firstName} teamName={activeTeamName}
     ageGroup={organization?.teams.find((team) => team.id === organization.activeTeamId)?.ageGroup ?? "f1"}
