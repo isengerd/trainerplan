@@ -46,7 +46,7 @@ export function ExerciseLibrary({ mode, exercises, initialPhase, canManage, onCl
   const [filterOpen, setFilterOpen] = useState(false);
   const [phase, setPhase] = useState<Phase | "">(mode === "pick" ? initialPhase ?? "" : "");
   const [category, setCategory] = useState("Alle Kategorien");
-  const [age, setAge] = useState(mode === "pick" ? "U9" : "");
+  const [age, setAge] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty | "">("");
   const [maxDuration, setMaxDuration] = useState(60);
   const [playerCount, setPlayerCount] = useState(22);
