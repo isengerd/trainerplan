@@ -3504,10 +3504,6 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 .field-details { border: 1px solid #cbdace; border-radius: 16px; padding: 0 16px; margin: 18px 0; background: #fff; }
 .field-details summary { padding: 17px 0; min-height: 52px; cursor: pointer; font-size: 16px; font-weight: 650; }
 .field-details li { padding-bottom: 6px; line-height: 1.5; }
-.field-mode .field-player-button { width: 100%; background: transparent; font-size: 15px; }
-.field-player-form { margin: 14px 0; padding: 16px; border: 1px solid #b8cec0; border-radius: 16px; background: #fff; }
-.field-player-form label { font-size: 16px; font-weight: 650; }
-.field-player-form input { display: block; width: 100%; padding: 14px; margin-top: 10px; border: 1px solid #b8cec0; border-radius: 10px; background: #fff; color: #172c22; font: inherit; font-size: 20px; }
 .field-controls { position: sticky; bottom: 0; z-index: 5; background: #f4f8f3f5; border-top: 1px solid #cbdace; padding: 14px 0 max(8px, env(safe-area-inset-bottom)); margin-top: 26px; }
 .field-controls > span { display: block; font-size: 14px; line-height: 1.4; margin-bottom: 10px; }
 .field-controls > button { width: 100%; min-height: 56px; font-size: 18px; }

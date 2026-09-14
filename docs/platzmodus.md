@@ -16,8 +16,8 @@ mit dem aktuellen Plan neu beginnen, ohne den alten Ablauf zu überschreiben.
 - Nächste Übung, Überspringen und Rückgängig. Horizontales Wischen in der
   Übungsfläche ist eine zusätzliche Bedienmöglichkeit; Buttons bleiben verfügbar.
   Bildschirmränder und interaktive Felder lösen keine Übungswechsel aus.
-- Spielerzahl ändern mit Hinweis auf die vorgesehene Größe der Übung. Keine
-  automatische, fachlich ungeprüfte Änderung der Übung oder Gruppeneinteilung.
+- Die vorgesehene Spielerzahl steht unter „Aufbau & Material“. Das Ändern der
+  Spielerzahl ist vorerst entfernt, bis eine sinnvolle Übungsanpassung umgesetzt ist.
 - Freiwillige Bewertung nach der Übung oder gesammelt am Ende. Bei „Schwierig“
   sind drei optionale Gründe verfügbar. Übersprungene Übungen müssen nicht bewertet
   werden. Diese Daten erzeugen noch keine automatischen Übungsempfehlungen.

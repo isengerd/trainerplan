@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pitch } from "./Pitch";
 import { materialCatalog } from "@/data/demo";
 import { pauseTimer, readFieldSession, remainingTime, saveFieldSession, syncFieldFeedback, type FieldSession } from "@/lib/field-mode";
-import { ArrowLeft, Check, Pause, Play, Plus, Users, WifiOff, Maximize2 } from "lucide-react";
+import { ArrowLeft, Check, Pause, Play, Plus, WifiOff, Maximize2 } from "lucide-react";
 
 const labels = ["😕 Schwierig", "🙂 Gut", "🤩 Richtig gut"];
 export function FieldMode() {
@@ -16,8 +16,6 @@ export function FieldMode() {
   const [last, setLast] = useState<number | null>(null);
   const [undo, setUndo] = useState<FieldSession | null>(null);
   const [zoom, setZoom] = useState(false);
-  const [changePlayers, setChangePlayers] = useState(false);
-  const [playerDraft, setPlayerDraft] = useState("");
   const [syncing, setSyncing] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const live = useRef(session); live.current = session;
@@ -119,11 +117,9 @@ export function FieldMode() {
       <button className="field-sketch" onClick={() => setZoom(true)} aria-label="Aufbauskizze vergrößern"><Pitch variant={exercise.variant} caption={exercise.fieldSize} /><span><Maximize2 size={17} /> Aufbau ansehen</span></button>
       <div className={`field-clock ${time < 0 ? "overtime" : ""}`}><span>{session.endAt === null ? session.started ? "PAUSE · DU GIBST DAS TEMPO VOR" : "GEPLANTE ÜBUNGSZEIT" : time < 0 ? "LÄUFT GERADE GUT? SPIELT WEITER." : "ZEIT FÜR DIESE ÜBUNG"}</span><strong role="timer" aria-label={`${clock} Minuten und Sekunden`}>{clock}</strong><div><button className="field-primary" onClick={() => setSession(session.endAt === null ? { ...session, started: true, endAt: Date.now() + session.remaining } : pauseTimer(session))}>{session.endAt === null ? <Play size={20} /> : <Pause size={20} />}{session.endAt !== null ? "Pause" : session.started ? "Weiter geht’s" : "Los geht’s"}</button><button onClick={() => setSession({ ...session, remaining: session.remaining + 120000, endAt: session.endAt === null ? null : session.endAt + 120000 })}><Plus size={18} /> 2 Minuten</button></div><small>Noch etwa {Math.ceil(totalRemaining / 60000)} Minuten im Plan</small></div>
       <section className="field-coaching"><h2>Darauf achten</h2><ul>{exercise.coaching.slice(0, 3).map((point, i) => <li key={i}><span>{i + 1}</span>{point}</li>)}</ul></section>
-      <details className="field-details"><summary>Aufbau & Material</summary><p>{exercise.setup}</p><ul>{exercise.materials.map(m => <li key={m.id}>{m.count} {materialCatalog[m.id].name}</li>)}</ul><p>{exercise.description}</p></details>
+      <details className="field-details"><summary>Aufbau & Material</summary><p>Spielerzahl: {exercise.players}</p><p>{exercise.setup}</p><ul>{exercise.materials.map(m => <li key={m.id}>{m.count} {materialCatalog[m.id].name}</li>)}</ul><p>{exercise.description}</p></details>
       {!session.started && <details className="field-details"><summary>Material für das ganze Training</summary><ul>{Object.entries(materialCatalog).map(([id, info]) => { const count = Math.max(...session.exercises.map(e => e.materials.find(m => m.id === id)?.count || 0)); return count ? <li key={id}>{count} {info.name}</li> : null; })}</ul><p>Material kann zwischen den Übungen wiederverwendet werden.</p></details>}
     </section>
-    <button className="field-player-button" onClick={() => { setPlayerDraft(String(session.players)); setChangePlayers(!changePlayers); }}><Users size={19} /> {session.players} Spieler · Anzahl ändern</button>
-    {changePlayers && <form className="field-player-form" onSubmit={e => { e.preventDefault(); const players = Number(playerDraft); if (!Number.isInteger(players) || players < 1 || players > 100) return; setSession({ ...session, players }); setChangePlayers(false); }}><label>Wie viele sind dabei?<input type="number" inputMode="numeric" min="1" max="100" required value={playerDraft} onChange={e => setPlayerDraft(e.target.value)} /></label><p>Diese Übung ist für {exercise.players} gedacht. Prüfe Gruppen und Wartezeiten – der Aufbau wird nicht automatisch verändert.</p><button type="submit">Anzahl übernehmen</button></form>}
     {last !== null && feedback(last)}
     <footer className="field-controls"><span>{session.index + 1 < session.exercises.length ? `Danach: ${session.exercises[session.index + 1].title}` : "Letzte Übung · guter Einsatz!"}</span><button className="field-primary" onClick={() => advance()}>{session.index + 1 < session.exercises.length ? "Nächste Übung" : "Training abschließen"}</button><div><button onClick={() => advance(true)}>Überspringen</button>{undo && <button onClick={() => { setSession({ ...undo, ratings: session.ratings, players: session.players }); setUndo(null); setLast(null); }}>Rückgängig</button>}</div></footer></>}
     {session.finished && <section className="field-finish"><span className="field-eyebrow">ABPFIFF FÜR HEUTE</span><h1 ref={heading} tabIndex={-1}>Guter Einsatz!</h1><p>{session.title} ist durch. Welche Spiele haben gezündet? Deine Rückmeldung ist freiwillig.</p>{session.exercises.map((e, index) => <div key={e.id}>{session.skipped.includes(e.id) ? <p>Übersprungen: {e.title}</p> : feedback(index)}</div>)}<a className="field-primary" href="/app">Zurück zur Mannschaft</a>{undo && <button onClick={() => { setSession({ ...undo, ratings: session.ratings, players: session.players }); setUndo(null); }}>Zur letzten Übung</button>}</section>}
