@@ -1,6 +1,6 @@
 type Player = { x: number; y: number; toX: number; toY: number; team: "yellow" | "blue" | "red" | "keeper"; delay?: number };
 type Route = { x1: number; y1: number; x2: number; y2: number; kind?: "run" | "ball" };
-type Scene = { title: string; players: Player[]; routes: Route[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean; zones?: { labels: [string, string] } };
+type Scene = { title: string; players: Player[]; routes: Route[]; balls?: { x: number; y: number }[]; ball?: { x: number; y: number; toX: number; toY: number }; goals?: { x: number; y: number; vertical?: boolean }[]; cones?: { x: number; y: number }[]; bridges?: { x: number; y: number; rotate?: number }[]; poleGates?: { x: number; y: number; rotate?: number; color?: string; active?: boolean }[]; river?: boolean; zones?: { labels: [string, string] } };
 
 const scenes: Scene[] = [
   {
@@ -204,6 +204,18 @@ const scenes: Scene[] = [
     cones: [{ x: 50, y: 18 }, { x: 50, y: 30 }, { x: 50, y: 42 }, { x: 50, y: 58 }, { x: 50, y: 70 }, { x: 50, y: 82 }],
     zones: { labels: ["ZONE A", "ZONE B"] },
   },
+  {
+    title: "Ballgefühl · jeder mit eigenem Ball",
+    players: [
+      { x: 28, y: 30, toX: 28, toY: 30, team: "yellow" },
+      { x: 72, y: 30, toX: 72, toY: 30, team: "yellow" },
+      { x: 28, y: 70, toX: 28, toY: 70, team: "yellow" },
+      { x: 72, y: 70, toX: 72, toY: 70, team: "yellow" },
+    ],
+    routes: [],
+    balls: [{ x: 30, y: 35 }, { x: 74, y: 35 }, { x: 30, y: 75 }, { x: 74, y: 75 }],
+    cones: [{ x: 12, y: 16 }, { x: 88, y: 16 }, { x: 12, y: 84 }, { x: 88, y: 84 }],
+  },
 ];
 
 type PitchProps = { variant?: number; animated?: boolean; label?: string; caption?: string };
@@ -224,6 +236,7 @@ export function Pitch({ variant = 0, animated = false, label, caption }: PitchPr
       {scene.poleGates?.map((gate, index) => <span key={`pole-gate-${index}`} className={`scene-pole-gate ${gate.active ? "active" : ""}`} style={{ left: `${gate.x}%`, top: `${gate.y}%`, transform: `translate(-50%, -50%) rotate(${gate.rotate ?? 0}deg)`, "--gate-color": gate.color ?? "#ffcf57" } as React.CSSProperties}><i /><b /></span>)}
       {scene.cones?.map((cone, index) => <span key={`cone-${index}`} className="scene-cone" style={{ left: `${cone.x}%`, top: `${cone.y}%` }} />)}
       {scene.players.map((player, index) => <span key={index} className={`scene-player team-${player.team}`} style={{ "--x": `${player.x}%`, "--y": `${player.y}%`, "--x2": `${player.toX}%`, "--y2": `${player.toY}%`, "--delay": `${player.delay ?? index * -.18}s` } as React.CSSProperties}><i /></span>)}
+      {scene.balls?.map((ball, index) => <span key={`ball-${index}`} className="scene-ball" style={{ "--x": `${ball.x}%`, "--y": `${ball.y}%`, "--x2": `${ball.x}%`, "--y2": `${ball.y}%` } as React.CSSProperties} />)}
       {scene.ball && <span className="scene-ball" style={{ "--x": `${scene.ball.x}%`, "--y": `${scene.ball.y}%`, "--x2": `${scene.ball.toX}%`, "--y2": `${scene.ball.toY}%` } as React.CSSProperties} />}
       <span className="scene-caption">{caption ?? scene.title}</span>
     </div>

@@ -1,0 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { parse } from 'dotenv';
+import { validateReleaseEnv } from './validate-release-env.mjs';
+const env = { ...process.env, ...parse(readFileSync(process.argv[3])) };
+for (const key of Object.keys(process.env).filter(key => key.startsWith('EXPECTED_') || key.startsWith('PRODUCTION_'))) env[key] = process.env[key];
+validateReleaseEnv(env, process.argv[2]);
+const result = spawnSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'deploy'], { env, stdio: 'inherit' });
+if (result.error) throw new Error('Migration konnte nicht gestartet werden.');
+process.exitCode = result.status ?? 1;

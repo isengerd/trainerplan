@@ -1,3 +1,4 @@
+import { assertEmailRecipient, publicAppOrigin } from "./app-environment";
 const FIREBASE_IDENTITY_URL = "https://identitytoolkit.googleapis.com/v1/accounts";
 
 type FirebaseErrorResponse = { error?: { message?: string } };
@@ -15,14 +16,11 @@ function firebaseApiKey() {
 }
 
 export function emailLinkContinueUrl() {
-  const configured = process.env.PUBLIC_APP_URL?.trim();
-  if (!configured) throw new Error("PUBLIC_APP_URL ist für den E-Mail-Link noch nicht konfiguriert.");
-  const url = new URL("/login/email-link", configured);
-  if (url.protocol !== "https:" && url.hostname !== "localhost") throw new Error("PUBLIC_APP_URL muss für E-Mail-Links HTTPS verwenden.");
-  return url.toString();
+  return new URL("/login/email-link", publicAppOrigin()).toString();
 }
 
 export async function requestFirebaseEmailLink(email: string) {
+  assertEmailRecipient(email);
   const response = await fetch(`${FIREBASE_IDENTITY_URL}:sendOobCode?key=${encodeURIComponent(firebaseApiKey())}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

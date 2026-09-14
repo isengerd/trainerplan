@@ -27,7 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: `if(navigator.userAgent.includes("TrainerplanNative/")){document.documentElement.classList.add("native-app",/iPhone|iPad|iPod/.test(navigator.userAgent)?"native-ios":"native-android")}` }} />
       </head>
-      <body><NativeAppBridge />{children}</body>
+      <body>{process.env.APP_ENV === "staging" && <div className="staging-banner" role="note">NextSession Test · Nur Testdaten verwenden</div>}<NativeAppBridge />{children}</body>
     </html>
   );
 }

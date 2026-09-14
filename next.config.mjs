@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: { NEXT_PUBLIC_RELEASE_SHA: process.env.RELEASE_SHA || "local" },
   // Docker benötigt den Standalone-Server; Vercel erzeugt seine Functions selbst.
   output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
@@ -17,6 +18,7 @@ const nextConfig = {
     ].join("; ");
 
     const securityHeaders = [
+      ...(process.env.APP_ENV === "staging" ? [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }] : []),
       { key: "Content-Security-Policy", value: contentSecurityPolicy },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "X-Content-Type-Options", value: "nosniff" },

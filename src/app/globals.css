@@ -3529,3 +3529,5 @@ html[data-theme="light"] .app-shell :is(button, a, input, select, textarea):focu
 @media (hover: hover) { .field-mode button:hover { border-color: #277d47; filter: brightness(.96); } .field-launch-button:hover { background: #12542f; } }
 @media (max-width: 420px) { .field-mode { padding-left: 16px; padding-right: 16px; } .field-connection { max-width: 80px; flex-wrap: wrap; } .field-feedback button { white-space: normal; } }
 @media (prefers-reduced-motion: reduce) { .field-mode * { animation: none !important; scroll-behavior: auto !important; } }
+
+.staging-banner { padding: max(8px, env(safe-area-inset-top)) 16px 8px; background: #fff0bb; color: #483300; text-align: center; font: 600 14px/1.5 system-ui, sans-serif; }

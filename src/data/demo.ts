@@ -400,7 +400,23 @@ const importedExercises: Exercise[] = [
   { id: "haifischbecken", title: "Haifischbecken", description: "Haie ohne Ball versuchen, die Bälle der dribbelnden Kinder kontrolliert aus dem Feld zu spielen.", duration: 10, players: "8–20", ageGroup: "F-Jugend", ageRange: "U8/U9", category: "Einstieg", accent: "#58a6ff", intensity: "Hoch", focus: ["Ballbehauptung", "Dribbling", "Orientierung"], setup: "Ein 25 × 20 m großes Feld markieren. Zwei bis drei Haie tragen Leibchen und starten ohne Ball; alle anderen dribbeln. Spielt ein Hai einen Ball aus dem Feld, holt das Kind ihn, macht außerhalb fünf kontrollierte Kontakte und steigt wieder ein. Nach 60–90 Sekunden neue Haie bestimmen.", coaching: ["Körper zwischen Hai und Ball bringen", "Freie Räume früh anlaufen", "Haie greifen nur den Ball an", "Niemand scheidet dauerhaft aus"], variations: ["Haie dribbeln ebenfalls", "Sichere Inseln ergänzen", "Mehrere kurze Fangfelder aufbauen"], materials: [{ id: "balls", count: 20 }, { id: "cones", count: 8 }, { id: "bibs", count: 3 }], fieldSize: "25 × 20 m", variant: 12 },
 ];
 
-export const library: Exercise[] = [...baseLibrary, ...importedExercises].map((exercise) => ({
+// Eigener Ablaufvorschlag zum verlinkten Technikvideo; keine zehn Pflichtstationen.
+const videoTechniqueBlock: Exercise = {
+  id: "ballgefuehl-technik-360football",
+  title: "Ballgefühl: Technik mit deinem Ball",
+  description: "Kurzer Technikblock zur Videosammlung von 360Football: Jedes Kind übt mit eigenem Ball. Zwei bis drei Aufgaben reichen für heute!",
+  duration: 10, players: "4–16", ageGroup: "F-Jugend", ageRange: "U8/U9",
+  category: "Einstieg", accent: "#58a6ff", intensity: "Niedrig",
+  focus: ["Ballkontrolle", "Dribbling", "Koordination", "Beidfüßigkeit"],
+  setup: "Ein 20 × 20 m großes Feld markieren. Jedes Kind bekommt einen Ball und mindestens zwei Meter Abstand zu den anderen. Vorher zwei bis drei passende Aufgaben aus dem Video auswählen und kurz vormachen. Jeweils etwa 30 Sekunden üben, dann locker dribbeln und erneut probieren. Für einen einfachen Start den Ball zwischen den Innenseiten pendeln oder mit der Sohle kontrolliert bewegen. Erst sicher am Platz, dann langsam in Bewegung. Ablauf, Dauer und Feldgröße sind unser Vorschlag für die Mannschaft; das Originalvideo zeigt zehn Aufgaben für F- und E-Jugend.",
+  coaching: ["Kleine Kontakte – der Ball bleibt bei dir!", "Probier beide Füße aus!", "Erst sauber, dann schneller!"],
+  variations: ["Leichter: Nur eine Bewegung wählen und ohne Zeitdruck wiederholen.", "Schwerer: Eine sichere Bewegung langsam vorwärts und rückwärts ausführen.", "Für die E-Jugend: Eine passende Slalomaufgabe aus dem Video ab 4:52 ergänzen; zusätzliche Hütchen und ausreichend Abstand einplanen."],
+  materials: [{ id: "balls", count: 16 }, { id: "cones", count: 4 }],
+  fieldSize: "20 × 20 m", variant: 33,
+  youtubeUrl: "https://www.youtube.com/watch?v=r1VAlbdJ-J8",
+};
+
+export const library: Exercise[] = [...baseLibrary, ...importedExercises, videoTechniqueBlock].map((exercise) => ({
   ...exercise,
   ...reviewedContent[exercise.id],
   variations: reviewedVariations[exercise.id] ?? exercise.variations,

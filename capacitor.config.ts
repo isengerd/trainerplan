@@ -1,11 +1,14 @@
 import "dotenv/config";
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const serverUrl = process.env.CAPACITOR_SERVER_URL?.trim() || process.env.PUBLIC_APP_URL?.trim();
+import { mobileEnvironment } from "./src/lib/mobile-environment";
+
+const mobile = mobileEnvironment();
+const serverUrl = mobile.serverUrl;
 
 const config: CapacitorConfig = {
-  appId: "de.nextsession.kids",
-  appName: "NextSession Kids!",
+  appId: mobile.appId,
+  appName: mobile.appName,
   appendUserAgent: "TrainerplanNative/1.0",
   webDir: ".capacitor-web",
   ...(serverUrl ? {
@@ -16,10 +19,12 @@ const config: CapacitorConfig = {
   } : {}),
   backgroundColor: "#0a1f0f",
   ios: {
+    path: mobile.iosPath,
     contentInset: "never",
     scrollEnabled: true,
   },
   android: {
+    path: mobile.androidPath,
     backgroundColor: "#0a1f0f",
     allowMixedContent: false,
   },

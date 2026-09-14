@@ -1,3 +1,4 @@
+import { assertEmailRecipient } from "./app-environment";
 import nodemailer from "nodemailer";
 import { mailSubject } from "./output-encoding";
 
@@ -26,6 +27,7 @@ export function smtpTransport() {
 }
 
 export async function sendInvitationMail(input: { to: string; name: string; inviter: string; clubName: string; link: string }) {
+  assertEmailRecipient(input.to);
   const transport = smtpTransport();
   const greeting = input.name ? `Hallo ${input.name},` : "Hallo,";
   await transport.sendMail({
@@ -37,6 +39,7 @@ export async function sendInvitationMail(input: { to: string; name: string; invi
 }
 
 export async function sendEmailChangeMail(input: { to: string; name: string; link: string; requestedBy?: string }) {
+  assertEmailRecipient(input.to);
   const transport = smtpTransport();
   await transport.sendMail({
     from: process.env.SMTP_FROM,
@@ -47,6 +50,7 @@ export async function sendEmailChangeMail(input: { to: string; name: string; lin
 }
 
 export async function sendEventMail(input: { to: string; name: string; actor: string; action: "created" | "updated" | "cancelled" | "restored" | "deleted"; event: { title: string; date: string; startTime: string; meetingTime: string; location: string; address?: string }; link: string }) {
+  assertEmailRecipient(input.to);
   const transport = smtpTransport();
   const date = new Date(`${input.event.date}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
   const action = input.action === "created" ? "erstellt" : input.action === "updated" ? "aktualisiert" : input.action === "cancelled" ? "abgesagt" : input.action === "restored" ? "wieder freigegeben" : "gelöscht";

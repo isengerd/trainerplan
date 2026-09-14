@@ -1,0 +1,96 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Zielumgebung (zuerst staging, danach derselbe Commit nach production)
+        type: choice
+        options: [staging, production]
+        required: true
+      reviewed:
+        description: Staging getestet, Migration geprüft und Produktionsbackup bestätigt
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  deployments: read
+concurrency:
+  group: nextsession-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://test:test@127.0.0.1:5432/test
+      AUTH_PROVIDER: legacy
+      NEXT_PUBLIC_AUTH_PROVIDER: legacy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:ci
+      - run: npm run build
+      - name: Require successful staging for this exact commit
+        if: inputs.target == 'production'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REVIEWED: ${{ inputs.reviewed }}
+        run: node scripts/verify-staging-release.mjs
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.target }}
+    env:
+      RELEASE_TARGET: ${{ inputs.target }}
+      RELEASE_SHA: ${{ github.sha }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      EXPECTED_DATABASE_HOST: ${{ vars.DATABASE_HOST }}
+      EXPECTED_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      EXPECTED_FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      PRODUCTION_DATABASE_HOST: ${{ vars.PRODUCTION_DATABASE_HOST }}
+      PRODUCTION_FIREBASE_PROJECT_ID: ${{ vars.PRODUCTION_FIREBASE_PROJECT_ID }}
+      PRODUCTION_VERCEL_PROJECT_ID: ${{ vars.PRODUCTION_VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check project separation
+        run: |
+          node --input-type=module -e '
+            const e = process.env;
+            for (const key of ["VERCEL_TOKEN", "VERCEL_ORG_ID", "VERCEL_PROJECT_ID", "PRODUCTION_VERCEL_PROJECT_ID"]) if (!e[key]) throw new Error(`${key} fehlt`);
+            if ((e.RELEASE_TARGET === "production") !== (e.VERCEL_PROJECT_ID === e.PRODUCTION_VERCEL_PROJECT_ID)) throw new Error("Falsches Vercel-Projekt");
+          '
+      - name: Pull target project configuration
+        run: npx --yes vercel@59.16.0 pull --yes --environment=production --token "$VERCEL_TOKEN"
+      - name: Validate resource identities
+        run: node scripts/validate-release-env.mjs "$RELEASE_TARGET" .vercel/.env.production.local
+      - name: Build before changing the database
+        run: npx --yes vercel@59.16.0 build --prod --token "$VERCEL_TOKEN"
+      - name: Apply reviewed migrations to the verified target
+        run: node scripts/migrate-release.mjs "$RELEASE_TARGET" .vercel/.env.production.local
+      - name: Publish to the target project
+        run: npx --yes vercel@59.16.0 deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN"
+      - name: Verify live health and revision
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/check-release-health.mjs
+      - name: Remove downloaded credentials
+        if: always()
+        run: rm -rf .vercel

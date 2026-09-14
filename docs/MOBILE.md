@@ -1,5 +1,9 @@
 # NextSession Kids! für iOS und Android
 
+> Für die Vereinsbeta gilt jetzt [Produktion, Staging und Releases](environments-and-releases.md).
+> Die folgenden Schritte beschreiben die ursprüngliche Einzelumgebung; insbesondere
+> keine bestehende Produktions-Env überschreiben oder Test-App auf Produktionsressourcen richten.
+
 Die native App verwendet Capacitor und lädt die produktive Next.js-Anwendung über HTTPS. Dadurch bleiben Web-App, API und mobile App auf derselben Origin; die vorhandene HTTP-only-Cookie-Sitzung funktioniert unverändert.
 
 ## Voraussetzungen

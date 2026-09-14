@@ -1,5 +1,9 @@
 # Kostenloses Deployment mit Vercel und Neon
 
+> Für die Vereinsbeta gilt jetzt [Produktion, Staging und Releases](environments-and-releases.md).
+> Die folgenden Schritte beschreiben die ursprüngliche Einzelumgebung; insbesondere
+> keine bestehende Produktions-Env überschreiben oder Test-App auf Produktionsressourcen richten.
+
 Die Anwendung läuft als Next.js-Projekt auf Vercel. PostgreSQL wird von Neon verwaltet; lokal muss dafür kein Datenbankserver betrieben werden. Vercel Functions und Neon sollten beide in Frankfurt laufen.
 
 ## 1. Neon-Datenbank anlegen

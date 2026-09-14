@@ -1,12 +1,14 @@
+import { appEnvironment } from "./app-environment";
 import { prisma } from "./db";
 import { firebaseAdminConfigured, firebaseAdminMessaging } from "./firebase-admin";
 
 function firebaseMessaging() {
+  if (appEnvironment() === "staging" && process.env.STAGING_PUSH_ENABLED !== "true") return null;
   return firebaseAdminMessaging();
 }
 
 export function pushStatus() {
-  return { configured: firebaseAdminConfigured() };
+  return { configured: firebaseAdminConfigured() && (appEnvironment() !== "staging" || process.env.STAGING_PUSH_ENABLED === "true") };
 }
 
 export async function sendPushToUsers(input: { userIds: string[]; title: string; body: string; eventId?: string }) {
