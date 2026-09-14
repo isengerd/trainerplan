@@ -90,7 +90,18 @@ kurzzeitig auf einen flüchtigen Runner, prüft Ressourcen, baut und migriert. K
 Die Token-/Provider-Berechtigungen sind die tatsächliche Sicherheitsgrenze: Ein
 Administrator mit direktem Vercel-Zugriff kann den Workflow umgehen.
 
-## Täglicher Ablauf
+## Übergang: automatische Veröffentlichung bleibt aktiv
+
+Bis Staging und der Release-Workflow vollständig eingerichtet und erfolgreich
+geprüft sind, bleibt Vercels Git-Integration aktiv (`git.deploymentEnabled: true`).
+Pushes auf `main` veröffentlichen weiterhin auf nextsession.de. Die unten
+beschriebene Produktionsfreigabe schützt diesen bisherigen Git-Deployment-Weg
+noch nicht. Den manuellen Produktionsworkflow nicht parallel verwenden.
+
+Erst nach einem erfolgreichen Staging-Durchlauf und vollständiger Konfiguration
+die automatische Veröffentlichung abschalten und auf den folgenden Ablauf wechseln.
+
+## Geplanter täglicher Ablauf nach der Umstellung
 
 1. Feature-Branch erstellen, lokal entwickeln, Pull Request öffnen.
 2. `Checks` führt Tests und Build ohne Cloud-Zugangsdaten aus.
